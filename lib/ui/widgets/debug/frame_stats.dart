@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:collection/collection.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
@@ -50,7 +51,7 @@ class _FrameStatsState extends State<FrameStats> {
       type: MaterialType.transparency,
       child: IgnorePointer(
         child: TweenAnimationBuilder(
-          duration: Durations.extralong4,
+          duration: kDebugMode ? Durations.short2 : Durations.extralong4,
           curve: Curves.linearToEaseOut,
           tween: Tween(end: 1000 / _avgTotal),
           builder: (_, t, _) => Container(
@@ -66,8 +67,8 @@ class _FrameStatsState extends State<FrameStats> {
               textAlign: .end,
               style: TextStyle(
                 fontSize: 6,
-                fontFamily: "Consolas",
-                fontWeight: .w900,
+                fontFamily: "Torus",
+                fontWeight: .w600,
                 color: Color.lerp(Colors.red, Colors.green, t / displayRate),
                 height: 1,
               ),

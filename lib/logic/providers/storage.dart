@@ -1,7 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flosu/core/extensions.dart';
 import 'package:flosu/models/storage/storage.dart';
 import 'package:flosu/logic/services/storage.dart';
 import 'package:flosu/logic/providers/router.dart';
@@ -27,9 +26,7 @@ class StorageNotifier extends Notifier<Storage> {
     state = state.copyWith(beatmapsPath: result);
 
     //Force reload of beatmaps library
-    "Beatmaps path updated. Refreshing...".log;
     final context = rootNavigatorKey.currentContext!;
-
     if (context.mounted) context.go("/splash");
 
     //Update internal state asyncronously
@@ -38,12 +35,10 @@ class StorageNotifier extends Notifier<Storage> {
 
   void clearBeatmapsPath() {
     //Update provider state syncronously
-    state = state.copyWith(beatmapsPath: null);
+    state = state.copyWith(beatmapsPath: null, keepLastBeatmapsPath: false);
 
     //Force reload of beatmaps library
-    "Beatmaps path removed. Refreshing...".log;
     final context = rootNavigatorKey.currentContext!;
-
     if (context.mounted) context.go("/splash");
 
     //Update internal state asyncronously

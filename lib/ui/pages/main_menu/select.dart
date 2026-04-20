@@ -1,11 +1,11 @@
 import 'dart:math';
 
+import 'package:flosu/logic/providers/library.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flosu/core/extensions.dart';
 import 'package:flosu/logic/providers/audio.dart';
-import 'package:flosu/providers/beatmap_service.dart';
 import 'package:flosu/ui/shared/animatable_page.dart';
 import 'package:flosu/ui/widgets/common/skewed_box.dart';
 import 'package:flosu/ui/widgets/common/osu_logo.dart';
@@ -18,32 +18,19 @@ class MainSelectPage extends AnimatablePage {
 }
 
 class _MainSelectPageState extends AnimatablePageState<MainSelectPage> {
-  late final Ticker _ticker;
-
   @override
   void initState() {
-    _ticker = Ticker(_getLastPointers)..start();
     SchedulerBinding.instance.addPostFrameCallback((_) => _playMusic());
     super.initState();
-  }
-
-  @override
-  dispose() {
-    _ticker.stop();
-    super.dispose();
   }
 
   void _playMusic() async {
     final audio = ref.read(audioProvider.notifier);
     if (audio.playing) return;
 
-    final beatmap = ref.read(beatmapService.notifier).getRandomBeatmap();
+    final beatmap = ref.read(libraryProvider.notifier).getRandom();
 
     if (beatmap != null) await audio.preview(beatmap);
-  }
-
-  void _getLastPointers(_) {
-    if (mounted) setState(() {});
   }
 
   @override

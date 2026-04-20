@@ -236,6 +236,7 @@ class SettingsDrawer extends ConsumerWidget {
   }
 }
 
+//TODO: MOVE OUTSIDE THIS FILE
 class SettingsDivider extends StatelessWidget {
   const SettingsDivider({super.key});
 
@@ -245,7 +246,6 @@ class SettingsDivider extends StatelessWidget {
   }
 }
 
-//TODO: MODIFY
 class SettingsSection extends StatelessWidget {
   const SettingsSection({
     super.key,

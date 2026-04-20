@@ -12,13 +12,14 @@ class Reescalable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final screen = MediaQuery.sizeOf(context);
+    final pixelRatio = MediaQuery.devicePixelRatioOf(context);
 
     final scaleX = screen.width / toSize.width;
     final scaleY = screen.height / toSize.height;
 
     final scale = scaleX < scaleY ? scaleX : scaleY;
 
-    final screenScaled = screen / scale;
+    final screenScaled = screen / scale / pixelRatio;
 
     //Envolve the screen in a [SizedBox] with the size of the window,
     //[FittedBox] scales the resolution
@@ -29,7 +30,7 @@ class Reescalable extends StatelessWidget {
       child: SizedBox.fromSize(
         size: screen,
         child: AspectRatio(
-          aspectRatio: 9.0 / 16.0,
+          aspectRatio: screen.aspectRatio,
           child: FittedBox(
             key: const Key("Reescalable key"),
             child: SizedBox.fromSize(size: screenScaled, child: child),

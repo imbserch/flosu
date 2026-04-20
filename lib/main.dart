@@ -1,8 +1,10 @@
 import 'dart:developer' as dev;
 import 'dart:math';
 
+import 'package:flosu/logic/services/library.dart';
+import 'package:flosu/ui/widgets/overlay/tooltip.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart' hide Slider, MouseCursor;
+import 'package:flutter/material.dart' hide Slider, MouseCursor, Tooltip;
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logger/logger.dart';
@@ -41,6 +43,7 @@ void main() async {
   //Start services that needs initialization
   await AudioService.instance.init();
   await StorageService.instance.init();
+  await LibraryService.instance.init();
 
   runApp(const ProviderScope(child: MainApp()));
 }
@@ -69,6 +72,7 @@ class _MainAppState extends ConsumerState<MainApp> {
           children: [
             (child ?? const SizedBox.shrink()).hiddenCursor,
             const RepaintBoundary(child: MouseCursor()),
+            const Tooltip(),
             const Align(
               alignment: .bottomRight,
               child: RepaintBoundary(child: FrameStats()),

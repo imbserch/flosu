@@ -1,3 +1,3 @@
-# flosu
+# Flosu!
 
-A new Flutter project.
+An osu! made with Flutter

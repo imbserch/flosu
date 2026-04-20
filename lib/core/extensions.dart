@@ -1,3 +1,5 @@
+import 'package:collection/collection.dart';
+import 'package:flosu/models/beatmap/beatmap.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flosu/models/mods/base.dart';
@@ -42,8 +44,10 @@ extension BCExtension on BuildContext {
   /// The uniform scale factor (minimum of X and Y) to maintain aspect ratio.
   double get scale => scaleX < scaleY ? scaleX : scaleY;
 
+  double get pixelRatio => MediaQuery.devicePixelRatioOf(this);
+
   /// Returns the screen size adjusted by the current scale factor.
-  Size get screenScaled => screenSize / scale;
+  Size get screenScaled => screenSize / scale / pixelRatio;
 }
 
 /// Extension to format [Duration] into a human-readable string (HH:MM:SS).
@@ -80,6 +84,11 @@ extension KeysExtension on Set<LogicalKeyboardKey> {
 
 extension OffsetExtension on Offset {
   Offset abs() => Offset(dx.abs(), dy.abs());
+}
+
+extension BeatmapGroups on Iterable<Beatmap> {
+  List<List<Beatmap>> get asGroups =>
+      groupListsBy((beatmap) => beatmap.info.title).values.toList();
 }
 
 /// Helper to find mods within a collection of [ConfigurableMod].

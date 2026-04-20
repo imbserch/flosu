@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:collection/collection.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flosu/logic/providers/library.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:go_router/go_router.dart';
@@ -11,7 +12,6 @@ import 'package:flosu/models/beatmap/beatmap.dart';
 import 'package:flosu/models/replay/replay.dart';
 import 'package:flosu/models/mods/base.dart';
 import 'package:flosu/io/replay_parser.dart';
-import 'package:flosu/providers/beatmap_service.dart';
 import 'package:flosu/logic/providers/router.dart';
 
 class GameplayService extends StateNotifier<GameplayData> {
@@ -84,8 +84,7 @@ class GameplayService extends StateNotifier<GameplayData> {
 
     //Widget is unsafe, calling from root navigator
     final beatmap = globalRef
-        .read(beatmapService)
-        .beatmaps
+        .read(libraryProvider)
         .firstWhereOrNull((bm) => bm.hash == replay.hash);
 
     if (beatmap == null) return;

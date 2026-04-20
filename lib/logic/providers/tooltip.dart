@@ -1,11 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/legacy.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class TooltipService extends StateNotifier<({Widget? content, bool hidden})> {
-  TooltipService() : super((content: null, hidden: true));
-
+class TooltipProvider extends Notifier<({Widget? content, bool hidden})> {
   Timer? _changeTimer;
 
   void showTooltip(Widget content) {
@@ -21,6 +19,9 @@ class TooltipService extends StateNotifier<({Widget? content, bool hidden})> {
       () => state = (content: null, hidden: true),
     );
   }
+
+  @override
+  ({Widget? content, bool hidden}) build() => (content: null, hidden: true);
 }
 
-final tooltipService = StateNotifierProvider((_) => TooltipService());
+final tooltipProvider = NotifierProvider(() => TooltipProvider());

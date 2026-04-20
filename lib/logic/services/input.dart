@@ -35,7 +35,9 @@ class InputService {
   }
 
   void _handlePointer(gestures.PointerEvent event) {
-    final scale = rootNavigatorKey.currentContext!.scale;
+    final scale =
+        rootNavigatorKey.currentContext!.scale *
+        rootNavigatorKey.currentContext!.pixelRatio;
     final position = event.position;
     final scroll = event is gestures.PointerScrollEvent
         ? event.scrollDelta

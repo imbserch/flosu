@@ -8,7 +8,7 @@ import 'package:flosu/core/theme/app_colors.dart';
 import 'package:flosu/models/mods/base.dart';
 import 'package:flosu/core/extensions.dart';
 import 'package:flosu/logic/gameplay_service.dart';
-import 'package:flosu/providers/tooltip_service.dart';
+import 'package:flosu/logic/providers/tooltip.dart';
 import 'package:flosu/ui/shared/animatable_page.dart';
 import 'package:flosu/ui/widgets/common/skewed_box.dart';
 
@@ -362,7 +362,7 @@ class ModItem extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tooltipManager = ref.read(tooltipService.notifier);
+    final tooltipManager = ref.read(tooltipProvider.notifier);
 
     return TweenAnimationBuilder(
       tween: Tween(end: selected ? 1.0 : 0.0),

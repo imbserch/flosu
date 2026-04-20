@@ -1,9 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flosu/core/extensions.dart';
 import 'package:flosu/models/storage/storage.dart';
-import 'package:flosu/logic/providers/router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class StorageService {
@@ -23,8 +21,6 @@ class StorageService {
 
   SharedPreferences? _prefs;
 
-  String? getBeatmapsPath() => _prefs!.getString("beatmaps_path");
-
   Storage getInitialStorage() {
     return Storage(
       beatmapsPath: _prefs!.getString("beatmaps_path"),
@@ -39,16 +35,6 @@ class StorageService {
       backgroundBlur: _prefs!.getDouble("background_blur") ?? 0.0,
       showCursorTrail: _prefs!.getBool("show_cursor_trail") ?? true,
     );
-  }
-
-  Future<void> clearBeatmapsPath() async {
-    await _prefs!.remove("beatmaps_path");
-
-    //Force reload of beatmaps library
-    "Beatmaps path removed. Refreshing...".log;
-    final context = rootNavigatorKey.currentContext!;
-
-    if (context.mounted) context.go("/splash");
   }
 
   Future<void> setAudioCompensation(int compensation) async {
@@ -97,7 +83,7 @@ class StorageService {
       return;
     }
 
-    await _prefs!.setString(path, "beatmaps_path");
+    await _prefs!.setString("beatmaps_path", path);
   }
 }
 

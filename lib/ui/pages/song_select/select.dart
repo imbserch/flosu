@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'dart:ui';
 
+import 'package:flosu/logic/providers/library.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide PointerEvent;
 import 'package:flutter/services.dart' hide PointerEvent;
@@ -16,7 +17,6 @@ import 'package:flosu/models/inputs/inputs.dart';
 import 'package:flosu/logic/providers/router.dart';
 import 'package:flosu/ui/shared/animatable_page.dart';
 import 'package:flosu/ui/widgets/beatmap/current_beatmap_info.dart';
-import 'package:flosu/providers/beatmap_service.dart';
 import 'package:flosu/ui/widgets/common/skewed_box.dart';
 import 'package:flosu/ui/widgets/common/osu_logo.dart';
 import 'package:flosu/ui/widgets/common/skewed_button_line.dart';
@@ -68,9 +68,10 @@ class _SongSelectPageState extends AnimatablePageState<SongSelectPage> {
 
     if (beatmap == null) return null;
 
-    final groupIndex = groups.indexWhere(
-      (group) => group.any((bm) => bm == beatmap),
-    );
+    final groupIndex = ref
+        .read(libraryProvider)
+        .asGroups
+        .indexWhere((group) => group.any((bm) => bm == beatmap));
 
     return groupIndex != -1 ? groupIndex : 0;
   }
@@ -96,12 +97,11 @@ class _SongSelectPageState extends AnimatablePageState<SongSelectPage> {
     _lastKeys = keys.toSet();
   }
 
-  List<List<Beatmap>> get groups => ref.read(beatmapService).asGroups;
-
   void _setBeatmap(Beatmap beatmap, [bool skipScroll = false]) async {
-    final groupIndex = groups.indexWhere(
-      (group) => group.any((bm) => bm == beatmap),
-    );
+    final groupIndex = ref
+        .read(libraryProvider)
+        .asGroups
+        .indexWhere((group) => group.any((bm) => bm == beatmap));
 
     if (groupIndex != -1) {
       if (!skipScroll) _scrollTo(groupIndex);
@@ -112,7 +112,7 @@ class _SongSelectPageState extends AnimatablePageState<SongSelectPage> {
   }
 
   void _playRandom() async {
-    final bm = ref.read(beatmapService.notifier).getRandomBeatmap();
+    final bm = ref.read(libraryProvider.notifier).getRandom();
     if (bm != null) _setBeatmap(bm);
   }
 
@@ -135,7 +135,7 @@ class _SongSelectPageState extends AnimatablePageState<SongSelectPage> {
 
   @override
   Widget buildPage(BuildContext context, double animProgress) {
-    final matches = ref.watch(beatmapService).asGroups;
+    final matches = ref.watch(libraryProvider).asGroups;
 
     return Stack(
       fit: .expand,
