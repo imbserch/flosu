@@ -1,0 +1,13 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  errors:
+    deprecated_member_use: warning
+
+linter:
+  rules:
+    provide_deprecation_message: true
+    prefer_const_constructors: true
+    prefer_const_declarations: true
+    sort_constructors_first: true
+    unnecessary_const: true
