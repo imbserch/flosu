@@ -35,7 +35,7 @@ class _SongSelectPageState extends AnimatablePageState<SongSelectPage> {
   final _sCon = TextEditingController();
 
   Set<LogicalKeyboardKey> _lastKeys = {};
-  late int _currentIdx = _getCurrentIndex() ?? -1;
+  late int _currentIdx = _getCurrentIndex() ?? 0;
   Timer? _updateTimer;
   List<ItemPosition> _itemPositions = [];
 

@@ -5,9 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flosu/core/extensions.dart';
 
 class TopBar extends ConsumerStatefulWidget {
-  const TopBar({super.key, required this.onSettingsTap});
+  const TopBar({
+    super.key,
+    required this.onSettingsTap,
+    required this.onNotificationsTap,
+  });
 
-  final VoidCallback onSettingsTap;
+  final VoidCallback onSettingsTap, onNotificationsTap;
 
   @override
   ConsumerState<TopBar> createState() => _TopBarState();
@@ -125,7 +129,7 @@ class _TopBarState extends ConsumerState<TopBar> {
             ),
             const SizedBox(width: 8),
             IconButton(
-              onPressed: () {},
+              onPressed: widget.onNotificationsTap,
               icon: const Badge(
                 isLabelVisible: true,
                 smallSize: 4,

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flosu/ui/widgets/navigation/notifications_drawer.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart' hide PointerEvent;
 import 'package:flutter/material.dart' hide PointerEvent;
@@ -41,7 +42,8 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
   Set<LogicalKeyboardKey> _lastKeys = {};
 
   ScaffoldState? get scaffold => _scaffoldKey.currentState;
-  bool get isDrawerOpen => scaffold?.isDrawerOpen ?? false;
+  bool get isSettingsOpen => scaffold?.isDrawerOpen ?? false;
+  bool get isNotificationsOpen => scaffold?.isEndDrawerOpen ?? false;
 
   @override
   initState() {
@@ -67,14 +69,21 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
       _updateVolume(keys.isAltPressed, pointer);
     }
 
-    //If CTRL+T pressed and keys state changed, toggle drawer
+    //If CTRL+T pressed and keys state changed, toggle top bar
     if (keys.isCtrlPressed && keys.changedAndPressed("T", _lastKeys)) {
       _toggleTopBar();
     }
 
     //If CTRL+O pressed and keys state changed, toggle drawer
     if (keys.isCtrlPressed && keys.changedAndPressed("O", _lastKeys)) {
-      isDrawerOpen ? scaffold?.closeDrawer() : scaffold?.openDrawer();
+      isSettingsOpen ? scaffold?.closeDrawer() : scaffold?.openDrawer();
+    }
+
+    //If CTRL+N pressed and keys state changed, toggle notifications drawer
+    if (keys.isCtrlPressed && keys.changedAndPressed("N", _lastKeys)) {
+      isNotificationsOpen
+          ? scaffold?.closeEndDrawer()
+          : scaffold?.openEndDrawer();
     }
 
     _lastKeys = keys.toSet();
@@ -117,9 +126,14 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
       onDrawerChanged: (_) {
         if (mounted) setState(() {});
       },
-      onEndDrawerChanged: (_) {},
+      onEndDrawerChanged: (_) {
+        if (mounted) setState(() {});
+      },
       drawer: SettingsDrawer(
-        onClose: () => isDrawerOpen ? scaffold?.closeDrawer() : null,
+        onClose: () => isSettingsOpen ? scaffold?.closeDrawer() : null,
+      ),
+      endDrawer: NotificationsDrawer(
+        onClose: () => isNotificationsOpen ? scaffold?.closeEndDrawer() : null,
       ),
       body: Stack(
         fit: .expand,
@@ -128,7 +142,13 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
           TweenAnimationBuilder(
             duration: Durations.medium1,
             curve: Curves.easeOut,
-            tween: Tween(end: isDrawerOpen ? 32.0 : 0.0),
+            tween: Tween(
+              end: isSettingsOpen
+                  ? 32.0
+                  : isNotificationsOpen
+                  ? -32.0
+                  : 0.0,
+            ),
             builder: (_, t, child) =>
                 Transform.translate(offset: Offset(t, 0), child: child),
             child: Column(
@@ -147,7 +167,10 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
                         child: child,
                       ),
                     ),
-                    child: TopBar(onSettingsTap: () => scaffold?.openDrawer()),
+                    child: TopBar(
+                      onSettingsTap: () => scaffold?.openDrawer(),
+                      onNotificationsTap: () => scaffold?.openEndDrawer(),
+                    ),
                   ),
                 ),
                 Expanded(child: widget.child),

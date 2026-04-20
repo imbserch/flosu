@@ -3,6 +3,7 @@ import 'dart:isolate';
 import 'dart:math';
 
 import 'package:flosu/core/extensions.dart';
+import 'package:flosu/logic/providers/notifications.dart';
 import 'package:flosu/logic/providers/storage.dart';
 import 'package:flosu/logic/services/library.dart';
 import 'package:flosu/models/beatmap/beatmap.dart';
@@ -23,6 +24,9 @@ class LibraryProvider extends Notifier<List<Beatmap>> {
   }
 
   late final LibraryService _service;
+  late final NotificationProvider _notificationProvider = ref.read(
+    notificationProvider.notifier,
+  );
 
   void _listenChanges(_, String? path) async {
     if (path == null) {
@@ -41,10 +45,18 @@ class LibraryProvider extends Notifier<List<Beatmap>> {
           .whereType<File>()
           .where((file) => file.path.endsWith(".osu"));
 
+      _notificationProvider.add(
+        "Updating beatmaps",
+        "Reading files from library...",
+      );
+
       final futures = files.map(_service.getBeatmapFromFile);
       final beatmaps = await Isolate.run(() => Future.wait(futures));
 
-      "Beatmaps updated".log;
+      _notificationProvider.add(
+        "Beatmaps updated",
+        "Finished reading files from library",
+      );
 
       state = beatmaps.nonNulls.toList();
     } catch (err) {

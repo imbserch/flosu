@@ -2,6 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_soloud/flutter_soloud.dart';
 
+//TODO: REIMPLEMENT AND MOVE INTO LOGIC FOLDER, THIS IS A SERVICE, NOT A PROVIDER
 class SampleService {
   final _instance = SoLoud.instance;
 
@@ -11,7 +12,7 @@ class SampleService {
     if (_handles.any((a) => a.path == path)) return null;
 
     final sound = await _instance.loadFile(path, mode: .memory);
-    final handle =  _instance.play(sound, volume: volume, paused: true);
+    final handle = _instance.play(sound, volume: volume, paused: true);
 
     final res = AudioHandle(path, handle, sound);
     _handles.add(res);
