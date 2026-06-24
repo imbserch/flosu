@@ -9,6 +9,9 @@ import 'package:flosu/models/beatmap/beatmap.dart';
 import 'package:flosu/core/theme/app_colors.dart';
 import 'package:flosu/logic/gameplay_service.dart';
 
+// ignore: constant_identifier_names
+const LOGO_SIZE = 512.0;
+
 class OsuLogo extends ConsumerStatefulWidget {
   const OsuLogo({super.key, this.scale = 1, this.onTap});
   final double scale;
@@ -123,20 +126,13 @@ class _OsuLogoState extends ConsumerState<OsuLogo> {
                 shape: .circle,
                 border: .all(color: Colors.white, width: 32),
               ),
-              alignment: .center,
-              child: const Text(
-                "OSU!",
-                style: TextStyle(
-                  fontSize: 152,
-                  shadows: [
-                    Shadow(
-                      color: Colors.black38,
-                      blurRadius: 2,
-                      offset: Offset(0, 8),
-                    ),
-                  ],
-                  fontWeight: .bold,
-                  letterSpacing: 4,
+              padding: const .fromLTRB(64, 64, 96, 64),
+              alignment: const Alignment(-0.15, 0),
+              child: ColorFiltered(
+                colorFilter: ColorFilter.mode(Colors.pink.shade50, .srcIn),
+                child: const DecoratedBox(
+                  decoration: FlutterLogoDecoration(),
+                  child: SizedBox.expand(),
                 ),
               ),
             ),
@@ -148,13 +144,13 @@ class _OsuLogoState extends ConsumerState<OsuLogo> {
         scale: 1 - (0.025 * (t % 1)),
         child: SizedBox.square(
           key: _key,
-          dimension: 512 * widget.scale,
+          dimension: LOGO_SIZE * widget.scale,
           child: FittedBox(
             fit: .cover,
             alignment: .bottomRight,
             child: Container(
-              height: 512,
-              width: 512,
+              height: LOGO_SIZE,
+              width: LOGO_SIZE,
               decoration: BoxDecoration(
                 shape: .circle,
                 boxShadow: [

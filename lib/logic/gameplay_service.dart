@@ -1,25 +1,35 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:collection/collection.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:flosu/core/extensions.dart';
 import 'package:flosu/logic/providers/library.dart';
+import 'package:flosu/logic/services/file_parser.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flosu/logic/providers/audio.dart';
 import 'package:flosu/models/beatmap/beatmap.dart';
 import 'package:flosu/models/replay/replay.dart';
 import 'package:flosu/models/mods/base.dart';
-import 'package:flosu/io/replay_parser.dart';
 import 'package:flosu/logic/providers/router.dart';
+import 'package:go_router/go_router.dart';
 
+/// Manages the pre-gameplay session configuration.
+///
+/// [GameplayService] bridges song selection and actual gameplay. It stores:
+/// - The [Beatmap] the player has chosen to play.
+/// - Any [Replay] the player loaded for review.
+/// - The [Set<ConfigurableMod>] selected by the player.
+///
+/// It does **not** manage live gameplay state (score, health, combo). For that,
+/// see [GameplayController].
 class GameplayService extends StateNotifier<GameplayData> {
   GameplayService(Ref ref) : super(GameplayData()) {
     _init(ref);
   }
 
-  void _init(Ref ref) async {
+  void _init(Ref ref) {
+    // Mirror the currently loaded beatmap from the audio provider so that
+    // GameplayData always knows which beatmap is queued for play.
     ref.listen(audioProvider, (_, beatmap) {
       state = state.copyWith(
         beatmap: beatmap,
@@ -27,8 +37,58 @@ class GameplayService extends StateNotifier<GameplayData> {
         mods: state.mods,
       );
     }, fireImmediately: true);
+
+    final StreamSubscription replaySubs = ref
+        .read(fileParserService)
+        .resultStream
+        .where((r) => r is ParseResult<Replay>)
+        .listen(_handleParserResult);
+
+    ref.onDispose(replaySubs.cancel);
   }
 
+  void _handleParserResult(ParseResult result) {
+    if (result.hasError) {
+      result.error.log;
+      return;
+    }
+
+    final replay = result.data;
+    if (replay is! Replay) return;
+
+    _addReplayToState(replay);
+  }
+
+  void _addReplayToState(Replay replay) {
+    final beatmap = globalRef
+        .read(libraryProvider)
+        .expand((g) => g.beatmaps)
+        .firstWhereOrNull((bm) => bm.hash == replay.hash);
+
+    if (beatmap == null) return;
+
+    state = state.copyWith(replay: replay, beatmap: beatmap);
+
+    // This allows the mods to be enabled and
+    // modifications to be applied in the correct order.
+    clearMods();
+
+    for (final mod in replay.mods) {
+      toggleMod(mod);
+    }
+
+    globalRef.read(audioProvider.notifier).preview(beatmap);
+
+    if (mounted) {
+      rootNavigatorKey.currentContext?.go("/scoring");
+    }
+  }
+
+  /// Toggles a mod on or off.
+  ///
+  /// If [mod] is already active, it is removed. Otherwise, all mods that are
+  /// incompatible with [mod] are removed first, then [mod] is added.
+  /// The resulting set is re-ordered to match [ConfigurableMod.allOrdered].
   void toggleMod(ConfigurableMod mod) {
     Set<ConfigurableMod> remainMods = {};
 
@@ -37,31 +97,69 @@ class GameplayService extends StateNotifier<GameplayData> {
     );
 
     if (storedMod != null) {
+      // Deactivate mod
+      storedMod.deactivate(globalRef);
+
       remainMods = state.mods..remove(storedMod);
     } else {
-      final modsWithoutIncompatibles = state.mods.where(
-        (m) => !mod.incompatibleMods.any((im) => im.acronym == m.acronym),
-      );
+      final incompatibles = <ConfigurableMod>[];
+      final remaining = <ConfigurableMod>[];
 
-      remainMods = {...modsWithoutIncompatibles, mod};
+      // Single pass: separate incompatible mods from remaining ones
+      for (final m in state.mods) {
+        if (mod.incompatibleMods.any((im) => im.acronym == m.acronym)) {
+          incompatibles.add(m);
+        } else {
+          remaining.add(m);
+        }
+      }
+
+      // Deactivate mods removed by incompatibility
+      for (final incompatible in incompatibles) {
+        incompatible.deactivate(globalRef);
+      }
+
+      remainMods = {...remaining, mod};
+
+      // Activate mod
+      mod.activate(globalRef);
     }
 
-    final ordered = Set.of(ConfigurableMod.allOrdered);
-
-    final result = ordered
+    // Re-order to the canonical display order defined in ConfigurableMod.
+    final result = ConfigurableMod.allOrdered
         .where((m) => remainMods.any((r) => r.acronym == m.acronym))
         .toSet();
 
     state = state.copyWith(replay: state.replay, mods: result);
   }
 
-  void clearMods() => state = state.copyWith(replay: state.replay, mods: {});
-
-  void clearAll() => state = state.copyWith(replay: null, mods: {});
-
+  /// Removes the active replay while keeping the selected mods.
   void clearReplay() => state = state.copyWith(replay: null);
 
-  Future<void> loadReplay() async {
+  /// Removes all active mods.
+  void clearMods() {
+    // Deactivate all mods
+    for (final mod in state.mods) {
+      mod.deactivate(globalRef);
+    }
+
+    state = state.copyWith(mods: {});
+  }
+
+  /// Removes both the active replay and all mods.
+  void clearAll() {
+    clearReplay();
+    clearMods();
+  }
+
+  /// Opens a file picker dialog to load an `.osr` replay file.
+  ///
+  /// After loading, matches the replay to the corresponding beatmap in the
+  /// library, sets both as the active session data, and navigates to the
+  /// scoring screen.
+  ///
+  /// This method it's obsolete and will be replaced with the [FileParser.pickFile] service
+  /* Future<void> loadReplay() async {
     final res = await FilePicker.pickFiles(
       type: .custom,
       allowedExtensions: ["osr"],
@@ -82,31 +180,50 @@ class GameplayService extends StateNotifier<GameplayData> {
 
     if (replay == null) return;
 
-    //Widget is unsafe, calling from root navigator
+    // Match the replay hash to a beatmap in the loaded library.
+    // Widget is unsafe at this point; use globalRef to bypass context.
     final beatmap = globalRef
         .read(libraryProvider)
+        .expand((g) => g.beatmaps)
         .firstWhereOrNull((bm) => bm.hash == replay.hash);
 
     if (beatmap == null) return;
 
     state = state.copyWith(replay: replay, beatmap: beatmap, mods: replay.mods);
 
-    //Widget is unsafe, calling from root navigator
+    // Widget is unsafe; use globalRef for audio preview.
     globalRef.read(audioProvider.notifier).preview(beatmap);
 
     if (mounted) {
       rootNavigatorKey.currentContext?.go("/scoring");
     }
   }
+ */
 }
 
+/// Global provider for [GameplayService].
 final gameplayService = StateNotifierProvider((ref) => GameplayService(ref));
 
+// ---------------------------------------------------------------------------
+// GameplayData — pre-gameplay session model
+// ---------------------------------------------------------------------------
+
+/// Holds the configuration for an upcoming or ongoing play session.
+///
+/// This is the state managed by [GameplayService], representing what was
+/// selected before entering gameplay. It is distinct from [ScoreState],
+/// which tracks live scoring during play.
+//TODO: Posibly move outside this file
 class GameplayData {
   GameplayData({this.beatmap, this.replay, this.mods = const {}});
 
+  /// The beatmap selected for play.
   final Beatmap? beatmap;
+
+  /// An optional replay file loaded for spectating.
   final Replay? replay;
+
+  /// The set of mods active for this session.
   final Set<ConfigurableMod> mods;
 
   GameplayData copyWith({
@@ -119,12 +236,26 @@ class GameplayData {
     mods: mods ?? this.mods,
   );
 
-  BeatmapDifficulty? get difficultyWithMods => beatmap?.difficulty;
+  /// Returns the beatmap difficulty, modified by mods.
+  BeatmapDifficulty? get difficultyWithMods {
+    if (beatmap == null) return null;
 
+    var difficulty = beatmap!.difficulty;
+
+    for (final mod in mods) {
+      difficulty = mod.applyTo(difficulty);
+    }
+
+    return difficulty;
+  }
+
+  /// Combined score multiplier from all active mods.
   double get modMultiplier =>
       mods.fold<double>(1.0, (t, m) => t * m.scoreMultiplier);
 
+  /// Whether the current mod combination is eligible for leaderboard ranking.
   bool get isRanked => mods.every((m) => m.ranked);
 
+  /// A concatenated string of mod acronyms (e.g. `"HDDTHR"`).
   String get modsName => mods.fold("", (str, mod) => str += mod.acronym);
 }

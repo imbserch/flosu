@@ -1,6 +1,6 @@
 import 'dart:math';
+import 'package:flosu/logic/services/gameloop.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flosu/core/extensions.dart';
 
@@ -19,14 +19,27 @@ class TopBar extends ConsumerStatefulWidget {
 
 class _TopBarState extends ConsumerState<TopBar> {
   final _startTime = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+
+    ref.read(gameLoopService).subscribe(TickerPhase.visual, _updateTime);
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+
+    ref.read(gameLoopService).unsubscribe(TickerPhase.visual, _updateTime);
+  }
+
+  void _updateTime(_) {}
+
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
     final running = now.difference(_startTime);
-
-    SchedulerBinding.instance.addPostFrameCallback((_) {
-      if (mounted) setState(() {});
-    });
 
     return ColoredBox(
       color: const Color(0xff191919),

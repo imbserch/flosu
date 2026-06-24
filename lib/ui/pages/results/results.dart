@@ -9,6 +9,12 @@ import 'package:flosu/ui/shared/animatable_page.dart';
 import 'package:flosu/ui/widgets/common/skewed_box.dart';
 import 'package:flosu/ui/widgets/common/skewed_button_line.dart';
 
+/// Displays the summary screen after a play session ends.
+///
+/// Shows the song title, grade, score, accuracy, combo, hit counts (300/100/50/
+/// miss), and the active mods. If a replay is loaded, provides a button to
+/// re-watch it. On exit, clears the session data via [GameplayService.clearAll]
+/// unless a replay is being reused.
 class ResultsPage extends AnimatablePage {
   const ResultsPage({super.key, required super.uri});
 

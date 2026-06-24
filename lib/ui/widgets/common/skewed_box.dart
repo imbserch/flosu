@@ -230,8 +230,9 @@ class SkewedBoxGradientBorderPainter extends CustomPainter {
   }
 
   Radius nonNegative(Radius radius) {
+    // Prevent negative radii when subtracting half the border width.
     final radX = radius.x - (width / 2);
-    final radY = radius.x - (width / 2);
+    final radY = radius.y - (width / 2);
 
     return .elliptical(max(radX, 0), max(radY, 0));
   }

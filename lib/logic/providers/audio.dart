@@ -137,6 +137,9 @@ class AudioProvider extends Notifier<Beatmap?> {
 
     _audioDuration = _service.getDuration(handle);
 
+    // Set rate to match internal playbackRate
+    _service.setRate(handle, _playbackRate);
+
     /// Disables looping and resets the offset for full track playback.
     _service.setClip(handle, null);
     _audioOffset = .zero;
@@ -188,6 +191,9 @@ class AudioProvider extends Notifier<Beatmap?> {
     }
 
     _audioDuration = _service.getDuration(handle);
+
+    // Set rate to match internal playbackRate
+    _service.setRate(handle, _playbackRate);
 
     /// Enables looping at a specific point and sets the offset for
     /// correct position reporting.

@@ -10,6 +10,16 @@ import 'package:flosu/providers/sample_service.dart';
 import 'package:flosu/ui/widgets/common/osu_cube_loader.dart';
 import 'package:flosu/ui/widgets/common/osu_logo.dart';
 
+/// Transitional screen shown while a beatmap's assets are being prepared.
+///
+/// Performs the following tasks sequentially:
+/// 1. Disposes all previously loaded hitsound samples.
+/// 2. Pre-loads the background samples defined in the beatmap's event list.
+/// 3. Loads and starts playing the beatmap's audio track.
+/// 4. Navigates to the gameplay screen when all assets are ready.
+///
+/// A short visual delay is inserted at the start so that the page's
+/// enter animation completes before heavy I/O begins.
 class GameplayLoaderPage extends ConsumerStatefulWidget {
   const GameplayLoaderPage({super.key});
 
@@ -26,24 +36,26 @@ class _GameplayLoaderPageState extends ConsumerState<GameplayLoaderPage> {
     super.initState();
   }
 
+  /// Runs the full asset-loading sequence and navigates to `/gameplay`.
   void _load() async {
     final samples = ref.read(sampleService);
     final audio = ref.read(audioProvider.notifier);
 
+    // Short pause so the page enter animation completes before I/O begins.
     await Future.delayed(Durations.long2);
 
     if (mounted) setState(() => _showInfo = true);
 
-    //Dispose previous samples
+    // Release any hitsound samples loaded for the previous beatmap.
     await samples.disposeAll();
 
     final beatmap = ref.read(gameplayService).beatmap!;
 
-    //Load all samples
+    // Pre-load all background samples defined in the beatmap's event list.
     final events = beatmap.events.whereType<BeatmapSample>();
     await Future.wait(events.map((s) => samples.load(s.file, s.volume)));
 
-    //Load and play
+    // Load and start the beatmap's audio track.
     await audio.load(beatmap);
     await audio.play(beatmap);
 

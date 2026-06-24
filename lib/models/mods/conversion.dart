@@ -1,3 +1,5 @@
+// ignore_for_file: non_constant_identifier_names
+
 part of "base.dart";
 
 class Classic extends ConfigurableMod {
@@ -21,6 +23,13 @@ class Classic extends ConfigurableMod {
 }
 
 class DifficultyAdjust extends ConfigurableMod {
+  DifficultyAdjust({this.CS, this.AR, this.OD, this.HP});
+
+  final double? CS;
+  final double? AR;
+  final double? OD;
+  final double? HP;
+
   @override
   String get acronym => "DA";
 
@@ -41,4 +50,9 @@ class DifficultyAdjust extends ConfigurableMod {
 
   @override
   Set<ConfigurableMod> get incompatibleMods => {Easy(), HardRock()};
+
+  @override
+  BeatmapDifficulty applyTo(BeatmapDifficulty difficulty) {
+    return difficulty.copyWith(CS: CS, AR: AR, OD: OD, HP: HP);
+  }
 }

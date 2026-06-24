@@ -20,17 +20,10 @@ class BeatmapParser extends Parser<Beatmap> {
   @override
   Future<bool> init() async {
     try {
-      final builder = StringBuffer();
-
       if (await file.exists()) {
-        final read = file.openRead().transform(utf8.decoder);
-
-        await for (final chunk in read) {
-          builder.write(chunk);
-        }
-
-        _data = builder.toString();
-        md5Hash = md5.convert(utf8.encode(_data)).toString();
+        final bytes = await file.readAsBytes();
+        md5Hash = md5.convert(bytes).toString();
+        _data = utf8.decode(bytes);
         return true;
       }
       return false;
@@ -42,7 +35,7 @@ class BeatmapParser extends Parser<Beatmap> {
 
   /// Parses the loaded [_data] into a structured [Beatmap] object.
   @override
-  Beatmap? parse() {
+  Future<Beatmap?> parse() async {
     late int groupId;
 
     late BeatmapAudio audio;

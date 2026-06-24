@@ -5,8 +5,16 @@ import 'package:flosu/core/extensions.dart';
 import 'package:flosu/models/inputs/inputs.dart';
 import 'package:flosu/logic/providers/router.dart';
 
+/// Type alias for a raw hardware-event handler.
 typedef RawInputsHandler = void Function(HardwareEvent event);
 
+/// Low-level input aggregator that wraps Flutter's global pointer and keyboard
+/// event routes and forwards them to registered [RawInputsHandler] callbacks.
+///
+/// [InputService] operates as a singleton. It hooks into the framework at
+/// construction time and remains active for the lifetime of the app.
+/// Consumers should call [addHandler] / [removeHandler] rather than
+/// accessing the framework APIs directly.
 class InputService {
   InputService._() {
     _init();
@@ -18,6 +26,7 @@ class InputService {
 
   final List<RawInputsHandler> _rawHandlers = [];
 
+  /// Registers the global pointer route and keyboard handler.
   void _init() {
     gestures.GestureBinding.instance.pointerRouter.addGlobalRoute(
       _handlePointer,
@@ -25,6 +34,10 @@ class InputService {
     HardwareKeyboard.instance.addHandler(_handleKeyboard);
   }
 
+  /// Removes all global routes and clears the handler list.
+  ///
+  /// Should be called when the app is shutting down to avoid dangling
+  /// references in the Flutter framework.
   void dispose() {
     _rawHandlers.clear();
 
@@ -34,6 +47,11 @@ class InputService {
     HardwareKeyboard.instance.removeHandler(_handleKeyboard);
   }
 
+  /// Converts a raw Flutter [gestures.PointerEvent] into a scaled [PointerEvent]
+  /// and broadcasts it to all registered handlers.
+  ///
+  /// The position is divided by the app's combined scale × pixel-ratio factor
+  /// so that coordinates match the 640×480 virtual resolution used everywhere.
   void _handlePointer(gestures.PointerEvent event) {
     final scale =
         rootNavigatorKey.currentContext!.scale *
@@ -52,6 +70,9 @@ class InputService {
     }
   }
 
+  /// Converts a raw [KeyEvent] into a [KeyboardEvent] and broadcasts it.
+  ///
+  /// [KeyRepeatEvent]s are ignored — only presses and releases are forwarded.
   bool _handleKeyboard(KeyEvent event) {
     if (event is KeyRepeatEvent) return false;
     final keyEvent = KeyboardEvent(event.logicalKey, event is KeyDownEvent);
@@ -63,13 +84,16 @@ class InputService {
     return false;
   }
 
+  /// Registers a [handler] to receive all future hardware events.
   void addHandler(RawInputsHandler handler) {
     _rawHandlers.add(handler);
   }
 
+  /// Removes a previously registered [handler].
   void removeHandler(RawInputsHandler handler) {
     _rawHandlers.remove(handler);
   }
 }
 
+/// Global provider that exposes the [InputService] singleton.
 final inputService = Provider<InputService>((_) => InputService.instance);

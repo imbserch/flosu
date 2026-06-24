@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:flosu/logic/services/gameloop.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide PointerEvent, Image;
 import 'package:flutter/scheduler.dart';
@@ -20,20 +21,27 @@ class MouseCursor extends ConsumerStatefulWidget {
 }
 
 class _MouseCursorState extends ConsumerState<MouseCursor> {
-  late Ticker _mouseTicker;
-  //List<PointerEvent> _events = [];
-
   final ValueNotifier<List<PointerEvent>> _eventsNotifier = ValueNotifier([]);
-
   Image? _mouseImage;
 
   @override
   initState() {
     _instantiateCursorImage();
-    _mouseTicker = Ticker(_updateEvents)..start();
+    ref.read(gameLoopService).subscribe(TickerPhase.visual, _updateEvents);
     ref.read(inputProvider.notifier).addDelayedHandler(_getEvents);
 
     super.initState();
+  }
+
+  @override
+  dispose() {
+    //Widget is unsafe, calling from root navigator
+    globalRef
+        .read(gameLoopService)
+        .unsubscribe(TickerPhase.visual, _updateEvents);
+
+    globalRef.read(inputProvider.notifier).removeDelayedHandler(_getEvents);
+    super.dispose();
   }
 
   void _instantiateCursorImage() async {
@@ -75,15 +83,6 @@ class _MouseCursorState extends ConsumerState<MouseCursor> {
   }
 
   @override
-  dispose() {
-    _mouseTicker.stop();
-
-    //Widget is unsafe, calling from root navigator
-    globalRef.read(inputProvider.notifier).removeDelayedHandler(_getEvents);
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final showTrail = ref.watch(storageProvider).showCursorTrail;
     return IgnorePointer(
@@ -97,110 +96,3 @@ class _MouseCursorState extends ConsumerState<MouseCursor> {
     );
   }
 }
-/* 
-class Mouse extends ConsumerStatefulWidget {
-  const Mouse({super.key}) : color = null, events = null;
-
-  const Mouse.fromEvents({
-    super.key,
-    required List<PointerEventWithTimestamp> all,
-    this.color,
-  }) : events = all;
-
-  final List<PointerEventWithTimestamp>? events;
-  final Color? color;
-
-  @override
-  ConsumerState<Mouse> createState() => _MouseState();
-}
-
-class _MouseState extends ConsumerState<Mouse> with InputHandler {
-  late Ticker _mouseTicker;
-  List<PointerEventWithTimestamp> _events = [];
-
-  final Shader _gradientShader = const RadialGradient(
-    colors: [Colors.white, Colors.transparent],
-    stops: [0, 1],
-    tileMode: .decal,
-  ).createShader(Rect.fromCenter(center: .zero, width: 16, height: 16));
-
-  late final _pointShader = LinearGradient(
-    colors: [
-      Color.lerp(widget.color ?? Colors.pink, Colors.white, .25)!,
-      widget.color ?? Colors.pink,
-    ],
-    stops: [0, 1],
-    begin: .topCenter,
-    end: .bottomCenter,
-  ).createShader(Rect.fromCenter(center: .zero, width: 27, height: 27));
-
-  @override
-  initState() {
-    _mouseTicker = Ticker((_) => _updateEvents())..start();
-
-    super.initState();
-  }
-
-  @override
-  dispose() {
-    _mouseTicker.stop();
-    super.dispose();
-  }
-
-  void _updateEvents() {
-    final now = DateTime.now().millisecondsSinceEpoch;
-
-    if (widget.events != null) {
-      final updatedElements = widget.events!
-          .where((e) => (now - e.timestamp) < 200)
-          .toList();
-
-      if (updatedElements.isNotEmpty) {
-        if (mounted) setState(() => _events = updatedElements);
-      }
-    } else {
-      final updatedElements = _events
-          .where((e) => (now - e.timestamp) < 200)
-          .toList();
-
-      if (updatedElements.isNotEmpty) {
-        if (updatedElements.length != _events.length) {
-          if (mounted) setState(() => _events = updatedElements);
-        }
-      }
-    }
-  }
-
-  @override
-  /* bool input(_, PointerEvent? ev, [_ = false]) {
-    if (widget.events != null) return false;
-    if (ev == null) return false;
-
-    if (mounted) {
-      setState(() => _events.add(PointerEventWithTimestamp(ev)));
-    }
-    return false;
-  } */
-  @override
-  Widget build(BuildContext context) {
-    final showTrail = ref.watch(
-      storageNotifier.select((it) => it.showCursorTrail),
-    );
-
-    return IgnorePointer(
-      child: RepaintBoundary(
-        child: CustomPaint(
-          willChange: true,
-          painter: MousePainter(
-            List.of(_events),
-            showTrail,
-            _gradientShader,
-            _pointShader,
-            widget.color ?? Colors.pink,
-          ),
-        ),
-      ),
-    );
-  }
-}
- */

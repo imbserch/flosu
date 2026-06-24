@@ -4,9 +4,16 @@ class NotificationProvider extends Notifier<List<Notification>> {
   @override
   List<Notification> build() => [];
 
-  void add(String title, String message) {
+  void add(
+    String message, [
+    NotificationType type = .info,
+    void Function()? callback,
+  ]) {
     Future.microtask(
-      () => state = [...state, Notification(title: title, message: message)],
+      () => state = [
+        ...state,
+        Notification(message: message, type: type, callback: callback),
+      ],
     );
   }
 
@@ -24,16 +31,13 @@ final notificationProvider =
       () => NotificationProvider(),
     );
 
-//TODO: add type (error, info, success) and maybe an optional action (e.g. open beatmap)
 //TODO: MOVE OUTSIDE OF LOGIC FOLDER, THIS IS UI RELATED
 class Notification {
-  Notification({
-    required this.title,
-    required this.message,
-    DateTime? timestamp,
-  }) : timestamp = timestamp ?? DateTime.now();
+  Notification({required this.message, required this.type, this.callback});
 
-  final String title;
   final String message;
-  final DateTime timestamp;
+  final NotificationType type;
+  final void Function()? callback;
 }
+
+enum NotificationType { info, normal, warning, error }

@@ -1,8 +1,11 @@
 import 'package:collection/collection.dart';
+import 'package:flosu/logic/providers/audio.dart';
+import 'package:flosu/models/beatmap/beatmap.dart';
 import 'package:flutter/material.dart';
 import 'package:flosu/core/enums.dart';
 import 'package:flosu/core/theme/app_colors.dart';
 import 'package:flosu/core/extensions.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 part "difficulty_increase.dart";
 part "difficulty_reduction.dart";
@@ -131,6 +134,16 @@ sealed class ConfigurableMod {
   Color get color;
 
   Set<ConfigurableMod> get incompatibleMods => {};
+
+  BeatmapDifficulty applyTo(BeatmapDifficulty difficulty) => difficulty;
+
+  void activate(ProviderContainer ref) {
+    "Activating $name mod".log;
+  }
+
+  void deactivate(ProviderContainer ref) {
+    "Deactivating $name mod".log;
+  }
 }
 
 //Keep here because this is for non added mods

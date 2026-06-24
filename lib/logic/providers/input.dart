@@ -1,61 +1,127 @@
+import 'package:collection/collection.dart';
+import 'package:flosu/logic/services/gameloop.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart' hide PointerEvent;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flosu/logic/services/input.dart';
 import 'package:flosu/models/inputs/inputs.dart';
 
+/// Signature for a callback that receives the current key state and the latest
+/// pointer event immediately after a hardware event fires.
 typedef ImmediateInputsCallback =
     void Function(Set<LogicalKeyboardKey> keys, PointerEvent? pointer);
 
+/// Signature for a callback that receives a batch of events accumulated since
+/// the last frame tick.
 typedef DelayedInputsCallback = void Function(InputEvents events);
 
+/// Signature for a callback that receives the input timings.
+typedef InputTimingsCallback = void Function(InputTimings timings);
+
+// TODO: Move outside this file
+class InputTimings {
+  InputTimings({
+    required this.delayedEventsDuration,
+    required this.immediateEventsDuration,
+  });
+
+  final List<Duration> delayedEventsDuration;
+  final List<Duration> immediateEventsDuration;
+}
+
+/// Riverpod provider that bridges [InputService] hardware events to higher-level
+/// consumers in the widget tree.
+///
+/// [InputProvider] offers two subscription models:
+///
+/// **Immediate** (`addInmediateHandler`): The callback is invoked on every
+/// hardware event with the current pressed-key set and the latest pointer
+/// position. Use for latency-sensitive gameplay code such as hit detection.
+///
+/// **Delayed** (`addDelayedHandler`): Events are accumulated until the next
+/// frame tick, then delivered in bulk as an [InputEvents] batch. Use for
+/// UI interactions where frame-rate synchronisation is preferred over raw speed.
 class InputProvider extends Notifier<void> {
   late final InputService _service;
-  late final Ticker _ticker;
+
+  final List<Duration> _immediateEventsDurations = [];
+  final List<Duration> _delayedEventsDurations = [];
 
   @override
   build() {
-    _ticker = Ticker(_callDelayedHandlers)..start();
+    final gameLoop = ref.read(gameLoopService);
+
+    gameLoop.subscribe(TickerPhase.input, _callDelayedHandlers);
+    gameLoop.subscribe(TickerPhase.logic, _onTimingTick);
+
     _service = ref.read(inputService);
     _service.addHandler(_onEvent);
 
     ref.onDispose(() {
-      _ticker.stop();
+      gameLoop.unsubscribe(TickerPhase.input, _callDelayedHandlers);
+      gameLoop.unsubscribe(TickerPhase.logic, _onTimingTick);
+
       _service.removeHandler(_onEvent);
       _service.dispose();
     });
   }
 
-  //For passive listening
+  // Accumulated events waiting to be delivered to delayed handlers.
   final List<HardwareEvent> _storedEvents = [];
 
-  //For active listening
+  // Current pressed-key state for immediate handlers.
   final Set<LogicalKeyboardKey> _pressedKeys = {};
   PointerEvent? _lastPointerEvent;
 
   final List<ImmediateInputsCallback> _inmediateHandlers = [];
   final List<DelayedInputsCallback> _delayedHandlers = [];
 
-  //For active input events listening
+  final List<InputTimingsCallback> _timingHandlers = [];
+
+  // ---------------------------------------------------------------------------
+  // Subscription management
+  // ---------------------------------------------------------------------------
+
+  /// Registers [callback] to be called on every hardware event.
+  ///
+  /// The callback receives the full set of currently pressed keys and the
+  /// most recent pointer position.
   void addInmediateHandler(ImmediateInputsCallback callback) {
     _inmediateHandlers.add(callback);
   }
 
+  /// Removes a previously registered immediate handler.
   void removeInmediateHandler(ImmediateInputsCallback callback) {
     _inmediateHandlers.remove(callback);
   }
 
-  //For passive listening
+  /// Registers [callback] to receive batched events once per frame.
   void addDelayedHandler(DelayedInputsCallback callback) {
     _delayedHandlers.add(callback);
   }
 
+  /// Removes a previously registered delayed handler.
   void removeDelayedHandler(DelayedInputsCallback callback) {
     _delayedHandlers.remove(callback);
   }
 
+  /// Registers [callback] to receive input timings once per frame.
+  void addTimingsHandler(InputTimingsCallback callback) {
+    _timingHandlers.add(callback);
+  }
+
+  /// Removes a previously registered timings handler.
+  void removeTimingsHandler(InputTimingsCallback callback) {
+    _timingHandlers.remove(callback);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Event processing
+  // ---------------------------------------------------------------------------
+
+  /// Processes an incoming [HardwareEvent] from [InputService].
   void _onEvent(HardwareEvent event) {
-    //Store events for active listening
+    // Update live key and pointer state for immediate handlers.
     if (event is PointerEvent) _lastPointerEvent = event;
     if (event is KeyboardEvent) {
       if (event.pressed) {
@@ -65,36 +131,62 @@ class InputProvider extends Notifier<void> {
       }
     }
 
-    //Call inmediate handlers
     _callImmediateHandlers();
 
-    //Store events for passive listening
+    // Store for the next delayed flush.
     _storedEvents.add(event);
   }
 
+  /// Notifies all immediate handlers with the current input state.
   void _callImmediateHandlers() {
-    for (final inmediateHandler in _inmediateHandlers) {
-      inmediateHandler(_pressedKeys, _lastPointerEvent);
+    final sw = Stopwatch()..start();
+
+    for (final handler in _inmediateHandlers) {
+      handler(_pressedKeys, _lastPointerEvent);
     }
+
+    sw.stop();
+    _immediateEventsDurations.add(sw.elapsed);
   }
 
+  /// Called once per frame by the [_ticker] to flush accumulated events
+  /// to all delayed handlers and clear the buffer.
   void _callDelayedHandlers(_) {
-    //Don't update handlers if no new events fired
     if (_storedEvents.isEmpty) return;
+
+    final sw = Stopwatch()..start();
 
     final latestEvents = InputEvents(
       List.from(_storedEvents.whereType<PointerEvent>()),
       List.from(_storedEvents.whereType<KeyboardEvent>()),
     );
 
-    //Call all delayed handlers
-    for (final delayedHandler in _delayedHandlers) {
-      delayedHandler(latestEvents);
+    for (final handler in _delayedHandlers) {
+      handler(latestEvents);
     }
 
-    //Reset stored events
     _storedEvents.clear();
+
+    sw.stop();
+    _delayedEventsDurations.add(sw.elapsed);
+  }
+
+  void _onTimingTick(_) {
+    if (_timingHandlers.isEmpty) return;
+
+    final timings = InputTimings(
+      delayedEventsDuration: _delayedEventsDurations,
+      immediateEventsDuration: _immediateEventsDurations,
+    );
+
+    for (final handler in _timingHandlers) {
+      handler(timings);
+    }
+
+    _immediateEventsDurations.clear();
+    _delayedEventsDurations.clear();
   }
 }
 
+/// Global provider for [InputProvider].
 final inputProvider = NotifierProvider(() => InputProvider());

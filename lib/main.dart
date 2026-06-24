@@ -1,5 +1,6 @@
 import 'dart:developer' as dev;
 import 'dart:math';
+import 'dart:ui';
 
 import 'package:flosu/logic/services/library.dart';
 import 'package:flosu/ui/widgets/overlay/tooltip.dart';
@@ -19,11 +20,11 @@ import 'package:flosu/ui/widgets/gameplay/mouse_cursor.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  SchedulerBinding.instance.platformDispatcher.requestDartPerformanceMode(
-    .latency,
+  final performanceHandle = SchedulerBinding.instance.requestPerformanceMode(
+    DartPerformanceMode.throughput,
   );
 
-  Logger.level = Level.all;
+  (performanceHandle ?? "Setting DartPerformanceMode to throughput failed").log;
 
   // Listen to log records
   Logger.addLogListener((record) {

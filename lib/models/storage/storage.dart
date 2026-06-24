@@ -37,7 +37,7 @@ class Storage {
     double? backgroundBlur,
     bool? showCursorTrail,
     String? beatmapsPath,
-    bool keepLastBeatmapsPath = false,
+    bool keepLastBeatmapsPath = true,
   }) => Storage(
     audioCompensation: audioCompensation ?? this.audioCompensation,
     globalVolume: globalVolume ?? this.globalVolume,

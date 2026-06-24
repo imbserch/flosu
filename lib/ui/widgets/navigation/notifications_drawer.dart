@@ -105,15 +105,10 @@ class NotificationWidget extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        notification.title,
-                        style: const TextStyle(
-                          fontSize: 8,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
                         notification.message,
-                        style: const TextStyle(fontSize: 6),
+                        maxLines: 2,
+                        overflow: .ellipsis,
+                        style: const TextStyle(fontSize: 8),
                       ),
                     ],
                   ),

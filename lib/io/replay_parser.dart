@@ -11,6 +11,9 @@ import 'package:flosu/models/mods/base.dart';
 import 'package:flosu/core/extensions.dart';
 import 'package:flosu/io/parser.dart';
 
+// ignore: constant_identifier_names
+const RANDOM_SEED_DELTA = -12345;
+
 /// A parser for `.osr` (osu! replay) files.
 ///
 /// It handles both stable and lazer replay formats, extracting metadata,
@@ -99,6 +102,10 @@ class ReplayParser extends Parser<Replay> {
 
     for (final f in rawFrames) {
       final delta = int.parse(f[0]);
+
+      // Skip seed used in Random mod and skip negative time frames
+      if (delta < 0 || delta == RANDOM_SEED_DELTA) continue;
+
       final x = double.parse(f[1]);
       final y = double.parse(f[2]);
       final btns = int.parse(f[3]);

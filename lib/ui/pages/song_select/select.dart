@@ -1,8 +1,7 @@
 import 'dart:async';
-import 'dart:math';
-import 'dart:ui';
 
 import 'package:flosu/logic/providers/library.dart';
+import 'package:flosu/ui/widgets/beatmap/beatmap_list.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide PointerEvent;
 import 'package:flutter/services.dart' hide PointerEvent;
@@ -70,8 +69,7 @@ class _SongSelectPageState extends AnimatablePageState<SongSelectPage> {
 
     final groupIndex = ref
         .read(libraryProvider)
-        .asGroups
-        .indexWhere((group) => group.any((bm) => bm == beatmap));
+        .indexWhere((group) => group.beatmaps.any((bm) => bm == beatmap));
 
     return groupIndex != -1 ? groupIndex : 0;
   }
@@ -80,18 +78,19 @@ class _SongSelectPageState extends AnimatablePageState<SongSelectPage> {
     if (setEquals(_lastKeys, keys)) return;
 
     //If F1 pressed and keys changed, open mods
-    if (keys.changedAndPressed("F1", _lastKeys)) {
+    if (keys.changedAndPressed(LogicalKeyboardKey.f1, _lastKeys)) {
       if (mounted) context.go("/songs/mods");
     }
 
     //If F2 pressed and keys changed, play random song
-    if (keys.changedAndPressed("F2", _lastKeys)) {
+    if (keys.changedAndPressed(LogicalKeyboardKey.f2, _lastKeys)) {
       _playRandom();
     }
 
     //If F3 pressed and keys changed, open replay window
-    if (keys.changedAndPressed("F3", _lastKeys)) {
-      ref.read(gameplayService.notifier).loadReplay();
+    if (keys.changedAndPressed(LogicalKeyboardKey.f3, _lastKeys)) {
+      // TODO: Replay flow implementation needed
+      ref.read(libraryProvider.notifier).pickReplay();
     }
 
     _lastKeys = keys.toSet();
@@ -100,8 +99,7 @@ class _SongSelectPageState extends AnimatablePageState<SongSelectPage> {
   void _setBeatmap(Beatmap beatmap, [bool skipScroll = false]) async {
     final groupIndex = ref
         .read(libraryProvider)
-        .asGroups
-        .indexWhere((group) => group.any((bm) => bm == beatmap));
+        .indexWhere((group) => group.beatmaps.any((bm) => bm == beatmap));
 
     if (groupIndex != -1) {
       if (!skipScroll) _scrollTo(groupIndex);
@@ -135,8 +133,6 @@ class _SongSelectPageState extends AnimatablePageState<SongSelectPage> {
 
   @override
   Widget buildPage(BuildContext context, double animProgress) {
-    final matches = ref.watch(libraryProvider).asGroups;
-
     return Stack(
       fit: .expand,
       children: [
@@ -200,7 +196,7 @@ class _SongSelectPageState extends AnimatablePageState<SongSelectPage> {
                                         helper: Transform.translate(
                                           offset: const Offset(0, -2),
                                           child: Text(
-                                            "${matches.length} matches",
+                                            "0 matches",
                                             style: const TextStyle(
                                               fontSize: 6,
                                               color: Colors.amber,
@@ -234,237 +230,7 @@ class _SongSelectPageState extends AnimatablePageState<SongSelectPage> {
                         ],
                       ),
                     ),
-                    Expanded(
-                      child: Align(
-                        alignment: .centerRight,
-                        child: ScrollConfiguration(
-                          behavior: const MaterialScrollBehavior().copyWith(
-                            dragDevices: PointerDeviceKind.values.toSet(),
-                          ),
-                          child: MouseRegion(
-                            onExit: (_) => _scrollTo(_getCurrentIndex() ?? 0),
-                            child: ScrollablePositionedList.builder(
-                              initialScrollIndex: _getCurrentIndex() ?? 0,
-                              initialAlignment: .5,
-                              itemScrollController: _scrollController,
-                              itemPositionsListener: _itemListener,
-                              padding: .symmetric(
-                                vertical:
-                                    (context.screenScaled.height - 60) * .4,
-                              ),
-                              physics: const BouncingScrollPhysics(),
-                              itemCount: matches.length,
-                              itemBuilder: (_, idx) {
-                                final first = matches[idx].first;
-
-                                final selected = idx == _currentIdx;
-
-                                // Buscamos la posición de este ítem específico
-                                double itemLeadingEdge = 0.0;
-                                double itemTrailingEdge = 0.0;
-
-                                final position = _itemPositions
-                                    .where((p) => p.index == idx)
-                                    .toList();
-
-                                if (position.isNotEmpty) {
-                                  itemLeadingEdge =
-                                      position.first.itemLeadingEdge;
-                                  itemTrailingEdge =
-                                      position.first.itemTrailingEdge;
-                                }
-
-                                double itemCenter =
-                                    (itemLeadingEdge + itemTrailingEdge) / 2;
-
-                                double distanceToCenter = (0.5 - itemCenter)
-                                    .abs();
-
-                                // Normalizamos (0.0 en el centro, sube conforme se aleja)
-                                double linearFactor = distanceToCenter.clamp(
-                                  0.0,
-                                  1.0,
-                                ); // Multiplicamos por 2 para que el rango sea 0 a 1
-
-                                double curvedFactor = Curves.fastOutSlowIn
-                                    .transform(linearFactor);
-
-                                double t = curvedFactor / 6;
-
-                                return FractionalTranslation(
-                                  translation: Offset(
-                                    t + (1 / 80) + (selected ? 0 : 0.05),
-                                    0,
-                                  ),
-                                  child: Column(
-                                    mainAxisSize: .min,
-                                    children: [
-                                      Container(
-                                        margin: const .fromLTRB(36, 4, 4, 0),
-                                        width:
-                                            (context.screenScaled.width / 2) -
-                                            32,
-                                        decoration: BoxDecoration(
-                                          color: Color.lerp(
-                                            first.colors.first,
-                                            AppColors.containerHigh,
-                                            .5,
-                                          ),
-                                          borderRadius: const .only(
-                                            topLeft: .circular(4),
-                                            bottomLeft: .circular(4),
-                                          ),
-                                        ),
-                                        child: InkWell(
-                                          mouseCursor: SystemMouseCursors.none,
-                                          onTap: () => _setBeatmap(first),
-                                          child: Row(
-                                            children: [
-                                              const Padding(
-                                                padding: .all(2),
-                                                child: Icon(
-                                                  Icons.arrow_forward_ios,
-                                                  size: 6,
-                                                ),
-                                              ),
-                                              Expanded(
-                                                child: Container(
-                                                  padding: const .all(8),
-                                                  decoration: BoxDecoration(
-                                                    color: Color.lerp(
-                                                      first.colors.first,
-                                                      AppColors.container,
-                                                      2 / 3,
-                                                    ),
-                                                    borderRadius: const .only(
-                                                      topLeft: .circular(4),
-                                                      bottomLeft: .circular(4),
-                                                    ),
-                                                  ),
-                                                  child: Column(
-                                                    mainAxisSize: .min,
-                                                    crossAxisAlignment:
-                                                        .stretch,
-                                                    children: [
-                                                      Text(
-                                                        first.info.title,
-                                                        style: const TextStyle(
-                                                          fontWeight: .bold,
-                                                          fontSize: 10,
-                                                          height: 1,
-                                                        ),
-                                                      ),
-                                                      const SizedBox(height: 1),
-                                                      Text(
-                                                        first.info.artist,
-                                                        style: const TextStyle(
-                                                          fontSize: 6,
-                                                          height: 1,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                      if (selected)
-                                        for (final beatmap in matches[idx])
-                                          Container(
-                                            margin: const .fromLTRB(
-                                              96,
-                                              4,
-                                              4,
-                                              0,
-                                            ),
-                                            width:
-                                                (context.screenScaled.width /
-                                                    2) -
-                                                96,
-                                            decoration: BoxDecoration(
-                                              color: Color.lerp(
-                                                first.colors.first,
-                                                AppColors.containerHigh,
-                                                .5,
-                                              ),
-                                              borderRadius: const .only(
-                                                topLeft: .circular(4),
-                                                bottomLeft: .circular(4),
-                                              ),
-                                            ),
-                                            child: InkWell(
-                                              onTap: () =>
-                                                  _setBeatmap(beatmap, true),
-                                              mouseCursor:
-                                                  SystemMouseCursors.none,
-                                              child: Row(
-                                                children: [
-                                                  const SizedBox(width: 4),
-                                                  Expanded(
-                                                    child: Container(
-                                                      padding: const .all(6),
-                                                      decoration: BoxDecoration(
-                                                        color: Color.lerp(
-                                                          first.colors.first,
-                                                          AppColors.container,
-                                                          2 / 3,
-                                                        ),
-                                                        borderRadius:
-                                                            const .only(
-                                                              topLeft:
-                                                                  .circular(4),
-                                                              bottomLeft:
-                                                                  .circular(4),
-                                                            ),
-                                                      ),
-                                                      child: Column(
-                                                        mainAxisSize: .min,
-                                                        crossAxisAlignment:
-                                                            .stretch,
-                                                        children: [
-                                                          Text(
-                                                            beatmap
-                                                                .info
-                                                                .version,
-                                                            style:
-                                                                const TextStyle(
-                                                                  fontWeight:
-                                                                      .bold,
-                                                                  fontSize: 8,
-                                                                  height: 1,
-                                                                ),
-                                                          ),
-                                                          Text(
-                                                            beatmap
-                                                                .info
-                                                                .creator,
-                                                            style:
-                                                                const TextStyle(
-                                                                  fontSize: 4,
-                                                                  height: 1,
-                                                                ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                    ],
-                                  ),
-                                );
-                              },
-                              /* itemBuilder: (_,  idx) => ,
-                             */
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
+                    const Expanded(child: BeatmapList()),
                   ],
                 ),
               ),
@@ -513,7 +279,7 @@ class _SongSelectPageState extends AnimatablePageState<SongSelectPage> {
                   offset: Offset(0, 96 * (1 - animProgress)),
                   color: AppColors.pink,
                   icon: const Icon(Icons.file_open_outlined),
-                  onTap: ref.read(gameplayService.notifier).loadReplay,
+                  onTap: ref.read(libraryProvider.notifier).pickReplay,
                   label: const Text("Open replay"),
                 ),
                 SkewedButtonLine(

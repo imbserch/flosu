@@ -24,6 +24,16 @@ class Easy extends ConfigurableMod {
     AccuracyChallenge(),
     DifficultyAdjust(),
   };
+
+  @override
+  BeatmapDifficulty applyTo(BeatmapDifficulty difficulty) {
+    return difficulty.copyWith(
+      CS: difficulty.CS * 0.5,
+      AR: difficulty.AR * 0.5,
+      OD: difficulty.OD * 0.5,
+      HP: difficulty.HP * 0.5,
+    );
+  }
 }
 
 class NoFail extends ConfigurableMod {
@@ -51,6 +61,7 @@ class NoFail extends ConfigurableMod {
   };
 }
 
+// Note: This mod will not sound like the original Osu! HT because of SoLoud implementation
 class HalfTime extends ConfigurableMod {
   @override
   String get name => "Half Time";
@@ -76,8 +87,23 @@ class HalfTime extends ConfigurableMod {
     // WindUp(),
     // WindDown(),
   };
+
+  @override
+  void activate(ProviderContainer ref) {
+    // Set the initial speed to 0.75x
+    ref.read(audioProvider.notifier).setRate(0.75);
+    super.activate(ref);
+  }
+
+  @override
+  void deactivate(ProviderContainer ref) {
+    // Restore the default speed to 1.0x
+    ref.read(audioProvider.notifier).setRate(1.0);
+    super.deactivate(ref);
+  }
 }
 
+// Note: This mod will sound exactly like Osu! DC because of SoLoud pitch shifting
 class Daycore extends ConfigurableMod {
   @override
   String get name => "Daycore";
@@ -103,4 +129,18 @@ class Daycore extends ConfigurableMod {
     // WindUp(),
     // WindDown(),
   };
+
+  @override
+  void activate(ProviderContainer ref) {
+    // Set the initial speed to 0.75x
+    ref.read(audioProvider.notifier).setRate(0.75);
+    super.activate(ref);
+  }
+
+  @override
+  void deactivate(ProviderContainer ref) {
+    // Restore the default speed to 1.0x
+    ref.read(audioProvider.notifier).setRate(1.0);
+    super.deactivate(ref);
+  }
 }

@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flosu/ui/widgets/navigation/notifications_drawer.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart' hide PointerEvent;
 import 'package:flutter/material.dart' hide PointerEvent;
 import 'package:flutter/services.dart' hide PointerEvent;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,6 +14,7 @@ import 'package:flosu/ui/widgets/background/parallax_background.dart';
 import 'package:flosu/ui/widgets/overlay/volume_bar.dart';
 import 'package:flosu/ui/widgets/navigation/settings_drawer.dart';
 import 'package:flosu/ui/widgets/navigation/top_bar.dart';
+import 'package:go_router/go_router.dart';
 
 class MainLayout extends ConsumerStatefulWidget {
   const MainLayout({
@@ -62,38 +62,46 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
   }
 
   void _onInput(Set<LogicalKeyboardKey> keys, PointerEvent? pointer) {
-    if (setEquals(_lastKeys, keys)) return;
-
-    //Only intercept if scrolled
-    if (pointer != null && pointer.scroll.dx.sign != 0) {
+    //Mouse events are only intercept if scrolled
+    if (pointer != null) {
       _updateVolume(keys.isAltPressed, pointer);
     }
 
-    //If CTRL+T pressed and keys state changed, toggle top bar
-    if (keys.isCtrlPressed && keys.changedAndPressed("T", _lastKeys)) {
-      _toggleTopBar();
-    }
+    if (setEquals(_lastKeys, keys)) return;
 
-    //If CTRL+O pressed and keys state changed, toggle drawer
-    if (keys.isCtrlPressed && keys.changedAndPressed("O", _lastKeys)) {
-      isSettingsOpen ? scaffold?.closeDrawer() : scaffold?.openDrawer();
-    }
+    if (keys.isCtrlPressed) {
+      //If CTRL+T pressed and keys state changed, toggle top bar
+      if (keys.changedAndPressed(LogicalKeyboardKey.keyT, _lastKeys)) {
+        _toggleTopBar();
+      }
 
-    //If CTRL+N pressed and keys state changed, toggle notifications drawer
-    if (keys.isCtrlPressed && keys.changedAndPressed("N", _lastKeys)) {
-      isNotificationsOpen
-          ? scaffold?.closeEndDrawer()
-          : scaffold?.openEndDrawer();
+      //If CTRL+O pressed and keys state changed, toggle drawer
+      if (keys.changedAndPressed(LogicalKeyboardKey.keyO, _lastKeys)) {
+        isSettingsOpen ? scaffold?.closeDrawer() : scaffold?.openDrawer();
+      }
+
+      //If CTRL+N pressed and keys state changed, toggle notifications drawer
+      if (keys.changedAndPressed(LogicalKeyboardKey.keyN, _lastKeys)) {
+        isNotificationsOpen
+            ? scaffold?.closeEndDrawer()
+            : scaffold?.openEndDrawer();
+      }
+
+      //If CTRL+ALT+F4 pressed and keys state changed
+      //Force game reload
+      if (keys.isAltPressed &&
+          keys.changedAndPressed(LogicalKeyboardKey.f4, _lastKeys)) {
+        scaffold?.closeEndDrawer();
+        context.go("/splash");
+      }
     }
 
     _lastKeys = keys.toSet();
   }
 
   void _updateVolume(bool altPressed, PointerEvent ev) {
-    if (ev.scroll.dx.sign == 0) return;
-
     //Accumulate scroll delta
-    if (ev is PointerScrollEvent) {
+    if (ev.scroll.dy.sign != 0) {
       if (_scroll.sign != (-ev.scroll.dy).sign) {
         _scroll = 0;
         _accScroll = 1;
@@ -107,10 +115,11 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
 
     //If ALT pressed and is scrolling, adjust volume using acceleration
     if (altPressed) {
-      final volume = ref.read(storageProvider).globalVolume;
-
       if (_scroll != 0) {
-        ref.read(storageProvider.notifier).setGlobalVolume(volume + _scroll);
+        final volume = ref.read(storageProvider).globalVolume;
+        final clampedVol = (volume + _scroll).clamp(0.0, 1.0);
+
+        ref.read(storageProvider.notifier).setGlobalVolume(clampedVol);
       }
     }
   }

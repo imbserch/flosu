@@ -22,6 +22,16 @@ class HardRock extends ConfigurableMod {
     DifficultyAdjust(),
     // Mirror(),
   };
+
+  @override
+  BeatmapDifficulty applyTo(BeatmapDifficulty difficulty) {
+    return difficulty.copyWith(
+      CS: (difficulty.CS * 1.3).clamp(0, 10),
+      AR: (difficulty.AR * 1.4).clamp(0, 10),
+      OD: (difficulty.OD * 1.4).clamp(0, 10),
+      HP: (difficulty.HP * 1.4).clamp(0, 10),
+    );
+  }
 }
 
 class SuddenDeath extends ConfigurableMod {
@@ -68,6 +78,7 @@ class Perfect extends ConfigurableMod {
   };
 }
 
+// Note: This mod will not sound like the original Osu! DT because of SoLoud implementation
 class DoubleTime extends ConfigurableMod {
   @override
   String get name => "Double Time";
@@ -93,8 +104,23 @@ class DoubleTime extends ConfigurableMod {
     // WindUp(),
     // WindDown(),
   };
+
+  @override
+  void activate(ProviderContainer ref) {
+    // Set the initial speed to 1.5x
+    ref.read(audioProvider.notifier).setRate(1.5);
+    super.activate(ref);
+  }
+
+  @override
+  void deactivate(ProviderContainer ref) {
+    // Restore the default speed to 1.0x
+    ref.read(audioProvider.notifier).setRate(1.0);
+    super.deactivate(ref);
+  }
 }
 
+// Note: This mod will sound exactly like Osu! DT because of SoLoud pitch shifting
 class Nightcore extends ConfigurableMod {
   @override
   String get name => "Nightcore";
@@ -120,6 +146,20 @@ class Nightcore extends ConfigurableMod {
     // WindUp(),
     // WindDown(),
   };
+
+  @override
+  void activate(ProviderContainer ref) {
+    // Set the initial speed to 1.5x
+    ref.read(audioProvider.notifier).setRate(1.5);
+    super.activate(ref);
+  }
+
+  @override
+  void deactivate(ProviderContainer ref) {
+    // Restore the default speed to 1.0x
+    ref.read(audioProvider.notifier).setRate(1.0);
+    super.deactivate(ref);
+  }
 }
 
 class Hidden extends ConfigurableMod {
