@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:flosu/logic/providers/router.dart';
 import 'package:flosu/logic/services/gameloop.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,6 +20,7 @@ class TopBar extends ConsumerStatefulWidget {
 
 class _TopBarState extends ConsumerState<TopBar> {
   final _startTime = DateTime.now();
+  Duration _tick = .zero;
 
   @override
   void initState() {
@@ -31,15 +33,20 @@ class _TopBarState extends ConsumerState<TopBar> {
   void dispose() {
     super.dispose();
 
-    ref.read(gameLoopService).unsubscribe(TickerPhase.visual, _updateTime);
+    globalRef
+        .read(gameLoopService)
+        .unsubscribe(TickerPhase.visual, _updateTime);
   }
 
-  void _updateTime(_) {}
+  void _updateTime(Duration tick) {
+    if (tick.inSeconds != _tick.inSeconds) {
+      if (mounted) setState(() => _tick = tick);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final running = now.difference(_startTime);
+    final now = _startTime.add(_tick);
 
     return ColoredBox(
       color: const Color(0xff191919),
@@ -129,7 +136,7 @@ class _TopBarState extends ConsumerState<TopBar> {
                       style: const TextStyle(fontSize: 10, height: 1),
                     ),
                     Text(
-                      "Running ${running.formatted}",
+                      "Running ${_tick.formatted}",
                       style: const TextStyle(
                         color: Colors.pinkAccent,
                         fontSize: 6,
