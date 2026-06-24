@@ -60,7 +60,7 @@ During gameplay and navigation, several shortcuts and mouse gestures are support
 
 1.  **Clone the repository**:
     ```bash
-    git clone https://github.com/[username]/flosu.git
+    git clone https://github.com/imbserch/flosu.git
     cd flosu
     ```
 
