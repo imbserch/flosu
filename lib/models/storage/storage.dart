@@ -10,6 +10,8 @@ class Storage {
     required this.backgroundDim,
     required this.backgroundBlur,
     required this.showCursorTrail,
+    required this.showLogs,
+    required this.showFpsMonitor,
     required this.beatmapsPath,
   });
 
@@ -23,6 +25,8 @@ class Storage {
   final double backgroundDim;
   final double backgroundBlur;
   final bool showCursorTrail;
+  final bool showLogs;
+  final bool showFpsMonitor;
   final String? beatmapsPath;
 
   Storage copyWith({
@@ -36,6 +40,8 @@ class Storage {
     double? backgroundDim,
     double? backgroundBlur,
     bool? showCursorTrail,
+    bool? showLogs,
+    bool? showFpsMonitor,
     String? beatmapsPath,
     bool keepLastBeatmapsPath = true,
   }) => Storage(
@@ -49,6 +55,8 @@ class Storage {
     backgroundDim: backgroundDim ?? this.backgroundDim,
     backgroundBlur: backgroundBlur ?? this.backgroundBlur,
     showCursorTrail: showCursorTrail ?? this.showCursorTrail,
+    showLogs: showLogs ?? this.showLogs,
+    showFpsMonitor: showFpsMonitor ?? this.showFpsMonitor,
     beatmapsPath:
         beatmapsPath ?? (keepLastBeatmapsPath ? this.beatmapsPath : null),
   );

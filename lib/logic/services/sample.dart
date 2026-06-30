@@ -2,7 +2,6 @@ import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_soloud/flutter_soloud.dart';
 
-//TODO: REIMPLEMENT AND MOVE INTO LOGIC FOLDER, THIS IS A SERVICE, NOT A PROVIDER
 class SampleService {
   final _instance = SoLoud.instance;
 

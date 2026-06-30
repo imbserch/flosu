@@ -199,6 +199,31 @@ class SettingsDrawer extends ConsumerWidget {
                       ),
                       const SettingsDivider(),
                       SettingsSection(
+                        label: "Developer Tools",
+                        groups: [
+                          SettingsGroup(
+                            label: "UI",
+                            items: [
+                              SettingsItem(
+                                label: "Show logs",
+                                control: OsuCheckbox(
+                                  value: config.showLogs,
+                                  onChange: storage.setShowLogs,
+                                ),
+                              ),
+                              SettingsItem(
+                                label: "Show FPS monitor",
+                                control: OsuCheckbox(
+                                  value: config.showFpsMonitor,
+                                  onChange: storage.setShowFpsMonitor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SettingsDivider(),
+                      SettingsSection(
                         label: "Maintenance",
                         groups: [
                           SettingsGroup(

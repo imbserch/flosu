@@ -116,6 +116,18 @@ class StorageNotifier extends Notifier<Storage> {
     state = state.copyWith(backgroundBlur: blurClamped);
     _service.setBackgroundBlur(blurClamped);
   }
+
+  /// Enables or disables the logs.
+  void setShowLogs(bool value) {
+    state = state.copyWith(showLogs: value);
+    _service.setShowLogs(value);
+  }
+
+  /// Enables or disables the FPS monitor.
+  void setShowFpsMonitor(bool value) {
+    state = state.copyWith(showFpsMonitor: value);
+    _service.setShowFpsMonitor(value);
+  }
 }
 
 /// Global provider for [StorageNotifier].

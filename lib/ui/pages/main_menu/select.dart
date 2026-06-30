@@ -4,7 +4,7 @@ import 'package:flosu/logic/providers/library.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flosu/core/extensions.dart';
+import 'package:flosu/core/extensions/ui.dart';
 import 'package:flosu/logic/providers/audio.dart';
 import 'package:flosu/ui/shared/animatable_page.dart';
 import 'package:flosu/ui/widgets/common/skewed_box.dart';

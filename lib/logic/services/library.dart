@@ -1,8 +1,4 @@
-import 'dart:io';
-
-import 'package:flosu/core/extensions.dart';
-import 'package:flosu/io/beatmap_parser.dart' show BeatmapParser;
-import 'package:flosu/models/beatmap/beatmap.dart';
+import 'package:flosu/logic/services/logger.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -21,6 +17,8 @@ class LibraryService {
 
   static LibraryService get instance => _instance;
 
+  final ScopedLogger _logger = Logger.requestLogger("LibraryService");
+
   /// Requests necessary storage permissions on Android.
   ///
   /// Requests both the legacy `READ_EXTERNAL_STORAGE` permission (pre-API 33)
@@ -30,63 +28,42 @@ class LibraryService {
   /// No-op on platforms other than Android.
   Future<void> init() async {
     if (defaultTargetPlatform == .android) {
-      "Target is android. Requesting storage permissions".log;
+      bool granted = false;
+
+      _logger.debug("Android target. Requesting permissions");
 
       // Legacy permission (Android 9 and below).
       if (!await Permission.storage.isGranted) {
-        await Permission.storage.request();
-
-        if (!await Permission.storage.isGranted) {
-          "App cannot read beatmaps using legacy permissions".log;
-        } else {
-          "App can read beatmaps using legacy permissions".log;
-        }
+        final status = await Permission.storage.request();
+        if (status == PermissionStatus.granted) granted = true;
       }
 
-      // Modern permission (Android 10+).
-      if (!await Permission.manageExternalStorage.isGranted) {
-        await Permission.manageExternalStorage.request();
-
-        if (!await Permission.manageExternalStorage.isGranted) {
-          "App cannot read beatmaps using modern permissions".log;
-        } else {
-          "App can read beatmaps using modern permissions".log;
-        }
+      if (!granted || !await Permission.manageExternalStorage.isGranted) {
+        final status = await Permission.manageExternalStorage.request();
+        if (status == PermissionStatus.granted) granted = true;
       }
+
+      if (granted) {
+        return _logger.info("Library permissions granted (Granted by user)");
+      }
+
+      return _logger.error(
+        "Library permissions denied (Denied by user or permission revoked)",
+      );
     }
+
+    _logger.warn("Library permissions granted (Not Android Platform)");
   }
 
-  /// Parses a single `.osu` [file] into a [Beatmap].
-  ///
-  /// Returns `null` if:
-  /// - The file extension is not `.osu`.
-  /// - The file cannot be opened (parser init fails).
-  /// - Parsing times out after 30 seconds.
-  /// - Any exception is thrown during parsing.
-  Future<Beatmap?> getBeatmapFromFile(File file) async {
-    try {
-      if (!file.path.endsWith(".osu")) return null;
-
-      final parser = BeatmapParser(file);
-
-      if (!await parser.init()) {
-        "Error reading beatmap\nPath: ${file.path}".log;
-        return null;
-      }
-
-      return await parser.parse().timeout(
-        const Duration(seconds: 30),
-        onTimeout: () {
-          "Parsing beatmap timed out\nPath: ${file.path}".log;
-          return null;
-        },
-      );
-    } catch (err) {
-      "Error reading beatmap. Reason: $err\nPath: ${file.path}".log;
-      return null;
-    }
+  void dispose() {
+    _logger.dispose();
   }
 }
 
 /// Global provider that exposes the [LibraryService] singleton.
-final libraryService = Provider((ref) => LibraryService.instance);
+final libraryService = Provider((ref) {
+  final instance = LibraryService.instance;
+
+  ref.onDispose(() => instance.dispose());
+  return instance;
+});

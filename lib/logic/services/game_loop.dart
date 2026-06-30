@@ -1,11 +1,8 @@
-import 'package:flosu/core/extensions.dart';
+import 'package:flosu/core/enums.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 typedef TickHandlerCallback = void Function(Duration tick);
-
-// TODO: Move this outside this file
-enum TickerPhase { input, logic, visual }
 
 class GameLoopService {
   GameLoopService._() {

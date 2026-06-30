@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -6,8 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flosu/core/theme/app_colors.dart';
 import 'package:flosu/models/mods/base.dart';
-import 'package:flosu/core/extensions.dart';
-import 'package:flosu/logic/gameplay_service.dart';
+import 'package:flosu/core/extensions/ui.dart';
+import 'package:flosu/logic/providers/gameplay_service.dart';
 import 'package:flosu/logic/providers/tooltip.dart';
 import 'package:flosu/ui/shared/animatable_page.dart';
 import 'package:flosu/ui/widgets/common/skewed_box.dart';

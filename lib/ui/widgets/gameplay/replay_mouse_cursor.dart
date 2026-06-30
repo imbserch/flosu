@@ -1,15 +1,16 @@
 import 'dart:ui';
 
-import 'package:flosu/core/extensions.dart';
-import 'package:flosu/logic/gameplay_service.dart';
+import 'package:flosu/core/enums.dart';
+
+import 'package:flosu/logic/providers/gameplay_service.dart';
 import 'package:flosu/logic/providers/audio.dart';
 import 'package:flosu/logic/providers/router.dart';
 import 'package:flosu/logic/providers/storage.dart';
-import 'package:flosu/logic/services/gameloop.dart';
+import 'package:flosu/logic/services/game_loop.dart';
+import 'package:flosu/logic/services/logger.dart';
 import 'package:flosu/models/inputs/inputs.dart';
 import 'package:flosu/ui/painters/gameplay.dart';
 import 'package:flutter/material.dart' hide PointerEvent, Image;
-import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart' hide PointerEvent;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -21,6 +22,7 @@ class ReplayMouseCursor extends ConsumerStatefulWidget {
 }
 
 class _ReplayMouseCursorState extends ConsumerState<ReplayMouseCursor> {
+  final ScopedLogger _logger = Logger.requestLogger("ReplayMouseCursor");
   final _cursorEvents = ValueNotifier<List<ReplayFrameEvent>>([]);
   final _positionEvents = ValueNotifier<int>(0);
 
@@ -40,7 +42,8 @@ class _ReplayMouseCursorState extends ConsumerState<ReplayMouseCursor> {
 
   @override
   void dispose() {
-    globalRef.read(gameLoopService).subscribe(TickerPhase.visual, _onTick);
+    globalRef.read(gameLoopService).unsubscribe(TickerPhase.visual, _onTick);
+    _logger.dispose();
     super.dispose();
   }
 
@@ -54,7 +57,7 @@ class _ReplayMouseCursorState extends ConsumerState<ReplayMouseCursor> {
       _mouseImage = frame.image;
       if (mounted) setState(() {});
     } catch (err) {
-      "Error loading mouse as a ui.Image: $err".log;
+      _logger.error("Error loading mouse as a ui.Image: $err");
     }
   }
 

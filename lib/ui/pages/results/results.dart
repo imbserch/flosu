@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flosu/core/theme/app_colors.dart';
 import 'package:flosu/ui/pages/song_select/mods.dart';
-import 'package:flosu/logic/gameplay_service.dart';
+import 'package:flosu/logic/providers/gameplay_service.dart';
 import 'package:flosu/logic/providers/router.dart';
 import 'package:flosu/ui/shared/animatable_page.dart';
 import 'package:flosu/ui/widgets/common/skewed_box.dart';

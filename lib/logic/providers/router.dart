@@ -11,7 +11,6 @@ import 'package:flosu/ui/pages/results/results.dart';
 import 'package:flosu/ui/pages/song_select/select.dart';
 import 'package:flosu/ui/pages/splash/splash.dart';
 import 'package:flosu/ui/pages/song_select/mods.dart';
-import 'package:flosu/ui/shared/transition_scope.dart';
 import 'package:flosu/ui/widgets/common/skewed_box.dart';
 
 ProviderContainer get globalRef =>
@@ -119,41 +118,14 @@ Future<T?> openDialog<T extends Object>({
 }
 
 Page buildPage(GoRouterState state, Widget child) {
-  final progress = ValueNotifier<double>(0.0);
-
   return CustomTransitionPage<void>(
     key: state.pageKey,
     opaque: state.uri.pathSegments.length < 2,
     transitionDuration: Durations.short4,
     reverseTransitionDuration: Durations.short4,
-    child: const SizedBox.shrink(),
-    transitionsBuilder: (context, anim, revAnim, _) {
-      final segments = state.uri.pathSegments.length;
-      final targetSegments = GoRouterState.of(context).uri.pathSegments.length;
-
-      double t;
-
-      if (segments >= 2) {
-        t = Curves.easeOut.transform(anim.value);
-      } else {
-        final bool isGoingDeeper = targetSegments > segments;
-
-        final bool isReturningFromDeep =
-            revAnim.status == AnimationStatus.reverse &&
-            targetSegments == segments;
-
-        final double effectiveRevAnim = (isGoingDeeper || isReturningFromDeep)
-            ? 0.0
-            : revAnim.value;
-
-        final animVal = anim.value * (1.0 - effectiveRevAnim);
-
-        t = Curves.easeOut.transform(animVal);
-      }
-
-      progress.value = t;
-
-      return TransitionScope(progress: progress, child: child);
+    child: child,
+    transitionsBuilder: (context, anim, revAnim, childWidget) {
+      return childWidget;
     },
   );
 }

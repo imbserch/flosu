@@ -1,4 +1,9 @@
+import 'package:flosu/core/enums.dart';
+import 'package:flosu/models/ui/notification.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+export 'package:flosu/core/enums.dart' show NotificationType;
+export 'package:flosu/models/ui/notification.dart' show Notification;
 
 class NotificationProvider extends Notifier<List<Notification>> {
   @override
@@ -30,14 +35,3 @@ final notificationProvider =
     NotifierProvider<NotificationProvider, List<Notification>>(
       () => NotificationProvider(),
     );
-
-//TODO: MOVE OUTSIDE OF LOGIC FOLDER, THIS IS UI RELATED
-class Notification {
-  Notification({required this.message, required this.type, this.callback});
-
-  final String message;
-  final NotificationType type;
-  final void Function()? callback;
-}
-
-enum NotificationType { info, normal, warning, error }

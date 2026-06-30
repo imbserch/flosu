@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide PointerEvent;
 import 'package:flutter/services.dart' hide PointerEvent;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flosu/core/extensions.dart';
+import 'package:flosu/core/extensions/models.dart';
 import 'package:flosu/logic/providers/input.dart';
 import 'package:flosu/logic/providers/storage.dart';
 import 'package:flosu/models/inputs/inputs.dart';
@@ -80,6 +80,18 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
         isSettingsOpen ? scaffold?.closeDrawer() : scaffold?.openDrawer();
       }
 
+      //If CTRL+F11 pressed and keys state changed, toggle fps monitor
+      if (keys.changedAndPressed(LogicalKeyboardKey.f11, _lastKeys)) {
+        final showFpsMonitor = ref.read(storageProvider).showFpsMonitor;
+        ref.read(storageProvider.notifier).setShowFpsMonitor(!showFpsMonitor);
+      }
+
+      //If CTRL+F9 pressed and keys state changed, toggle logs
+      if (keys.changedAndPressed(LogicalKeyboardKey.f9, _lastKeys)) {
+        final showLogs = ref.read(storageProvider).showLogs;
+        ref.read(storageProvider.notifier).setShowLogs(!showLogs);
+      }
+
       //If CTRL+N pressed and keys state changed, toggle notifications drawer
       if (keys.changedAndPressed(LogicalKeyboardKey.keyN, _lastKeys)) {
         isNotificationsOpen
@@ -89,10 +101,11 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
 
       //If CTRL+ALT+F4 pressed and keys state changed
       //Force game reload
-      if (keys.isAltPressed &&
-          keys.changedAndPressed(LogicalKeyboardKey.f4, _lastKeys)) {
-        scaffold?.closeEndDrawer();
-        context.go("/splash");
+      if (keys.isAltPressed) {
+        if (keys.changedAndPressed(LogicalKeyboardKey.f4, _lastKeys)) {
+          scaffold?.closeEndDrawer();
+          context.go("/splash");
+        }
       }
     }
 

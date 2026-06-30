@@ -1,10 +1,12 @@
-import 'package:collection/collection.dart';
-import 'package:flosu/logic/services/gameloop.dart';
-import 'package:flutter/scheduler.dart';
+import 'package:flosu/core/enums.dart';
+import 'package:flosu/logic/services/game_loop.dart';
 import 'package:flutter/services.dart' hide PointerEvent;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flosu/logic/services/input.dart';
 import 'package:flosu/models/inputs/inputs.dart';
+import 'package:flosu/models/inputs/timings.dart';
+
+export 'package:flosu/models/inputs/timings.dart';
 
 /// Signature for a callback that receives the current key state and the latest
 /// pointer event immediately after a hardware event fires.
@@ -18,16 +20,6 @@ typedef DelayedInputsCallback = void Function(InputEvents events);
 /// Signature for a callback that receives the input timings.
 typedef InputTimingsCallback = void Function(InputTimings timings);
 
-// TODO: Move outside this file
-class InputTimings {
-  InputTimings({
-    required this.delayedEventsDuration,
-    required this.immediateEventsDuration,
-  });
-
-  final List<Duration> delayedEventsDuration;
-  final List<Duration> immediateEventsDuration;
-}
 
 /// Riverpod provider that bridges [InputService] hardware events to higher-level
 /// consumers in the widget tree.
@@ -67,7 +59,8 @@ class InputProvider extends Notifier<void> {
   }
 
   // Accumulated events waiting to be delivered to delayed handlers.
-  final List<HardwareEvent> _storedEvents = [];
+  final List<PointerEvent> _storedPointerEvents = [];
+  final List<KeyboardEvent> _storedKeyboardEvents = [];
 
   // Current pressed-key state for immediate handlers.
   final Set<LogicalKeyboardKey> _pressedKeys = {};
@@ -122,19 +115,24 @@ class InputProvider extends Notifier<void> {
   /// Processes an incoming [HardwareEvent] from [InputService].
   void _onEvent(HardwareEvent event) {
     // Update live key and pointer state for immediate handlers.
-    if (event is PointerEvent) _lastPointerEvent = event;
+    if (event is PointerEvent) {
+      _lastPointerEvent = event;
+      if (_delayedHandlers.isNotEmpty) {
+        _storedPointerEvents.add(event);
+      }
+    }
     if (event is KeyboardEvent) {
       if (event.pressed) {
         _pressedKeys.add(event.key);
       } else {
         _pressedKeys.remove(event.key);
       }
+      if (_delayedHandlers.isNotEmpty) {
+        _storedKeyboardEvents.add(event);
+      }
     }
 
     _callImmediateHandlers();
-
-    // Store for the next delayed flush.
-    _storedEvents.add(event);
   }
 
   /// Notifies all immediate handlers with the current input state.
@@ -152,20 +150,24 @@ class InputProvider extends Notifier<void> {
   /// Called once per frame by the [_ticker] to flush accumulated events
   /// to all delayed handlers and clear the buffer.
   void _callDelayedHandlers(_) {
-    if (_storedEvents.isEmpty) return;
+    if (_storedPointerEvents.isEmpty && _storedKeyboardEvents.isEmpty) return;
 
     final sw = Stopwatch()..start();
 
-    final latestEvents = InputEvents(
-      List.from(_storedEvents.whereType<PointerEvent>()),
-      List.from(_storedEvents.whereType<KeyboardEvent>()),
-    );
+    // Only call handlers if there are any registered.
+    if (_delayedHandlers.isNotEmpty) {
+      final latestEvents = InputEvents(
+        List.of(_storedPointerEvents),
+        List.of(_storedKeyboardEvents),
+      );
 
-    for (final handler in _delayedHandlers) {
-      handler(latestEvents);
+      for (final handler in _delayedHandlers) {
+        handler(latestEvents);
+      }
+
+      _storedPointerEvents.clear();
+      _storedKeyboardEvents.clear();
     }
-
-    _storedEvents.clear();
 
     sw.stop();
     _delayedEventsDurations.add(sw.elapsed);

@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
 
-// import 'package:flosu/core/extensions.dart';
+// 
 import 'package:file_picker/file_picker.dart';
 import 'package:flosu/io/beatmap_parser.dart';
 import 'package:flosu/io/parser.dart';

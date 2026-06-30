@@ -10,8 +10,9 @@ import 'package:flosu/logic/providers/audio.dart';
 import 'package:flosu/logic/providers/input.dart';
 import 'package:flosu/models/beatmap/beatmap.dart';
 import 'package:flosu/core/theme/app_colors.dart';
-import 'package:flosu/core/extensions.dart';
-import 'package:flosu/logic/gameplay_service.dart';
+import 'package:flosu/core/extensions/models.dart';
+import 'package:flosu/core/extensions/ui.dart';
+import 'package:flosu/logic/providers/gameplay_service.dart';
 import 'package:flosu/models/inputs/inputs.dart';
 import 'package:flosu/logic/providers/router.dart';
 import 'package:flosu/ui/shared/animatable_page.dart';
@@ -34,8 +35,10 @@ class _SongSelectPageState extends AnimatablePageState<SongSelectPage> {
   final _sCon = TextEditingController();
 
   Set<LogicalKeyboardKey> _lastKeys = {};
+  // ignore: unused_field
   late int _currentIdx = _getCurrentIndex() ?? 0;
   Timer? _updateTimer;
+  // ignore: unused_field
   List<ItemPosition> _itemPositions = [];
 
   @override
@@ -89,7 +92,6 @@ class _SongSelectPageState extends AnimatablePageState<SongSelectPage> {
 
     //If F3 pressed and keys changed, open replay window
     if (keys.changedAndPressed(LogicalKeyboardKey.f3, _lastKeys)) {
-      // TODO: Replay flow implementation needed
       ref.read(libraryProvider.notifier).pickReplay();
     }
 
@@ -195,9 +197,9 @@ class _SongSelectPageState extends AnimatablePageState<SongSelectPage> {
                                         ),
                                         helper: Transform.translate(
                                           offset: const Offset(0, -2),
-                                          child: Text(
+                                          child: const Text(
                                             "0 matches",
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontSize: 6,
                                               color: Colors.amber,
                                             ),

@@ -8,7 +8,6 @@ import 'package:flosu/core/enums.dart';
 import 'package:flosu/models/replay/replay.dart';
 import 'package:flosu/models/replay/replay_frame.dart';
 import 'package:flosu/models/mods/base.dart';
-import 'package:flosu/core/extensions.dart';
 import 'package:flosu/io/parser.dart';
 
 // ignore: constant_identifier_names
@@ -27,7 +26,6 @@ class ReplayParser extends Parser<Replay> {
   @override
   Future<bool> init() async {
     try {
-      "Scanning ${file.path}".log;
       final builder = BytesBuilder();
 
       if (await file.exists()) {
@@ -42,7 +40,7 @@ class ReplayParser extends Parser<Replay> {
       }
       return false;
     } catch (_) {
-      "Error scanning ${file.path}".log;
+      // TODO: ADD THROW
       return false;
     }
   }
@@ -133,12 +131,8 @@ class ReplayParser extends Parser<Replay> {
       final lazerPayload = jsonDecode(extraData) as Map<String, dynamic>;
 
       mods = ConfigurableMod.fromLazerPayload(lazerPayload);
-
-      "Lazer .osr file (Metadata found)".log;
     } catch (e) {
-      // Fallback to stable bitmask if Lazer data is missing or malformed.
-      "Stable .osr file (Classic Mod must be enabled)".log;
-
+      // Replay file is from osu!stable
       mods = ConfigurableMod.fromStableBit(bitMods);
     }
 

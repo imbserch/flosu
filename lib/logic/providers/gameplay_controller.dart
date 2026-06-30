@@ -1,83 +1,71 @@
+import 'package:flosu/core/enums.dart';
+import 'package:flosu/logic/providers/gameplay_service.dart';
+import 'package:flosu/logic/providers/audio.dart';
 import 'package:flosu/logic/providers/input.dart';
-import 'package:flutter/material.dart' hide Slider, PointerEvent;
+import 'package:flosu/logic/services/game_loop.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' hide PointerEvent;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flosu/models/beatmap/beatmap.dart';
-import 'package:flosu/models/beatmap/hit_objects.dart';
-import 'package:flosu/models/gameplay/score_state.dart';
 import 'package:flosu/models/inputs/inputs.dart';
-import 'package:flosu/models/mods/base.dart';
 
 /// TODO: Reimplement GameplayController to use a more modern approach,
-/// possibly using a game loop or ticker system.
-///
-/// The current implementation is very basic and doesn't
-/// handle many edge cases.
-///
-/// This must implement internally the input service and cast input into playfield coords,
-/// while processing input events through the current beatmap.
-///
-/// Should implement hit detection, scoring, health, accuracy, combo, etc.
-///
 /// TODO: Modify notifier type to use state
 class GameplayController extends Notifier<void> {
   // Initialize state and dispose event listeners for all services used in gameplay
   @override
   void build() {
-    ref.read(inputProvider.notifier).addDelayedHandler(_input);
+    ref.read(inputProvider.notifier).addInmediateHandler(_input);
+    ref.read(gameLoopService).subscribe(TickerPhase.logic, _processTick);
 
     ref.onDispose(() {
-      ref.read(inputProvider.notifier).removeDelayedHandler(_input);
+      ref.read(inputProvider.notifier).removeInmediateHandler(_input);
+      ref.read(gameLoopService).unsubscribe(TickerPhase.logic, _processTick);
     });
   }
 
-  // ---------------------------------------------------------------------------
-  // Internal state
-  // ---------------------------------------------------------------------------
+  PointerEvent? _lastValidPointer;
+  int _lastValidPointerTimeMs = 0;
+  Set<LogicalKeyboardKey> _lastKeys = {};
 
-  /// Current snapshot of all scoring metrics.
-  ScoreState _state = const ScoreState();
+  void _input(Set<LogicalKeyboardKey> keys, PointerEvent? pointer) {
+    // Check if the set of active keyboard keys has changed.
+    final keysChanged = !setEquals(_lastKeys, keys);
 
-  /// Set of objects that have already been judged (hit or missed).
-  /// Prevents double-evaluation of the same object.
-  final Set<HitObject> _judgedObjects = {};
+    if (keysChanged) {
+      _lastKeys = Set.of(keys);
+    }
 
-  late final ValueNotifier<ScoreState> stateNotifier = ValueNotifier(_state);
+    final now = DateTime.now().millisecondsSinceEpoch;
 
-  /// Initialises the controller for a new play session.
-  ///
-  /// Must be called once before [processInput] or [processTick].
-  void init(BeatmapDifficulty difficulty, Set<ConfigurableMod> mods) {
-    _state = const ScoreState();
-    _judgedObjects.clear();
-    stateNotifier.value = _state;
+    // Process immediately if keys changed or if there is no previous pointer time.
+    if (keysChanged || _lastValidPointer == null) {
+      _lastValidPointer = pointer;
+      _lastValidPointerTimeMs = now;
+
+      _processInput();
+      return;
+    }
+
+    // Otherwise, throttle pointer events to once every 4ms.
+    if (now - _lastValidPointerTimeMs >= 4) {
+      _lastValidPointer = pointer;
+      _lastValidPointerTimeMs = now;
+
+      _processInput();
+    }
   }
 
-  /// Resets all live state to its initial values.
-  ///
-  /// Call this when the player retries the map without restarting the provider.
-  void reset() {
-    _state = const ScoreState();
-    _judgedObjects.clear();
-    stateNotifier.value = _state;
+  void _processInput() {
+    //Process hit detection
   }
 
-  void _input(InputEvents lastTickEvents) {}
-
-  /// Checks for objects that have expired without being hit and marks them
-  /// as misses.
   ///
-  /// Must be called once per frame from the gameplay ticker.
-  ///
-  /// [positionInMs]  — the current audio position, in milliseconds.
-  /// [activeObjects] — the objects currently visible on the playfield.
-  void processTick(int positionInMs, List<HitObject> activeObjects) {}
+  void _processTick(_) {
+    final position = ref.read(audioProvider.notifier).position;
+    final difficulty = ref.read(gameplayService).difficultyWithMods!;
+  }
 }
 
-/// Global provider for the [GameplayController] singleton.
-///
-/// Use `ref.read(gameplayControllerProvider.notifier)` to access methods,
-/// and `ref.read(gameplayControllerProvider.notifier).stateNotifier` to
-/// subscribe to live score updates.
 final gameplayControllerProvider = NotifierProvider<GameplayController, void>(
   () => GameplayController(),
 );

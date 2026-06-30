@@ -1,7 +1,7 @@
 import 'package:collection/collection.dart';
+import 'package:flosu/logic/services/logger.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_soloud/flutter_soloud.dart';
-import 'package:flosu/core/extensions.dart';
 
 /// [AudioService] acts as a low-level wrapper for the `flutter_soloud` engine.
 ///
@@ -13,6 +13,7 @@ class AudioService {
   static final AudioService _instance = AudioService._();
 
   static AudioService get instance => _instance;
+  final ScopedLogger _logger = Logger.requestLogger("Audio Service");
 
   /// Initializes the audio engine with a specific buffer size.
   ///
@@ -20,11 +21,15 @@ class AudioService {
   /// Any failure during initialization is logged and prevents playback.
   Future<void> init() async {
     try {
-      await SoLoud.instance.init(bufferSize: 256);
+      await SoLoud.instance.init(bufferSize: 128);
       SoLoud.instance.setMaxActiveVoiceCount(64);
       _soLoud = SoLoud.instance;
+
+      _logger.info("AudioService has been initialized");
     } catch (err) {
-      "AudioService initialization error. $err\nAudio can't be played".log;
+      _logger.error(
+        "AudioService initialization error. $err\nAudio can't be played",
+      );
     }
   }
 
@@ -39,7 +44,7 @@ class AudioService {
     try {
       return await _soLoud?.loadFile(path);
     } catch (err) {
-      "Error loading file: $err".log;
+      _logger.error("Error loading file: $err");
       return null;
     }
   }
@@ -56,7 +61,7 @@ class AudioService {
       if (handle != null) _soLoud?.setProtectVoice(handle!, true);
       return handle;
     } catch (err) {
-      "Error playing file: $err".log;
+      _logger.error("Error playing file: $err");
       return null;
     }
   }
@@ -70,7 +75,11 @@ class AudioService {
     // and reuse the slot in the sound pool.
     _soLoud?.setProtectVoice(handle!, false);
 
-    if (duration != null) return _soLoud?.scheduleStop(handle, duration);
+    if (duration != null) {
+      _logger.debug("Scheduling stop at $duration");
+      return _soLoud?.scheduleStop(handle, duration);
+    }
+    _logger.debug("Stopping sound");
     _soLoud?.stop(handle);
   }
 
@@ -83,19 +92,30 @@ class AudioService {
 
     if (duration != null) {
       if (seek) _soLoud?.seek(handle, duration);
+
+      _logger.debug("Setting loop point to $duration");
       _soLoud?.setLoopPoint(handle, duration);
     }
   }
 
-  /// Adjusts the playback speed of a specific sound instance.
+  /// Sets the playback speed of a specific sound instance.
   ///
   /// [rate]: The speed multiplier. Clamped between 0.05x and 2.0x to
   /// prevent engine instability.
+  /// [duration]: If provided, the speed will transition smoothly over
+  /// this period.
   /// Returns the actual rate applied, or 1.0 if the engine is unavailable.
-  double setRate(SoundHandle handle, double rate) {
+  double setRate(SoundHandle handle, double rate, [Duration? duration]) {
     final clampedRate = rate.clamp(0.05, 2.0);
 
-    _soLoud?.setRelativePlaySpeed(handle, clampedRate);
+    if (duration != null) {
+      _logger.debug("Setting rate to $clampedRate over $duration");
+      _soLoud?.fadeRelativePlaySpeed(handle, clampedRate, duration);
+    } else {
+      _logger.debug("Setting rate to $clampedRate");
+      _soLoud?.setRelativePlaySpeed(handle, clampedRate);
+    }
+
     return _soLoud != null ? clampedRate : 1.0;
   }
 
@@ -103,6 +123,7 @@ class AudioService {
   ///
   /// [playing]: true to resume (unpause), false to pause.
   void setPlaying(SoundHandle handle, bool playing) {
+    _logger.debug("Playing state changed to $playing");
     _soLoud?.setPause(handle, !playing);
   }
 
@@ -115,14 +136,17 @@ class AudioService {
     final clampedVol = volume.clamp(0.0, 1.0);
 
     if (duration != null) {
+      _logger.debug("Fading volume to $clampedVol over $duration");
       _soLoud?.fadeVolume(handle, clampedVol, duration);
     } else {
+      _logger.debug("Setting volume to $clampedVol");
       _soLoud?.setVolume(handle, clampedVol);
     }
   }
 
   /// Updates the master volume level for all sounds managed by the engine.
   void setGlobalVolume(double volume) {
+    _logger.debug("Setting global volume to $volume");
     _soLoud?.setGlobalVolume(volume.clamp(0.0, 1.0));
   }
 
@@ -147,6 +171,7 @@ class AudioService {
   }
 
   void dispose() {
+    _logger.dispose();
     _soLoud?.deinit();
   }
 }

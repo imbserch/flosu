@@ -1,41 +1,26 @@
-import 'dart:developer' as dev;
 import 'dart:math';
 import 'dart:ui';
 
+import 'package:flosu/logic/providers/storage.dart';
 import 'package:flosu/logic/services/library.dart';
 import 'package:flosu/ui/widgets/overlay/tooltip.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide Slider, MouseCursor, Tooltip;
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:logger/logger.dart';
-import 'package:flosu/core/extensions.dart';
+import 'package:flosu/core/extensions/ui.dart';
 import 'package:flosu/logic/services/audio.dart';
 import 'package:flosu/logic/services/storage.dart';
 import 'package:flosu/logic/providers/router.dart';
 import 'package:flosu/ui/widgets/common/reescalable.dart';
 import 'package:flosu/ui/widgets/debug/frame_stats.dart';
+import 'package:flosu/ui/widgets/debug/log_console.dart';
 import 'package:flosu/ui/widgets/gameplay/mouse_cursor.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  final performanceHandle = SchedulerBinding.instance.requestPerformanceMode(
-    DartPerformanceMode.throughput,
-  );
-
-  (performanceHandle ?? "Setting DartPerformanceMode to throughput failed").log;
-
-  // Listen to log records
-  Logger.addLogListener((record) {
-    dev.log(
-      record.message,
-      time: record.time,
-      level: record.level.value,
-      error: record.error,
-      stackTrace: record.stackTrace,
-    );
-  });
+  SchedulerBinding.instance.requestPerformanceMode(DartPerformanceMode.latency);
 
   //Set a big image cache size for storing all beatmap images
   imageCache.maximumSize = 64;
@@ -61,6 +46,11 @@ class _MainAppState extends ConsumerState<MainApp> {
   Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
 
+    final showFps = ref.watch(
+      storageProvider.select((it) => it.showFpsMonitor),
+    );
+    final showLogs = ref.watch(storageProvider.select((it) => it.showLogs));
+
     return MaterialApp.router(
       checkerboardOffscreenLayers: kDebugMode,
       checkerboardRasterCacheImages: kDebugMode,
@@ -74,10 +64,16 @@ class _MainAppState extends ConsumerState<MainApp> {
             (child ?? const SizedBox.shrink()).hiddenCursor,
             const RepaintBoundary(child: MouseCursor()),
             const Tooltip(),
-            const Align(
-              alignment: .bottomRight,
-              child: RepaintBoundary(child: FrameStats()),
-            ),
+            if (showFps)
+              const Align(
+                alignment: Alignment.bottomRight,
+                child: RepaintBoundary(child: FrameStats()),
+              ),
+            if (showLogs)
+              const Align(
+                alignment: Alignment.bottomLeft,
+                child: RepaintBoundary(child: LogConsole()),
+              ),
           ],
         ),
       ),

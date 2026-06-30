@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flosu/core/theme/app_colors.dart';
-import 'package:flosu/core/extensions.dart';
-import 'package:flosu/logic/gameplay_service.dart';
+import 'package:flosu/core/extensions/ui.dart';
+import 'package:flosu/logic/providers/gameplay_service.dart';
 import 'package:flosu/ui/widgets/common/skewed_box.dart';
 
 class CurrentBeatmapInfo extends ConsumerWidget {

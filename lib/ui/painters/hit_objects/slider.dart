@@ -54,7 +54,6 @@ class SliderPainter extends HitObjectPainter {
     final allPoints = object.points;
     if (allPoints.isEmpty) return;
 
-    // --- Opacity --------------------------------------------------------------
     final fadeInStart = object.hitTime - difficulty.preempt;
     final fadeInEnd = object.hitTime - difficulty.preemptFullOp;
 
@@ -63,7 +62,6 @@ class SliderPainter extends HitObjectPainter {
 
     if (opacity == 0) return;
 
-    // --- Snaking animation ---------------------------------------------------
     // Determine how far along the path should be drawn.
     List<Offset> visiblePoints;
 
@@ -79,7 +77,6 @@ class SliderPainter extends HitObjectPainter {
       visiblePoints = allPoints;
     }
 
-    // --- 1. Slider body -------------------------------------------------------
     saveLayer(canvas, opacity);
 
     final bodyRadius = difficulty.circleRadius * 2;
@@ -106,47 +103,11 @@ class SliderPainter extends HitObjectPainter {
 
     restoreLayer(canvas, opacity);
 
-    // --- 2. Slider head (hit circle at start) ---------------------------------
     headPainter.paint(canvas, s);
 
-    // --- 4. Tick marks --------------------------------------------------------
-    _paintTicks(canvas, allPoints, opacity);
-
-    // --- 5. Slider ball (after the slider starts) -----------------------------
     if (position >= object.hitTime &&
         position <= object.hitTime + object.duration) {
       _paintBall(canvas, allPoints, opacity);
-    }
-  }
-
-  /// Draws tick markers along [points] at regular spacing.
-  void _paintTicks(Canvas canvas, List<Offset> points, double opacity) {
-    if (object.ticksPerSlide == 0 || points.length < 2) return;
-
-    final totalLength = object.props.length;
-    final tickSpacing = totalLength / (object.ticksPerSlide + 1);
-
-    final tickPaint = Paint()
-      ..color = Colors.white.withAlpha((200 * opacity).round());
-
-    double accumulated = 0;
-    int nextTickAt = 1;
-
-    for (int i = 1; i < points.length; i++) {
-      final seg = (points[i] - points[i - 1]).distance;
-      accumulated += seg;
-
-      while (nextTickAt <= object.ticksPerSlide &&
-          accumulated >= tickSpacing * nextTickAt) {
-        // Interpolate exact tick position.
-        final overshoot = accumulated - tickSpacing * nextTickAt;
-        final t = 1 - (overshoot / seg).clamp(0, 1);
-        final tickPos = Offset.lerp(points[i - 1], points[i], t.toDouble())!;
-
-        canvas.drawCircle(tickPos, difficulty.circleRadius * 0.18, tickPaint);
-
-        nextTickAt++;
-      }
     }
   }
 

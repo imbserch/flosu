@@ -6,7 +6,6 @@ import 'package:crypto/crypto.dart';
 import 'package:flosu/core/enums.dart';
 import 'package:flosu/models/beatmap/beatmap.dart';
 import 'package:flosu/models/beatmap/hit_objects.dart';
-import 'package:flosu/core/extensions.dart';
 import 'package:flosu/io/parser.dart';
 
 /// A parser responsible for converting `.osu` file content into a [Beatmap] object.
@@ -28,7 +27,7 @@ class BeatmapParser extends Parser<Beatmap> {
       }
       return false;
     } catch (_) {
-      "Error scanning ${file.path}".log;
+      //TODO: ADD THROW
       return false;
     }
   }
@@ -226,8 +225,9 @@ class BeatmapParser extends Parser<Beatmap> {
         objects,
       );
     } catch (e, s) {
-      "Error parsing file: $e".log;
-      "Stack: $s".log;
+      // TODO: ADD THROW
+      /* "Error parsing file: $e".log();
+      "Stack: $s".log(); */
       return null;
     }
   }

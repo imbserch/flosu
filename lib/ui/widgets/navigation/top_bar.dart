@@ -1,9 +1,11 @@
 import 'dart:math';
+import 'package:flosu/core/enums.dart';
 import 'package:flosu/logic/providers/router.dart';
-import 'package:flosu/logic/services/gameloop.dart';
+import 'package:flosu/logic/services/game_loop.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flosu/core/extensions.dart';
+import 'package:flosu/core/extensions/format.dart';
+import 'package:flosu/core/extensions/ui.dart';
 
 class TopBar extends ConsumerStatefulWidget {
   const TopBar({

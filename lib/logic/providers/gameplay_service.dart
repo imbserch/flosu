@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:collection/collection.dart';
-import 'package:flosu/core/extensions.dart';
 import 'package:flosu/logic/providers/library.dart';
 import 'package:flosu/logic/services/file_parser.dart';
+import 'package:flosu/logic/services/logger.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:flosu/logic/providers/audio.dart';
@@ -11,7 +11,10 @@ import 'package:flosu/models/beatmap/beatmap.dart';
 import 'package:flosu/models/replay/replay.dart';
 import 'package:flosu/models/mods/base.dart';
 import 'package:flosu/logic/providers/router.dart';
+import 'package:flosu/models/gameplay/gameplay_data.dart';
 import 'package:go_router/go_router.dart';
+
+export 'package:flosu/models/gameplay/gameplay_data.dart';
 
 /// Manages the pre-gameplay session configuration.
 ///
@@ -26,6 +29,8 @@ class GameplayService extends StateNotifier<GameplayData> {
   GameplayService(Ref ref) : super(GameplayData()) {
     _init(ref);
   }
+
+  final ScopedLogger _logger = Logger.requestLogger("GameplayService");
 
   void _init(Ref ref) {
     // Mirror the currently loaded beatmap from the audio provider so that
@@ -44,17 +49,23 @@ class GameplayService extends StateNotifier<GameplayData> {
         .where((r) => r is ParseResult<Replay>)
         .listen(_handleParserResult);
 
-    ref.onDispose(replaySubs.cancel);
+    ref.onDispose(() {
+      _logger.dispose();
+      replaySubs.cancel();
+    });
   }
 
   void _handleParserResult(ParseResult result) {
     if (result.hasError) {
-      result.error.log;
-      return;
+      return _logger.error(result.error!);
     }
 
     final replay = result.data;
     if (replay is! Replay) return;
+
+    _logger.debug(
+      "Replay parsed. Played with mods: ${replay.mods.map((mod) => mod.acronym).join("")}",
+    );
 
     _addReplayToState(replay);
   }
@@ -65,7 +76,11 @@ class GameplayService extends StateNotifier<GameplayData> {
         .expand((g) => g.beatmaps)
         .firstWhereOrNull((bm) => bm.hash == replay.hash);
 
-    if (beatmap == null) return;
+    if (beatmap == null) {
+      return _logger.error(
+        "Beatmap not found for replay played with mods ${replay.mods.map((mod) => mod.acronym).join("")}",
+      );
+    }
 
     state = state.copyWith(replay: replay, beatmap: beatmap);
 
@@ -204,58 +219,3 @@ class GameplayService extends StateNotifier<GameplayData> {
 /// Global provider for [GameplayService].
 final gameplayService = StateNotifierProvider((ref) => GameplayService(ref));
 
-// ---------------------------------------------------------------------------
-// GameplayData — pre-gameplay session model
-// ---------------------------------------------------------------------------
-
-/// Holds the configuration for an upcoming or ongoing play session.
-///
-/// This is the state managed by [GameplayService], representing what was
-/// selected before entering gameplay. It is distinct from [ScoreState],
-/// which tracks live scoring during play.
-//TODO: Posibly move outside this file
-class GameplayData {
-  GameplayData({this.beatmap, this.replay, this.mods = const {}});
-
-  /// The beatmap selected for play.
-  final Beatmap? beatmap;
-
-  /// An optional replay file loaded for spectating.
-  final Replay? replay;
-
-  /// The set of mods active for this session.
-  final Set<ConfigurableMod> mods;
-
-  GameplayData copyWith({
-    Beatmap? beatmap,
-    Replay? replay,
-    Set<ConfigurableMod>? mods,
-  }) => GameplayData(
-    beatmap: beatmap ?? this.beatmap,
-    replay: replay,
-    mods: mods ?? this.mods,
-  );
-
-  /// Returns the beatmap difficulty, modified by mods.
-  BeatmapDifficulty? get difficultyWithMods {
-    if (beatmap == null) return null;
-
-    var difficulty = beatmap!.difficulty;
-
-    for (final mod in mods) {
-      difficulty = mod.applyTo(difficulty);
-    }
-
-    return difficulty;
-  }
-
-  /// Combined score multiplier from all active mods.
-  double get modMultiplier =>
-      mods.fold<double>(1.0, (t, m) => t * m.scoreMultiplier);
-
-  /// Whether the current mod combination is eligible for leaderboard ranking.
-  bool get isRanked => mods.every((m) => m.ranked);
-
-  /// A concatenated string of mod acronyms (e.g. `"HDDTHR"`).
-  String get modsName => mods.fold("", (str, mod) => str += mod.acronym);
-}

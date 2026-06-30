@@ -1,13 +1,17 @@
 import 'dart:math';
+import 'dart:typed_data';
+import 'dart:ui';
 
-import 'package:collection/collection.dart';
 import 'package:flosu/core/theme/app_colors.dart';
+import 'package:flosu/logic/providers/audio.dart';
 import 'package:flosu/logic/providers/input.dart';
 import 'package:flosu/logic/providers/router.dart';
-import 'package:flosu/models/inputs/inputs.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+// ignore: constant_identifier_names
+const TIMINGS_SIZE = 100;
 
 class FrameStats extends ConsumerStatefulWidget {
   const FrameStats({super.key, this.alignment = .centerLeft});
@@ -18,50 +22,90 @@ class FrameStats extends ConsumerStatefulWidget {
 }
 
 class _FrameStatsState extends ConsumerState<FrameStats> {
-  double _avgInputInm = 0, _avgInputDel = 0, _avgBuild = 0, _avgRaster = 0;
+  final Float32List _buildTimings = Float32List(TIMINGS_SIZE);
+  final Float32List _rasterTimings = Float32List(TIMINGS_SIZE);
+
+  final Float32List _inputImmTimings = Float32List(TIMINGS_SIZE);
+  final Float32List _inputDelTimings = Float32List(TIMINGS_SIZE);
+
+  final Float32List _audioDelayTimings = Float32List(TIMINGS_SIZE);
+
+  final Map<String, int> timingIndexes = {
+    "Build": 0,
+    "Raster": 0,
+    "Input Imm": 0,
+    "Input Del": 0,
+    "Audio": 0,
+  };
 
   double get displayRate => View.of(context).display.refreshRate;
 
   @override
   void initState() {
     SchedulerBinding.instance.addPostFrameCallback(
-      (_) => SchedulerBinding.instance.addTimingsCallback(_addTimings),
+      (_) => SchedulerBinding.instance.addTimingsCallback(_addFrameTimings),
     );
 
-    globalRef.read(inputProvider.notifier).addTimingsHandler(_addInputTimings);
+    ref.read(inputProvider.notifier).addTimingsHandler(_addInputTimings);
+    ref.read(audioProvider.notifier).addTimingsHandler(_addAudioTimings);
 
     super.initState();
   }
 
   @override
   void dispose() {
-    SchedulerBinding.instance.removeTimingsCallback(_addTimings);
+    SchedulerBinding.instance.removeTimingsCallback(_addFrameTimings);
     globalRef
         .read(inputProvider.notifier)
         .removeTimingsHandler(_addInputTimings);
+    globalRef
+        .read(audioProvider.notifier)
+        .removeTimingsHandler(_addAudioTimings);
 
     super.dispose();
   }
 
   void _addInputTimings(InputTimings timings) {
-    final durDel = (timings.delayedEventsDuration.firstOrNull ?? .zero);
+    final immDurations = timings.immediateEventsDuration;
+    final delDurations = timings.delayedEventsDuration;
 
-    _avgInputDel = durDel.inMicroseconds / 1000;
-
-    final durInm = (timings.immediateEventsDuration.firstOrNull ?? .zero);
-
-    _avgInputInm = durInm.inMicroseconds / 1000;
+    _addDurationTimings(_inputImmTimings, immDurations, "Input Imm");
+    _addDurationTimings(_inputDelTimings, delDurations, "Input Del");
 
     if (mounted) setState(() {});
   }
 
-  void _addTimings(List<FrameTiming> timings) {
-    final timing = timings.firstOrNull;
+  void _addFrameTimings(List<FrameTiming> timings) {
+    final buildDurations = timings.map((f) => f.buildDuration);
+    final rasterDurations = timings.map((f) => f.rasterDuration);
 
-    _avgBuild = (timing?.buildDuration.inMicroseconds ?? 0) / 1000;
-    _avgRaster = (timing?.rasterDuration.inMicroseconds ?? 0) / 1000;
+    _addDurationTimings(_buildTimings, buildDurations, "Build");
+    _addDurationTimings(_rasterTimings, rasterDurations, "Raster");
 
     if (mounted) setState(() {});
+  }
+
+  void _addAudioTimings(Duration delay) {
+    _addDurationTimings(_audioDelayTimings, [delay], "Audio");
+    if (mounted) setState(() {});
+  }
+
+  void _addDurationTimings(
+    Float32List timingsList,
+    Iterable<Duration> timings,
+    String timingKey,
+  ) {
+    if (timings.isEmpty) return;
+
+    final initialIndex = timingIndexes[timingKey] ?? 0;
+
+    for (var i = 0; i < timings.length; i++) {
+      final index = (initialIndex + i) % TIMINGS_SIZE;
+
+      timingsList[index] = timings.elementAt(i).inMicroseconds / 1000;
+    }
+
+    timingIndexes[timingKey] = (initialIndex + timings.length) % TIMINGS_SIZE;
   }
 
   @override
@@ -81,191 +125,55 @@ class _FrameStatsState extends ConsumerState<FrameStats> {
               spacing: 2,
               children: [
                 Expanded(
-                  child: Row(
-                    spacing: 2,
-                    children: [
-                      const RotatedBox(
-                        quarterTurns: -1,
-                        child: Text("Input", style: TextStyle(fontSize: 8)),
+                  child: FrameVisualizer(
+                    timingsType: "Input",
+                    details: [
+                      TimingDetails(
+                        timingsType: "Inmediate",
+                        timings: _inputImmTimings,
+                        timingIndex: timingIndexes["Input Imm"]!,
+                        timingMaxTime: 1,
+                        color: AppColors.lightBlue,
                       ),
-                      Container(
-                        width: 32,
-                        decoration: BoxDecoration(
-                          borderRadius: .circular(4),
-                          color: AppColors.containerLow.withAlpha(128),
-                        ),
-                      ),
-                      Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: .circular(4),
-                            color: AppColors.containerLow.withAlpha(128),
-                          ),
-                          child: Stack(
-                            fit: .expand,
-                            children: [
-                              Column(
-                                crossAxisAlignment: .end,
-                                mainAxisAlignment: .end,
-                                mainAxisSize: .min,
-                                children: [
-                                  TweenAnimationBuilder(
-                                    tween: Tween<double>(end: _avgInputDel),
-                                    duration: Durations.long1,
-                                    builder: (_, t, _) {
-                                      return Text(
-                                        "${t.toStringAsFixed(2)} ms",
-                                        style: const TextStyle(fontSize: 8),
-                                      );
-                                    },
-                                  ),
-                                  TweenAnimationBuilder(
-                                    tween: Tween<double>(end: _avgInputInm),
-                                    duration: Durations.long1,
-                                    builder: (_, t, _) {
-                                      return Text(
-                                        "${t.toStringAsFixed(2)} ms",
-                                        style: const TextStyle(fontSize: 8),
-                                      );
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
+                      TimingDetails(
+                        timingsType: "Delayed",
+                        timings: _inputDelTimings,
+                        timingIndex: timingIndexes["Input Del"]!,
+                        timingMaxTime: 3,
+                        color: AppColors.purple,
                       ),
                     ],
                   ),
                 ),
                 Expanded(
-                  child: Row(
-                    spacing: 2,
-                    children: [
-                      const RotatedBox(
-                        quarterTurns: -1,
-                        child: Text("Audio", style: TextStyle(fontSize: 8)),
-                      ),
-                      Container(
-                        width: 32,
-                        decoration: BoxDecoration(
-                          borderRadius: .circular(4),
-                          color: AppColors.containerLow.withAlpha(128),
-                        ),
-                      ),
-                      Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: .circular(4),
-                            color: AppColors.containerLow.withAlpha(128),
-                          ),
-                          child: Stack(
-                            fit: .expand,
-                            children: [
-                              Align(
-                                alignment: .bottomRight,
-                                child: TweenAnimationBuilder(
-                                  tween: Tween<double>(end: 0),
-                                  duration: Durations.long1,
-                                  builder: (_, t, _) {
-                                    return Text(
-                                      "${t.toStringAsFixed(2)} ms",
-                                      style: const TextStyle(fontSize: 8),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                  child: FrameVisualizer(
+                    timingsType: "Audio",
+                    details: [
+                      TimingDetails(
+                        timingsType: "Delay",
+                        timings: _audioDelayTimings,
+                        timingIndex: timingIndexes["Audio"]!,
+                        timingMaxTime: 16,
+                        color: AppColors.pink,
                       ),
                     ],
                   ),
                 ),
                 Expanded(
-                  child: Row(
-                    spacing: 2,
-                    children: [
-                      const RotatedBox(
-                        quarterTurns: -1,
-                        child: Text("Raster", style: TextStyle(fontSize: 8)),
+                  child: FrameVisualizer(
+                    timingsType: "Draw",
+                    details: [
+                      TimingDetails(
+                        timingsType: "Raster",
+                        timings: _rasterTimings,
+                        timingIndex: timingIndexes["Raster"]!,
+                        color: AppColors.yellow,
                       ),
-                      Container(
-                        width: 32,
-                        decoration: BoxDecoration(
-                          borderRadius: .circular(4),
-                          color: AppColors.containerLow.withAlpha(128),
-                        ),
-                      ),
-                      Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: .circular(4),
-                            color: AppColors.containerLow.withAlpha(128),
-                          ),
-                          child: Stack(
-                            fit: .expand,
-                            children: [
-                              Align(
-                                alignment: .bottomRight,
-                                child: TweenAnimationBuilder(
-                                  tween: Tween<double>(end: _avgRaster),
-                                  duration: Durations.long1,
-                                  builder: (_, t, _) {
-                                    return Text(
-                                      "${t.toStringAsFixed(2)} ms",
-                                      style: const TextStyle(fontSize: 8),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: Row(
-                    spacing: 2,
-                    children: [
-                      const RotatedBox(
-                        quarterTurns: -1,
-                        child: Text("Draw", style: TextStyle(fontSize: 8)),
-                      ),
-                      Container(
-                        width: 32,
-                        decoration: BoxDecoration(
-                          borderRadius: .circular(4),
-                          color: AppColors.containerLow.withAlpha(128),
-                        ),
-                      ),
-                      Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: .circular(4),
-                            color: AppColors.containerLow.withAlpha(128),
-                          ),
-                          child: Stack(
-                            fit: .expand,
-                            children: [
-                              Align(
-                                alignment: .bottomRight,
-                                child: TweenAnimationBuilder(
-                                  tween: Tween<double>(end: _avgBuild),
-                                  duration: Durations.long1,
-                                  builder: (_, t, _) {
-                                    return Text(
-                                      "${t.toStringAsFixed(2)} ms",
-                                      style: const TextStyle(fontSize: 8),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                      TimingDetails(
+                        timingsType: "Build",
+                        timings: _buildTimings,
+                        timingIndex: timingIndexes["Build"]!,
+                        color: AppColors.green,
                       ),
                     ],
                   ),
@@ -273,32 +181,194 @@ class _FrameStatsState extends ConsumerState<FrameStats> {
               ],
             ),
           ),
-        ) /* TweenAnimationBuilder(
-          duration: kDebugMode ? Durations.short2 : Durations.extralong4,
-          curve: Curves.linearToEaseOut,
-          tween: Tween(end: 1000 / _avgTotal),
-          builder: (_, t, _) => Container(
-            padding: const .all(4),
-            margin: const .all(4),
-            width: 28,
-            decoration: BoxDecoration(
-              color: Colors.black54,
-              borderRadius: .circular(4),
-            ),
-            child: Text(
-              "${t.toStringAsFixed(1)}\nFPS",
-              textAlign: .end,
-              style: TextStyle(
-                fontSize: 6,
-                fontFamily: "Torus",
-                fontWeight: .w600,
-                color: Color.lerp(Colors.red, Colors.green, t / displayRate),
-                height: 1,
-              ),
-            ),
-          ),
-        ), */,
+        ),
       ),
     );
   }
+}
+
+class TimingDetails {
+  TimingDetails({
+    required this.timingsType,
+    required this.timings,
+    required this.timingIndex,
+    this.timingMaxTime = 20.0,
+    this.color = AppColors.containerHigh,
+  });
+
+  final String timingsType;
+  final Float32List timings;
+  final int timingIndex;
+  final double timingMaxTime;
+  final Color color;
+}
+
+class FrameVisualizer extends StatelessWidget {
+  const FrameVisualizer({
+    super.key,
+    required this.timingsType,
+    required this.details,
+  });
+
+  final String timingsType;
+  final List<TimingDetails> details;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      spacing: 2,
+      children: [
+        RotatedBox(
+          quarterTurns: -1,
+          child: Text(
+            timingsType,
+            style: const TextStyle(fontSize: 6, fontWeight: .bold, height: 1),
+          ),
+        ),
+        Container(
+          clipBehavior: .antiAlias,
+          width: 32,
+          decoration: BoxDecoration(
+            borderRadius: .circular(4),
+            color: AppColors.containerLow.withAlpha(128),
+          ),
+        ),
+        //
+        Expanded(
+          child: Container(
+            clipBehavior: .antiAlias,
+            decoration: BoxDecoration(
+              borderRadius: .circular(4),
+              color: AppColors.containerLow.withAlpha(128),
+            ),
+            child: Stack(
+              children: [
+                for (final detail in details)
+                  CustomPaint(
+                    painter: TimingsGraph(
+                      timings: detail.timings,
+                      timingIndex: detail.timingIndex,
+                      timingMaxTime: detail.timingMaxTime,
+                      color: detail.color,
+                    ),
+                    child: const Center(),
+                  ),
+
+                Padding(
+                  padding: const .all(2),
+                  child: Row(
+                    mainAxisSize: .min,
+                    children: [
+                      for (final detail in details) ...[
+                        Text(
+                          detail.timingsType,
+                          style: TextStyle(
+                            color: detail.color,
+                            fontWeight: .bold,
+                            fontSize: 6,
+                            height: 1,
+                          ),
+                        ),
+                        Container(
+                          width: 32,
+                          margin: const .only(left: 2),
+                          child: Text(
+                            "${detail.timings[detail.timingIndex].toStringAsFixed(2)} ms",
+                            style: const TextStyle(
+                              fontWeight: .bold,
+                              fontSize: 6,
+                              height: 1,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class TimingsGraph extends CustomPainter {
+  TimingsGraph({
+    super.repaint,
+    required this.timings,
+    required this.timingIndex,
+    this.timingMaxTime = 20,
+    this.color = AppColors.containerHigh,
+  });
+
+  final int timingIndex;
+  final Float32List timings;
+  final double timingMaxTime;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final bgPaint = Paint()
+      ..color = color.withAlpha(64)
+      ..style = .fill;
+
+    final linePaint = Paint()
+      ..color = color
+      ..strokeWidth = 1
+      ..strokeJoin = .round
+      ..strokeCap = .round
+      ..style = .stroke;
+
+    final timingPaint = Paint()
+      ..color = Color.lerp(color, Colors.black, 0.25)!
+      ..strokeWidth = 1;
+
+    final bgPath = Path();
+    final linePath = Path();
+
+    final double stepX = size.width / TIMINGS_SIZE;
+    final tX = ((timingIndex - 1) % TIMINGS_SIZE) * stepX;
+
+    for (int i = 1; i < TIMINGS_SIZE; i += 2) {
+      final x1 = (i - 1) * stepX;
+      final x2 = i * stepX;
+
+      final y1 =
+          size.height *
+          (1 - (min(timingMaxTime, timings[i - 1])) / timingMaxTime);
+      final y2 =
+          size.height * (1 - (min(timingMaxTime, timings[i])) / timingMaxTime);
+
+      // Start point
+      if (i - 1 == 0) {
+        linePath.moveTo(x1, y1);
+        bgPath
+          ..moveTo(x1, size.height)
+          ..lineTo(x1, y1);
+      }
+
+      // Path
+      linePath.quadraticBezierTo(x1, y1, x2, y2);
+      bgPath.quadraticBezierTo(x1, y1, x2, y2);
+
+      // End point
+      if (i == TIMINGS_SIZE - 1) {
+        linePath.quadraticBezierTo(x2, y2, size.width, y2);
+        bgPath
+          ..quadraticBezierTo(x2, y2, size.width, y2)
+          ..lineTo(size.width, size.height);
+      }
+    }
+
+    canvas.drawPath(bgPath, bgPaint);
+    canvas.drawPath(linePath, linePaint);
+
+    // Draw a line at the current timing index
+    canvas.drawLine(Offset(tX, 0), Offset(tX, size.height), timingPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

@@ -180,10 +180,8 @@ class HitCirclePainter extends HitObjectPainter {
     // 6. Combo number.
     final textSpan = TextSpan(text: "${object.comboIdx}", style: textStyle);
 
-    final textPainter = TextPainter(
-      text: textSpan,
-      textDirection: .ltr,
-    )..layout();
+    final textPainter = TextPainter(text: textSpan, textDirection: .ltr)
+      ..layout();
 
     final textOffset = Offset(textPainter.width / 2, textPainter.height / 2);
 

@@ -1,7 +1,8 @@
 import 'dart:math';
 
+import 'package:flosu/core/extensions/models.dart';
 import 'package:flutter/material.dart' hide Slider;
-import 'package:flosu/core/extensions.dart';
+
 import 'package:flosu/core/math/geometry.dart';
 import 'package:flosu/models/beatmap/beatmap.dart';
 import 'package:flosu/models/beatmap/hit_objects.dart';

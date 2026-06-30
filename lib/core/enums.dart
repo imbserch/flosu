@@ -1,5 +1,8 @@
 import 'dart:ui';
 
+/// Game loop phases.
+enum TickerPhase { input, logic, visual }
+
 /// Bitmask flags for the hit-object type field in the `.osu` file format.
 ///
 /// Multiple flags can be set simultaneously (e.g. a new-combo circle has both
@@ -128,3 +131,9 @@ enum Mod {
   /// The bitmask value for this mod.
   final int v;
 }
+
+/// Centralized logger levels.
+enum LogLevel { debug, info, warning, error }
+
+/// Types of user notifications.
+enum NotificationType { info, normal, warning, error }

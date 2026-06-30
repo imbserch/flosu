@@ -1,9 +1,6 @@
-import 'dart:math';
-
-import 'package:collection/collection.dart';
+import 'package:flosu/core/enums.dart';
 import 'package:flosu/logic/providers/gameplay_controller.dart';
-import 'package:flosu/logic/services/gameloop.dart';
-import 'package:flosu/models/gameplay/score_state.dart';
+import 'package:flosu/logic/services/game_loop.dart';
 import 'package:flosu/ui/widgets/gameplay/replay_mouse_cursor.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide Slider, PointerEvent;
@@ -16,14 +13,12 @@ import 'package:flosu/logic/providers/input.dart';
 import 'package:flosu/logic/providers/storage.dart';
 import 'package:flosu/models/beatmap/beatmap.dart';
 import 'package:flosu/models/beatmap/hit_objects.dart';
-import 'package:flosu/core/theme/app_colors.dart';
-import 'package:flosu/core/extensions.dart';
+import 'package:flosu/core/extensions/models.dart';
 import 'package:flosu/models/inputs/inputs.dart';
 import 'package:flosu/ui/pages/song_select/mods.dart';
-import 'package:flosu/logic/gameplay_service.dart';
+import 'package:flosu/logic/providers/gameplay_service.dart';
 import 'package:flosu/logic/providers/router.dart';
-import 'package:flosu/providers/sample_service.dart';
-import 'package:flosu/ui/painters/gameplay.dart';
+import 'package:flosu/logic/services/sample.dart';
 import 'package:flosu/ui/painters/playfield.dart';
 import 'package:flosu/ui/shared/animatable_page.dart';
 import 'package:flosu/ui/widgets/common/skewed_box.dart';
@@ -57,14 +52,6 @@ class _GameplayPageState extends AnimatablePageState<GameplayPage> {
 
   @override
   void initState() {
-    final beatmap = ref.read(gameplayService).beatmap!;
-    final mods = ref.read(gameplayService).mods;
-
-    // Initialise the controller for this beatmap/mod combination.
-    ref
-        .read(gameplayControllerProvider.notifier)
-        .init(beatmap.difficulty, mods);
-
     // Set first-frame process
     _process();
 
@@ -107,36 +94,7 @@ class _GameplayPageState extends AnimatablePageState<GameplayPage> {
   }
 
   // The processing will be managed by controller
-  void _process([_]) {
-    final audio = ref.read(audioProvider.notifier);
-    final controller = ref.read(gameplayControllerProvider.notifier);
-    final beatmap = ref.read(gameplayService).beatmap!;
-
-    if (audio.playing) {
-      final score = controller.stateNotifier.value;
-
-      // Navigate to results when audio ends or health reaches zero.
-      if ((audio.completed || !score.isAlive) && mounted) {
-        _reuseReplay = true;
-        context.go("/scoring");
-        return;
-      }
-
-      // Switch background sample when needed.
-      final sample = beatmap.events.whereType<BeatmapSample>().lastWhereOrNull(
-        (bs) => audio.positionInMs > bs.time,
-      );
-
-      if (_sample?.file != sample?.file) {
-        if (sample != null) ref.read(sampleService).play(sample.file);
-        _sample = sample;
-      }
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Navigation helpers
-  // ---------------------------------------------------------------------------
+  void _process([_]) {}
 
   /// Restarts the map from the beginning.
   void _reset() {
@@ -161,19 +119,15 @@ class _GameplayPageState extends AnimatablePageState<GameplayPage> {
     if (mounted) setState(() {});
   }
 
-  // ---------------------------------------------------------------------------
-  // Build
-  // ---------------------------------------------------------------------------
-
   @override
   Widget buildPage(BuildContext context, double animProgress) {
+    final controller = ref.watch(gameplayControllerProvider);
     final audio = ref.read(audioProvider.notifier);
     final details = ref.watch(gameplayService);
 
     return Stack(
       fit: .expand,
       children: [
-        // ------ Mod icons -------------------------------------------------------
         Align(
           alignment: .topRight,
           child: Padding(
@@ -189,7 +143,6 @@ class _GameplayPageState extends AnimatablePageState<GameplayPage> {
           ),
         ),
 
-        // ------ Playfield -------------------------------------------------------
         Center(
           child: AspectRatio(
             aspectRatio: 512 / 388,
@@ -208,7 +161,6 @@ class _GameplayPageState extends AnimatablePageState<GameplayPage> {
                     children: [
                       PlayfieldHitObjects(
                         onObjectsUpdated: (objects, positionInMs) {},
-                        onInput: (keys, pointer, objects, positionInMs) {},
                       ),
 
                       // Use replay mouse cursor when watching a replay.
@@ -221,7 +173,6 @@ class _GameplayPageState extends AnimatablePageState<GameplayPage> {
           ),
         ),
 
-        // ------ Pause overlay --------------------------------------------------
         TweenAnimationBuilder(
           tween: Tween(end: audio.playing ? 0.0 : 1.0),
           duration: Durations.medium1,
@@ -314,22 +265,9 @@ class _GameplayPageState extends AnimatablePageState<GameplayPage> {
   }
 }
 
-// =============================================================================
-// PlayfieldHitObjects
-// =============================================================================
-
 /// Callback invoked on every tick with the current playfield state.
 typedef OnObjectsUpdated =
     void Function(List<HitObject> objects, int positionInMs);
-
-/// Callback invoked when a key-down event should be evaluated for hit detection.
-typedef OnInput =
-    void Function(
-      Set<LogicalKeyboardKey> keys,
-      PointerEvent? pointer,
-      List<HitObject> activeObjects,
-      int positionInMs,
-    );
 
 /// A self-contained widget that drives the [PlayfieldPainter] using a [Ticker].
 ///
@@ -338,22 +276,11 @@ typedef OnInput =
 /// 2. Filters the beatmap's hit objects to those visible at that position.
 /// 3. Pushes updated values to [ValueNotifier]s consumed by [PlayfieldPainter].
 /// 4. Invokes [onObjectsUpdated] so the parent can run miss detection.
-///
-/// Input handling is also forwarded here because this widget knows both the
-/// active object list and the current position — the two values needed for
-/// hit detection.
 class PlayfieldHitObjects extends ConsumerStatefulWidget {
-  const PlayfieldHitObjects({
-    super.key,
-    required this.onObjectsUpdated,
-    required this.onInput,
-  });
+  const PlayfieldHitObjects({super.key, required this.onObjectsUpdated});
 
   /// Called on every tick with the currently visible objects and position.
   final OnObjectsUpdated onObjectsUpdated;
-
-  /// Called when a key-down event should be evaluated for hit detection.
-  final OnInput onInput;
 
   @override
   ConsumerState<PlayfieldHitObjects> createState() =>
@@ -368,18 +295,27 @@ class _PlayfieldHitObjectsState extends ConsumerState<PlayfieldHitObjects> {
   final ValueNotifier<List<HitObject>> _objectsNotifier = ValueNotifier([]);
 
   late final Beatmap _beatmap;
-
-  // Tracks last keys to detect transitions inside this widget.
-  Set<LogicalKeyboardKey> _lastKeys = {};
+  late final double _maxObjectDuration;
 
   @override
   void initState() {
     _beatmap = ref.read(audioProvider)!;
 
-    ref.read(gameLoopService).subscribe(TickerPhase.logic, _calculateObjects);
+    // Precompute the maximum duration among all hit objects.
+    double maxDur = 0.0;
+    for (final obj in _beatmap.objects) {
+      final double dur = switch (obj) {
+        HitCircle() => 0.0,
+        Slider() => obj.duration,
+        Spinner() => obj.duration.toDouble(),
+      };
+      if (dur > maxDur) {
+        maxDur = dur;
+      }
+    }
+    _maxObjectDuration = maxDur;
 
-    // Register for immediate input events to handle hit detection.
-    ref.read(inputProvider.notifier).addInmediateHandler(_onInput);
+    ref.read(gameLoopService).subscribe(TickerPhase.logic, _calculateObjects);
 
     super.initState();
   }
@@ -393,25 +329,22 @@ class _PlayfieldHitObjectsState extends ConsumerState<PlayfieldHitObjects> {
         .read(gameLoopService)
         .unsubscribe(TickerPhase.logic, _calculateObjects);
 
-    Future.microtask(
-      () => globalRef
-          .read(inputProvider.notifier)
-          .removeInmediateHandler(_onInput),
-    );
-
     super.dispose();
   }
 
-  /// Handles raw input from [InputProvider] and forwards qualifying events
-  /// to the parent via [PlayfieldHitObjects.onInput].
-  void _onInput(Set<LogicalKeyboardKey> keys, PointerEvent? pointer) {
-    if (setEquals(_lastKeys, keys)) {
-      _lastKeys = Set.of(keys);
-      return;
+  /// Binary searches the first index where `hitTime` >= `targetTime`.
+  int _binarySearchFirstIndex(List<HitObject> objects, double targetTime) {
+    int low = 0;
+    int high = objects.length;
+    while (low < high) {
+      final mid = (low + high) >> 1;
+      if (objects[mid].hitTime >= targetTime) {
+        high = mid;
+      } else {
+        low = mid + 1;
+      }
     }
-    _lastKeys = Set.of(keys);
-
-    widget.onInput(keys, pointer, _objectsNotifier.value, _posNotifier.value);
+    return low;
   }
 
   /// Computes which hit objects are visible at the current audio position
@@ -423,10 +356,22 @@ class _PlayfieldHitObjectsState extends ConsumerState<PlayfieldHitObjects> {
     }
 
     final diff = _beatmap.difficulty;
+    final objects = _beatmap.objects;
 
-    final objectsInTime = _beatmap.objects
-        .where((o) => o.canShow(positionInMs, diff))
-        .toList();
+    // Use binary search to locate the window of potentially visible objects.
+    final minHitTime = positionInMs - _maxObjectDuration - diff.hit50;
+    final maxHitTime = positionInMs + diff.preempt;
+
+    final startIndex = _binarySearchFirstIndex(objects, minHitTime);
+    final endIndex = _binarySearchFirstIndex(objects, maxHitTime + 1);
+
+    final objectsInTime = <HitObject>[];
+    for (int i = startIndex; i < endIndex; i++) {
+      final o = objects[i];
+      if (o.canShow(positionInMs, diff)) {
+        objectsInTime.add(o);
+      }
+    }
 
     if (!listEquals(_objectsNotifier.value, objectsInTime)) {
       _objectsNotifier.value = objectsInTime.reversed.toList();

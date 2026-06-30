@@ -2,11 +2,12 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
-import 'package:flosu/core/extensions.dart';
 import 'package:flosu/logic/providers/router.dart';
 import 'package:flosu/logic/providers/storage.dart';
 import 'package:flosu/logic/services/file_parser.dart';
+import 'package:flosu/logic/services/logger.dart';
 import 'package:flosu/models/beatmap/beatmap.dart';
+import 'package:flosu/models/beatmap/beatmap_set.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Riverpod notifier that maintains the in-memory beatmap library.
@@ -14,14 +15,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// [LibraryProvider] watches the configured beatmaps directory from
 /// [StorageProvider] and parses every `.osu` file it finds via
 /// [FileParserService]. Parsed [Beatmap]s are grouped by title and artist
-/// into [BeatmapGroup]s, which are the items shown in the song selection list.
+/// into [BeatmapSet]s, which are the items shown in the song selection list.
 ///
 /// Parsing is performed asynchronously — the state grows incrementally as
 /// files are parsed, so the UI can display results immediately without waiting
 /// for the entire library to load.
-class LibraryProvider extends Notifier<List<BeatmapGroup>> {
+class LibraryProvider extends Notifier<List<BeatmapSet>> {
   @override
-  List<BeatmapGroup> build() {
+  List<BeatmapSet> build() {
     Future.microtask(() async {
       // Subscribe to the file parser's result stream.
       final StreamSubscription<ParseResult> parserSubs = _parserService
@@ -36,12 +37,16 @@ class LibraryProvider extends Notifier<List<BeatmapGroup>> {
         fireImmediately: true,
       );
 
-      ref.onDispose(parserSubs.cancel);
+      ref.onDispose(() {
+        parserSubs.cancel();
+        _logger.dispose();
+      });
     });
 
     return [];
   }
 
+  final ScopedLogger _logger = Logger.requestLogger("LibraryProvider");
   late final FileParserService _parserService = ref.read(fileParserService);
 
   /// Reacts to a change in the configured beatmaps directory path.
@@ -79,18 +84,22 @@ class LibraryProvider extends Notifier<List<BeatmapGroup>> {
   /// appropriate [BeatmapGroup] (or a new group is created if none exists).
   void _handleParserResult(ParseResult result) {
     if (result.hasError) {
-      result.error.log;
-      return;
+      return _logger.error(
+        "Failed to parse beatmap: ${result.error.toString()}",
+      );
     }
 
     final beatmap = result.data;
     if (beatmap is! Beatmap) return;
 
-    "Beatmap parsed: ${beatmap.info.title} (${beatmap.info.version})".log;
+    _logger.debug(
+      "Beatmap parsed: ${beatmap.info.title} (${beatmap.info.version})",
+    );
+
     _addBeatmapToState(beatmap);
   }
 
-  /// Inserts a [Beatmap] into the state, creating or updating a [BeatmapGroup].
+  /// Inserts a [Beatmap] into the state, creating or updating a [BeatmapSet].
   void _addBeatmapToState(Beatmap beatmap) {
     final title = beatmap.info.title;
     final artist = beatmap.info.artist;
@@ -100,7 +109,7 @@ class LibraryProvider extends Notifier<List<BeatmapGroup>> {
     );
 
     if (groupIdx != -1) {
-      final updatedGroup = BeatmapGroup([...state[groupIdx].beatmaps, beatmap]);
+      final updatedGroup = BeatmapSet([...state[groupIdx].beatmaps, beatmap]);
 
       state = [
         for (int idx = 0; idx < state.length; idx++)
@@ -109,7 +118,7 @@ class LibraryProvider extends Notifier<List<BeatmapGroup>> {
     } else {
       state = [
         ...state,
-        BeatmapGroup([beatmap]),
+        BeatmapSet([beatmap]),
       ];
     }
   }
@@ -127,7 +136,6 @@ class LibraryProvider extends Notifier<List<BeatmapGroup>> {
   }
 
   void pickReplay() {
-    // TODO: This will only pick .osr files, this needs replay flow implementation
     globalRef
         .read(fileParserService)
         .pickFile(
@@ -138,30 +146,6 @@ class LibraryProvider extends Notifier<List<BeatmapGroup>> {
 }
 
 /// Global provider for [LibraryProvider].
-final libraryProvider = NotifierProvider<LibraryProvider, List<BeatmapGroup>>(
+final libraryProvider = NotifierProvider<LibraryProvider, List<BeatmapSet>>(
   () => LibraryProvider(),
 );
-
-// ---------------------------------------------------------------------------
-// BeatmapGroup
-// ---------------------------------------------------------------------------
-
-/// A collection of [Beatmap]s that share the same song title and artist.
-///
-/// In osu! terminology this is analogous to a "beatmap set" — multiple
-/// difficulty levels for the same song, shown as a single card in the list.
-//TODO: Rename to Beatmapset
-class BeatmapGroup {
-  BeatmapGroup(this.beatmaps)
-    : title = beatmaps.first.info.title,
-      artist = beatmaps.first.info.artist;
-
-  /// Shared song title for all beatmaps in this group.
-  final String title;
-
-  /// Shared artist name for all beatmaps in this group.
-  final String artist;
-
-  /// All parsed difficulty variants for this song, in insertion order.
-  final List<Beatmap> beatmaps;
-}

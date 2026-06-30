@@ -4,7 +4,7 @@ import 'package:flosu/models/beatmap/beatmap.dart';
 import 'package:flutter/material.dart';
 import 'package:flosu/core/enums.dart';
 import 'package:flosu/core/theme/app_colors.dart';
-import 'package:flosu/core/extensions.dart';
+import 'package:flosu/core/extensions/format.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 part "difficulty_increase.dart";
@@ -28,7 +28,7 @@ sealed class ConfigurableMod {
         final acronym = rawMod["acronym"] as String?;
         if (acronym == null) continue;
 
-        final ConfigurableMod mod = switch (acronym.log) {
+        final ConfigurableMod mod = switch (acronym.log()) {
           "CL" => Classic(),
           "EZ" => Easy(),
           "HD" => Hidden(),
@@ -43,7 +43,7 @@ sealed class ConfigurableMod {
 
       return finalMods;
     } catch (e) {
-      e.log;
+      e.log();
       return {};
     }
   }
@@ -138,11 +138,13 @@ sealed class ConfigurableMod {
   BeatmapDifficulty applyTo(BeatmapDifficulty difficulty) => difficulty;
 
   void activate(ProviderContainer ref) {
-    "Activating $name mod".log;
+    // TODO: USE LEGACY LOG FOR NOW
+    "Activating $name mod".log();
   }
 
   void deactivate(ProviderContainer ref) {
-    "Deactivating $name mod".log;
+    // TODO: USE LEGACY LOG FOR NOW
+    "Deactivating $name mod".log();
   }
 }
 

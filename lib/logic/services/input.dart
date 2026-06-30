@@ -1,7 +1,7 @@
 import 'package:flutter/gestures.dart' as gestures;
 import 'package:flutter/services.dart' hide PointerEvent;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flosu/core/extensions.dart';
+import 'package:flosu/core/extensions/ui.dart';
 import 'package:flosu/models/inputs/inputs.dart';
 import 'package:flosu/logic/providers/router.dart';
 

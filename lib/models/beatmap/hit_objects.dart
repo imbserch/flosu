@@ -1,5 +1,5 @@
 import 'package:collection/collection.dart';
-import 'package:flosu/core/extensions.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flosu/core/enums.dart';
 import 'package:flosu/core/math/geometry.dart';
@@ -223,7 +223,6 @@ class Slider extends HitObject {
   /// - **Other types**: splits control points into segments at duplicate
   ///   points, then processes each segment as a bezier, arc, or line.
   List<Offset> _getSliderPoints() {
-    "Parsing slider points".log;
     List<Offset> points = [];
 
     final stackOffset = Offset(4.0 * stackIdx, 4.0 * stackIdx);

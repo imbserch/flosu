@@ -1,11 +1,15 @@
+import 'dart:async';
+
+import 'package:flosu/logic/services/logger.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_soloud/flutter_soloud.dart';
-import 'package:flosu/core/extensions.dart';
 import 'package:flosu/logic/providers/storage.dart';
 import 'package:flosu/logic/services/audio.dart';
 import 'package:flosu/logic/services/storage.dart';
 import 'package:flosu/models/beatmap/beatmap.dart';
+
+typedef AudioTimingsCallback = void Function(Duration delay);
 
 /// [AudioProvider] manages the application's audio playback state using Riverpod.
 ///
@@ -19,15 +23,10 @@ class AudioProvider extends Notifier<Beatmap?> {
   build() {
     //Get audio service
     _service = ref.read(audioService);
-
-    //Set dispose behavior (dispose service)
-    ref.onDispose(() {
-      _stopwatch.stop();
-      if (_currentHandle != null) {
-        _service.setStop(_currentHandle!);
-      }
-      _service.dispose();
-    });
+    _audioDelayTimer = Timer.periodic(
+      Durations.long2,
+      (_) => _checkAudioDelay(),
+    );
 
     //Handle changes without rebuild this provider
     ref.listen(
@@ -45,11 +44,30 @@ class AudioProvider extends Notifier<Beatmap?> {
       if (_currentHandle != null) _service.setVolume(_currentHandle!, volume);
     }, fireImmediately: true);
 
+    //Set dispose behavior (dispose service)
+    ref.onDispose(() {
+      _stopwatch.stop();
+      _audioDelayTimer.cancel();
+
+      if (_currentHandle != null) {
+        _service.setStop(_currentHandle!);
+      }
+      _service.dispose();
+      _logger.dispose();
+    });
+
     return null;
   }
 
+  final ScopedLogger _logger = Logger.requestLogger("AudioProvider");
+
   /// The underlying service responsible for low-level audio operations.
   late final AudioService _service;
+
+  late final Timer _audioDelayTimer;
+
+  ///
+  final List<AudioTimingsCallback> _delayHandlers = [];
 
   /// Cache of loaded audio sources indexed by their file path.
   final Map<String, AudioSource> _sources = {};
@@ -88,6 +106,34 @@ class AudioProvider extends Notifier<Beatmap?> {
 
   double _musicVolume = 1.0;
 
+  /// Checks audio delay and notifies it's listeners
+  void _checkAudioDelay() async {
+    if (_currentHandle == null) return;
+
+    final servicePosition = _service.getPosition(_currentHandle!);
+    final absolutePosition = position - _userOffset;
+
+    final delay = (servicePosition - absolutePosition).abs();
+
+    if (delay.inMilliseconds > 16) {
+      _audioOffset = servicePosition;
+      _stopwatch.reset();
+      _logger.warn("Audio delay of ${delay.inMilliseconds} ms detected");
+    }
+
+    for (final handler in _delayHandlers) {
+      handler(delay);
+    }
+  }
+
+  void addTimingsHandler(AudioTimingsCallback handler) {
+    _delayHandlers.add(handler);
+  }
+
+  void removeTimingsHandler(AudioTimingsCallback handler) {
+    _delayHandlers.remove(handler);
+  }
+
   /// Preloads an audio file into memory.
   ///
   /// Checks if the [path] is already in the [_sources] cache. If not, it
@@ -97,21 +143,24 @@ class AudioProvider extends Notifier<Beatmap?> {
   Future<AudioSource?> load(Beatmap beatmap) async {
     final path = beatmap.audio.path;
 
+    _logger.debug("Loading source: $path");
+
     // Check if the source is already cached to optimize performance
     if (_sources.containsKey(path)) {
-      "Source has been currently loaded".log;
+      _logger.debug("Source is already loaded: $path");
       return _sources[path];
     }
 
     final source = await _service.load(path);
 
     if (source == null) {
-      "Source cannot be loaded".log;
+      _logger.error("Source can't be loaded: $path");
       return null;
     }
 
     // Storage for future use to avoid re-decoding the same file
     _sources[path] = source;
+    _logger.debug("Source loaded: $path");
     return source;
   }
 
@@ -123,15 +172,18 @@ class AudioProvider extends Notifier<Beatmap?> {
   /// [path]: The file location of the audio to be played.
   Future<void> play(Beatmap beatmap) async {
     final source = await load(beatmap);
+
     if (source == null) {
-      "Audio not found or loaded".log;
+      _logger.error("Audio can't play: ${beatmap.audio.path}");
       return;
     }
 
     final handle = await _service.play(source, _musicVolume);
 
     if (handle == null) {
-      "Audio can't play. Don't stopping last handle".log;
+      _logger.error(
+        "Audio can't start ${beatmap.audio.path}. Don't trying to stop last handle",
+      );
       return;
     }
 
@@ -177,8 +229,11 @@ class AudioProvider extends Notifier<Beatmap?> {
     }
 
     final source = await load(beatmap);
+
     if (source == null) {
-      "Audio not found or loaded".log;
+      _logger.error(
+        "Audio can't load: ${beatmap.audio.path}. No fading between handles",
+      );
       return;
     }
 
@@ -186,7 +241,9 @@ class AudioProvider extends Notifier<Beatmap?> {
     final handle = await _service.play(source, 0.0);
 
     if (handle == null) {
-      "Audio can't preview. No fading between handles".log;
+      _logger.error(
+        "Audio can't preview ${beatmap.audio.path}. No fading between handles",
+      );
       return;
     }
 
@@ -227,7 +284,7 @@ class AudioProvider extends Notifier<Beatmap?> {
   /// into [_audioOffset] before applying the new [rate] and resetting the clock.
   void setRate(double rate) {
     if (_currentHandle == null) {
-      "No handle to set playback rate".log;
+      _logger.error("No handle to set playback rate");
       return;
     }
     // Capture the exact moment before the speed change
@@ -236,6 +293,9 @@ class AudioProvider extends Notifier<Beatmap?> {
     // Apply the new rate to the engine
     _playbackRate = _service.setRate(_currentHandle!, rate);
 
+    _logger.debug(
+      "Playback rate changed to $_playbackRate. Offset resetted (at $_audioOffset)",
+    );
     _stopwatch.reset();
   }
 
@@ -246,7 +306,7 @@ class AudioProvider extends Notifier<Beatmap?> {
   /// is currently active.
   void stop() {
     if (_currentHandle == null) {
-      "No handles to stop".log;
+      _logger.error("No handles to stop");
       return;
     }
 
@@ -276,7 +336,7 @@ class AudioProvider extends Notifier<Beatmap?> {
   /// [playing]: True to resume playback, false to pause.
   void setPlaying(bool playing) {
     if (_currentHandle == null) {
-      "No handles to set play state".log;
+      _logger.error("No handles to set play state");
       return;
     }
 

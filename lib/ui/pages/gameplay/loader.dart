@@ -3,10 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flosu/logic/gameplay_service.dart';
+import 'package:flosu/logic/providers/gameplay_service.dart';
 import 'package:flosu/logic/providers/audio.dart';
 import 'package:flosu/models/beatmap/beatmap.dart';
-import 'package:flosu/providers/sample_service.dart';
+import 'package:flosu/logic/services/sample.dart';
 import 'package:flosu/ui/widgets/common/osu_cube_loader.dart';
 import 'package:flosu/ui/widgets/common/osu_logo.dart';
 

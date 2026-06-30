@@ -1,9 +1,10 @@
 import 'dart:ui';
 
-import 'package:flosu/core/extensions.dart';
+import 'package:flosu/core/extensions/ui.dart';
 import 'package:flosu/core/theme/app_colors.dart';
 import 'package:flosu/logic/providers/audio.dart';
 import 'package:flosu/logic/providers/library.dart';
+import 'package:flosu/models/beatmap/beatmap_set.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
@@ -77,7 +78,7 @@ class _BeatmapListState extends ConsumerState<BeatmapList> {
 
           return FractionalTranslation(
             translation: Offset(t + (1 / 80) + 0.05, 0),
-            child: BeatmapGroupCard(group: groups[index]),
+            child: BeatmapSetCard(group: groups[index]),
           );
         },
         separatorBuilder: (_, index) => const SizedBox(height: 1),
@@ -87,10 +88,10 @@ class _BeatmapListState extends ConsumerState<BeatmapList> {
 }
 
 //TODO: MOVE TO SEPARATE FILE
-class BeatmapGroupCard extends ConsumerWidget {
-  const BeatmapGroupCard({super.key, required this.group});
+class BeatmapSetCard extends ConsumerWidget {
+  const BeatmapSetCard({super.key, required this.group});
 
-  final BeatmapGroup group;
+  final BeatmapSet group;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
