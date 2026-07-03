@@ -101,7 +101,7 @@ Flosu doesn't know where to find files, so you must provide a folder containing 
 ### Gameplay
 | Shortcut | Function | Note |
 | :--- | :--- | :--- |
-| `X` / `Y` | osu! buttons | No-op |
+| `Z` / `X` | osu! buttons | No-op |
 | `Escape` | Pause game | |
 
 ### SongSelect
