@@ -24,10 +24,14 @@ class _SplashPageState extends ConsumerState<SplashPage> {
     ref.read(libraryProvider);
 
     //Stop audio
-    Future.microtask(ref.read(audioProvider.notifier).stop);
+    Future.microtask(() {
+      ref.read(audioProvider.notifier).stop();
+      // TODO: Implement .stopAll()
+      // ref.read(sampleService.notifier).dispose();
+    });
 
     //Await for user to read the text
-    await Future.delayed(const Duration(seconds: 5));
+    await Future.delayed(const Duration(seconds: 3));
     if (mounted) context.go("/main");
   }
 
@@ -41,9 +45,9 @@ class _SplashPageState extends ConsumerState<SplashPage> {
           mainAxisAlignment: .center,
           crossAxisAlignment: .center,
           children: [
-            Text("Welcome to osu!", style: TextStyle(fontWeight: .w900)),
+            Text("Welcome to flosu", style: TextStyle(fontWeight: .w900)),
             Text(
-              "This is an experimental osu!lazer proyect built with Flutter.\nThis game will attempt to run at the highest possible monitor refresh rate",
+              "This is an experimental osu!lazer proyect built with Flutter. May contain bugs.",
               textAlign: .center,
               style: TextStyle(fontSize: 8, fontWeight: .w300),
             ),

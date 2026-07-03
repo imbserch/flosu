@@ -1,71 +1,108 @@
-import 'package:collection/collection.dart';
+import 'package:flosu/core/assets.dart';
+import 'package:flosu/logic/services/logger.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_soloud/flutter_soloud.dart';
 
+/// A service that handles playback and management of audio sound effects.
+///
+/// It wraps the [SoLoud] audio engine to load, cache, play, pause, resume,
+/// and dispose individual sound effect files.
+//
 class SampleService {
-  final _instance = SoLoud.instance;
+  SampleService._();
 
-  final List<AudioHandle> _handles = [];
+  static final SampleService _instance = SampleService._();
+  static SampleService get instance => _instance;
 
-  Future<AudioHandle?> load(String path, double volume) async {
-    if (_handles.any((a) => a.path == path)) return null;
+  final ScopedLogger _logger = Logger.requestLogger("SampleService");
 
-    final sound = await _instance.loadFile(path, mode: .memory);
-    final handle = _instance.play(sound, volume: volume, paused: true);
+  Future<void> init() async {
+    //SoLoud has been initialized in AudioService, we just need to use the instance
+    _soLoud = SoLoud.instance;
 
-    final res = AudioHandle(path, handle, sound);
-    _handles.add(res);
-    return res;
-  }
+    List<String> neededSamplesAtStart = [
+      AppSamples.uiCursorTap,
+      AppSamples.uiSettingsPopIn,
+      AppSamples.uiMenuClose,
+      AppSamples.introWelcomeWelcomePiano,
+    ];
 
-  void play(String path) async {
-    final AudioHandle? handle = _handles.firstWhereOrNull(
-      (a) => a.path == path,
-    );
-
-    if (handle == null) return;
-    _instance.setPause(handle.handle, false);
-  }
-
-  Future<void> disposeAll() async {
-    for (final handle in _handles) {
-      await _instance.disposeSource(handle.source);
+    for (final path in neededSamplesAtStart) {
+      await loadFromAsset(path);
+      _logger.debug("Loaded sample at start: $path");
     }
 
-    _handles.clear();
-  }
-
-  void pause(String path) async {
-    final AudioHandle? handle = _handles.firstWhereOrNull(
-      (a) => a.path == path,
+    //Play intro sample after a short delay
+    Future.delayed(
+      Durations.long2,
+      () => play(AppSamples.introWelcomeWelcomePiano),
     );
-
-    if (handle == null) return;
-    _instance.setPause(handle.handle, true);
   }
 
-  void resume(String path) async {
-    final AudioHandle? handle = _handles.firstWhereOrNull(
-      (a) => a.path == path,
-    );
+  SoLoud? _soLoud;
 
-    if (handle == null) return;
-    _instance.setPause(handle.handle, false);
+  final Map<String, AudioSource> _sources = {};
+
+  Future<void> load(String path) async {
+    if (_sources.containsKey(path)) return;
+
+    final sound = await _soLoud?.loadFile(path, mode: .memory);
+
+    _sources[path] = sound!;
+
+    _logger.debug("Loaded sound: $path");
   }
 
-  void dispose() => disposeAll();
+  Future<void> loadFromAsset(String path) async {
+    if (_sources.containsKey(path)) return;
+
+    final sound = await _soLoud?.loadAsset(path);
+    _sources[path] = sound!;
+
+    _logger.debug("Loaded sound from asset: $path");
+  }
+
+  SoundHandle? play(String path, [double? volume]) {
+    final sound = _sources[path];
+
+    if (sound == null) {
+      _logger.error("Sound not found: $path");
+      return null;
+    }
+
+    // TODO: Check if the sound is already playing on another handle, return the same handle
+
+    final handle = _soLoud!.play(sound);
+
+    _logger.debug("Playing sound: $path using handle ${handle.id}");
+
+    return handle;
+  }
+
+  void pause(SoundHandle handle) => _soLoud?.setPause(handle, true);
+
+  void resume(SoundHandle handle) => _soLoud?.setPause(handle, false);
+
+  void stop(SoundHandle handle) => _soLoud?.stop(handle);
+
+  void setVolume(SoundHandle handle, double volume) =>
+      _soLoud?.setVolume(handle, volume);
+
+  void seek(SoundHandle handle, Duration to) => _soLoud?.seek(handle, to);
+
+  void dispose() {
+    for (final sound in _sources.values) {
+      _soLoud?.disposeSource(sound);
+    }
+
+    _logger.debug("Disposed all sounds");
+  }
 }
 
 final sampleService = Provider((ref) {
-  final instance = SampleService();
+  final instance = SampleService.instance;
+
   ref.onDispose(instance.dispose);
   return instance;
 });
-
-class AudioHandle {
-  AudioHandle(this.path, this.handle, this.source);
-
-  final String path;
-  final SoundHandle handle;
-  final AudioSource source;
-}

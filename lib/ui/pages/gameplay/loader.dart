@@ -5,8 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flosu/logic/providers/gameplay_service.dart';
 import 'package:flosu/logic/providers/audio.dart';
-import 'package:flosu/models/beatmap/beatmap.dart';
-import 'package:flosu/logic/services/sample.dart';
 import 'package:flosu/ui/widgets/common/osu_cube_loader.dart';
 import 'package:flosu/ui/widgets/common/osu_logo.dart';
 
@@ -38,7 +36,6 @@ class _GameplayLoaderPageState extends ConsumerState<GameplayLoaderPage> {
 
   /// Runs the full asset-loading sequence and navigates to `/gameplay`.
   void _load() async {
-    final samples = ref.read(sampleService);
     final audio = ref.read(audioProvider.notifier);
 
     // Short pause so the page enter animation completes before I/O begins.
@@ -46,14 +43,10 @@ class _GameplayLoaderPageState extends ConsumerState<GameplayLoaderPage> {
 
     if (mounted) setState(() => _showInfo = true);
 
-    // Release any hitsound samples loaded for the previous beatmap.
-    await samples.disposeAll();
-
     final beatmap = ref.read(gameplayService).beatmap!;
 
     // Pre-load all background samples defined in the beatmap's event list.
-    final events = beatmap.events.whereType<BeatmapSample>();
-    await Future.wait(events.map((s) => samples.load(s.file, s.volume)));
+    // TODO: Load samples in memory
 
     // Load and start the beatmap's audio track.
     await audio.load(beatmap);

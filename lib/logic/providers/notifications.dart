@@ -5,6 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 export 'package:flosu/core/enums.dart' show NotificationType;
 export 'package:flosu/models/ui/notification.dart' show Notification;
 
+/// A state notifier that manages the list of active user-facing notifications.
+///
+/// Provides methods to queue new alerts, remove specific notifications, and clear
+/// the entire notification log.
 class NotificationProvider extends Notifier<List<Notification>> {
   @override
   List<Notification> build() => [];

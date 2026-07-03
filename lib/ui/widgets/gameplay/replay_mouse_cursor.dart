@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:flosu/core/assets.dart';
 import 'package:flosu/core/enums.dart';
 
 import 'package:flosu/logic/providers/gameplay_service.dart';
@@ -49,7 +50,7 @@ class _ReplayMouseCursorState extends ConsumerState<ReplayMouseCursor> {
 
   void _instantiateCursorImage() async {
     try {
-      final data = await rootBundle.load("assets/images/cursor.png");
+      final data = await rootBundle.load(AppImages.replayCursor);
       final view = Uint8List.view(data.buffer);
       final codec = await instantiateImageCodec(view);
       final frame = await codec.getNextFrame();

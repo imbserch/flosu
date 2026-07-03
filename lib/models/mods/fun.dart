@@ -5,6 +5,9 @@ class NoScope extends ConfigurableMod {
   String get acronym => "NS";
 
   @override
+  String get assetPath => AppMods.ns;
+
+  @override
   String get name => "No Scope";
 
   @override

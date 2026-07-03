@@ -4,6 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 typedef TickHandlerCallback = void Function(Duration tick);
 
+/// A centralized scheduler service that manages the core game loop.
+///
+/// Driven by a Flutter [Ticker], it coordinates execution order across three distinct
+/// phases: input processing, logic updates, and visual rendering.
 class GameLoopService {
   GameLoopService._() {
     _init();

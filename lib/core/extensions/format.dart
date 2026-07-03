@@ -23,11 +23,17 @@ extension PrintExtension<T> on T {
   /// Prints a specific property of the object and returns the original value.
   ///
   /// Useful for logging inside method chains without breaking them.
-  T logProperty(dynamic Function(T) prop) {
-    if (kDebugMode) {
-      // ignore: avoid_print
-      print(prop(this));
+  T logProperty<U extends Object?>(U Function(T) prop, [ScopedLogger? logger]) {
+    final value = prop(this);
+
+    if (value == null) return this;
+
+    if (logger != null) {
+      logger.log(value.toString(), LogLevel.info);
+      return this;
     }
+
+    if (kDebugMode) debugPrint(value.toString());
     return this;
   }
 }

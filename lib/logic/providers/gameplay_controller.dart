@@ -1,6 +1,6 @@
 import 'package:flosu/core/enums.dart';
-import 'package:flosu/logic/providers/gameplay_service.dart';
-import 'package:flosu/logic/providers/audio.dart';
+//import 'package:flosu/logic/providers/gameplay_service.dart';
+//import 'package:flosu/logic/providers/audio.dart';
 import 'package:flosu/logic/providers/input.dart';
 import 'package:flosu/logic/services/game_loop.dart';
 import 'package:flutter/foundation.dart';
@@ -61,8 +61,8 @@ class GameplayController extends Notifier<void> {
 
   ///
   void _processTick(_) {
-    final position = ref.read(audioProvider.notifier).position;
-    final difficulty = ref.read(gameplayService).difficultyWithMods!;
+    //final position = ref.read(audioProvider.notifier).position;
+    //final difficulty = ref.read(gameplayService).difficultyWithMods!;
   }
 }
 

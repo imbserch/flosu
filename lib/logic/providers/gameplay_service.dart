@@ -41,7 +41,12 @@ class GameplayService extends StateNotifier<GameplayData> {
         replay: state.replay,
         mods: state.mods,
       );
+
+      _applyMods(state.mods);
     }, fireImmediately: true);
+
+    final changedSources = ref.read(audioProvider.notifier).changedSources;
+    changedSources.addListener(() => _applyMods(state.mods));
 
     final StreamSubscription replaySubs = ref
         .read(fileParserService)
@@ -50,9 +55,22 @@ class GameplayService extends StateNotifier<GameplayData> {
         .listen(_handleParserResult);
 
     ref.onDispose(() {
+      // Ensure listeners are removed to avoid memory leaks
+      changedSources.removeListener(() => _applyMods(state.mods));
+
       _logger.dispose();
       replaySubs.cancel();
     });
+  }
+
+  void _applyMods(Set<ConfigurableMod> mods) {
+    for (final mod in state.mods) {
+      mod.deactivate(globalRef);
+    }
+
+    for (final mod in mods) {
+      mod.activate(globalRef);
+    }
   }
 
   void _handleParserResult(ParseResult result) {
@@ -82,15 +100,8 @@ class GameplayService extends StateNotifier<GameplayData> {
       );
     }
 
-    state = state.copyWith(replay: replay, beatmap: beatmap);
-
-    // This allows the mods to be enabled and
-    // modifications to be applied in the correct order.
-    clearMods();
-
-    for (final mod in replay.mods) {
-      toggleMod(mod);
-    }
+    _applyMods(replay.mods);
+    state = state.copyWith(replay: replay, beatmap: beatmap, mods: replay.mods);
 
     globalRef.read(audioProvider.notifier).preview(beatmap);
 
@@ -154,10 +165,7 @@ class GameplayService extends StateNotifier<GameplayData> {
   /// Removes all active mods.
   void clearMods() {
     // Deactivate all mods
-    for (final mod in state.mods) {
-      mod.deactivate(globalRef);
-    }
-
+    _applyMods(<ConfigurableMod>{});
     state = state.copyWith(mods: {});
   }
 
@@ -218,4 +226,3 @@ class GameplayService extends StateNotifier<GameplayData> {
 
 /// Global provider for [GameplayService].
 final gameplayService = StateNotifierProvider((ref) => GameplayService(ref));
-

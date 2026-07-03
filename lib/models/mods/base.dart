@@ -3,6 +3,7 @@ import 'package:flosu/logic/providers/audio.dart';
 import 'package:flosu/models/beatmap/beatmap.dart';
 import 'package:flutter/material.dart';
 import 'package:flosu/core/enums.dart';
+import 'package:flosu/core/assets.dart';
 import 'package:flosu/core/theme/app_colors.dart';
 import 'package:flosu/core/extensions/format.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,6 +14,10 @@ part "automation.dart";
 part "conversion.dart";
 part "fun.dart";
 
+/// Represents a gameplay modifier (mod) that alters game parameters or rules.
+///
+/// Subclasses define specific modifications to gameplay mechanics, speed, difficulty,
+/// scoring multiplier, and visual rendering.
 sealed class ConfigurableMod {
   static Set<ConfigurableMod> fromLazerPayload(Map<String, dynamic> json) {
     try {
@@ -125,7 +130,7 @@ sealed class ConfigurableMod {
 
   String get description;
 
-  String get assetPath => "assets/mods/$acronym.png";
+  String get assetPath;
 
   double get scoreMultiplier => 1.0;
 
@@ -149,6 +154,7 @@ sealed class ConfigurableMod {
 }
 
 //Keep here because this is for non added mods
+/// A fallback modifier representing a mod that is unrecognized or not yet supported.
 class Unimplemented extends ConfigurableMod {
   Unimplemented(this.data);
 
@@ -158,7 +164,7 @@ class Unimplemented extends ConfigurableMod {
   String get acronym => "??";
 
   @override
-  String get assetPath => "assets/mods/AT.png";
+  String get assetPath => AppMods.at;
 
   @override
   String get name => "Unimplemented";

@@ -1,3 +1,7 @@
+/// Represents the user preferences and settings configuration state of the application.
+///
+/// Contains audio offsets, volume levels, key bindings, rendering settings,
+/// Dim/Blur options, debugger toggles, and the local path to the beatmaps folder.
 class Storage {
   Storage({
     required this.audioCompensation,

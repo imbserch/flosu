@@ -8,6 +8,9 @@ class Autoplay extends ConfigurableMod {
   String get acronym => "AT";
 
   @override
+  String get assetPath => AppMods.at;
+
+  @override
   String get description => "Watch a perfect automated play through the song";
 
   @override
@@ -37,6 +40,9 @@ class Cinema extends ConfigurableMod {
 
   @override
   String get acronym => "CN";
+
+  @override
+  String get assetPath => AppMods.cn;
 
   @override
   String get description => "Watch the video without visual distractions";
@@ -72,6 +78,9 @@ class Relax extends ConfigurableMod {
 
   @override
   String get acronym => "RX";
+
+  @override
+  String get assetPath => AppMods.rx;
 
   @override
   String get description =>

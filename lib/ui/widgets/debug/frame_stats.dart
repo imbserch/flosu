@@ -273,7 +273,7 @@ class FrameVisualizer extends StatelessWidget {
                           width: 32,
                           margin: const .only(left: 2),
                           child: Text(
-                            "${detail.timings[detail.timingIndex].toStringAsFixed(2)} ms",
+                            "${detail.timings[(detail.timingIndex - 1) % TIMINGS_SIZE].toStringAsFixed(2)} ms",
                             style: const TextStyle(
                               fontWeight: .bold,
                               fontSize: 6,

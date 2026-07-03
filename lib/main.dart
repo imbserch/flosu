@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:flosu/logic/providers/storage.dart';
 import 'package:flosu/logic/services/library.dart';
+import 'package:flosu/logic/services/sample.dart';
 import 'package:flosu/ui/widgets/overlay/tooltip.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide Slider, MouseCursor, Tooltip;
@@ -30,6 +31,7 @@ void main() async {
   await AudioService.instance.init();
   await StorageService.instance.init();
   await LibraryService.instance.init();
+  await SampleService.instance.init();
 
   runApp(const ProviderScope(child: MainApp()));
 }

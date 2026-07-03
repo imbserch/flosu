@@ -59,6 +59,9 @@ class AudioProvider extends Notifier<Beatmap?> {
     return null;
   }
 
+  // Notifier for updating audio logic as DT/NC mods
+  final ValueNotifier<int> changedSources = ValueNotifier<int>(0);
+
   final ScopedLogger _logger = Logger.requestLogger("AudioProvider");
 
   /// The underlying service responsible for low-level audio operations.
@@ -177,7 +180,6 @@ class AudioProvider extends Notifier<Beatmap?> {
       _logger.error("Audio can't play: ${beatmap.audio.path}");
       return;
     }
-
     final handle = await _service.play(source, _musicVolume);
 
     if (handle == null) {
@@ -202,15 +204,15 @@ class AudioProvider extends Notifier<Beatmap?> {
       ..start()
       ..reset();
 
-    // Smooth transition: Stop the previous audio if it exists
-    if (_currentHandle != null) {
-      _service.setStop(_currentHandle!, Durations.medium1);
-    }
+    // Crossfade: Stop the previous audio if it exists
+    if (_currentHandle != null) _service.setStop(_currentHandle!);
 
     _currentPath = beatmap.audio.path;
     _currentHandle = handle;
     _playing = true;
     state = beatmap;
+
+    changedSources.value = changedSources.value + 1;
   }
 
   /// Previews an audio file with a volume fade-in effect.
@@ -262,19 +264,25 @@ class AudioProvider extends Notifier<Beatmap?> {
       ..start()
       ..reset();
 
-    // Fade in the new audio
-    _service.setVolume(handle, _musicVolume, Durations.medium1);
-
     // Cross-fade: Fade out the previous handle before stopping it
     if (_currentHandle != null) {
       _service.setVolume(_currentHandle!, 0, Durations.medium1);
       _service.setStop(_currentHandle!, Durations.medium1);
     }
 
+    // Fade in the new audio
+    // Using updated osu!lazer fade logic
+    Future.delayed(
+      Durations.medium1 * 0.5,
+      () => _service.setVolume(handle, _musicVolume, Durations.medium1),
+    );
+
     _currentPath = beatmap.audio.path;
     _currentHandle = handle;
     _playing = true;
     state = beatmap;
+
+    changedSources.value = changedSources.value + 1;
   }
 
   /// Updates the playback speed and resynchronizes the timing baseline.
@@ -293,10 +301,15 @@ class AudioProvider extends Notifier<Beatmap?> {
     // Apply the new rate to the engine
     _playbackRate = _service.setRate(_currentHandle!, rate);
 
-    _logger.debug(
-      "Playback rate changed to $_playbackRate. Offset resetted (at $_audioOffset)",
-    );
     _stopwatch.reset();
+  }
+
+  void setPitch(double pitch) {
+    if (_currentHandle == null) {
+      _logger.error("No handle to set pitch");
+      return;
+    }
+    _service.setPitch(_currentHandle!, pitch);
   }
 
   /// Stops the current audio playback and clears the provider state.

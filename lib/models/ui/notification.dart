@@ -1,6 +1,6 @@
 import 'package:flosu/core/enums.dart';
 
-// Represents a UI notification event
+/// Represents a UI notification alert configuration.
 class Notification {
   Notification({required this.message, required this.type, this.callback});
 

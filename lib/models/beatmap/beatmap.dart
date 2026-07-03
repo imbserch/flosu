@@ -86,4 +86,10 @@ class Beatmap {
 
     return drain;
   }
+
+  /// Whether a beatmap belongs to the same song set.
+  bool isFromSameBeatmapSet(Beatmap beatmap) =>
+      beatmap.groupId == groupId &&
+      beatmap.info.title == info.title &&
+      beatmap.info.artist == info.artist;
 }

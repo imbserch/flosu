@@ -22,8 +22,10 @@ class AudioService {
   Future<void> init() async {
     try {
       await SoLoud.instance.init(bufferSize: 128);
-      SoLoud.instance.setMaxActiveVoiceCount(64);
       _soLoud = SoLoud.instance;
+
+      _soLoud!.setMaxActiveVoiceCount(64);
+      _soLoud!.filters.pitchShiftFilter.activate();
 
       _logger.info("AudioService has been initialized");
     } catch (err) {
@@ -42,7 +44,12 @@ class AudioService {
   /// engine is not ready or the file fails to load.
   Future<AudioSource?> load(String path) async {
     try {
-      return await _soLoud?.loadFile(path);
+      final source = await _soLoud?.loadFile(path);
+
+      // Ensure pitch shift filter is active for this source
+      source?.filters.pitchShiftFilter.activate();
+
+      return source;
     } catch (err) {
       _logger.error("Error loading file: $err");
       return null;
@@ -108,15 +115,25 @@ class AudioService {
   double setRate(SoundHandle handle, double rate, [Duration? duration]) {
     final clampedRate = rate.clamp(0.05, 2.0);
 
-    if (duration != null) {
-      _logger.debug("Setting rate to $clampedRate over $duration");
-      _soLoud?.fadeRelativePlaySpeed(handle, clampedRate, duration);
-    } else {
-      _logger.debug("Setting rate to $clampedRate");
-      _soLoud?.setRelativePlaySpeed(handle, clampedRate);
+    final source = _soLoud?.findAudioSourceByHandle(handle);
+
+    if (source == null) {
+      _logger.error("Can't find source for handle $handle");
+      return 1.0;
     }
 
-    return _soLoud != null ? clampedRate : 1.0;
+    final filter = source.filters.pitchShiftFilter;
+
+    if (duration != null) {
+      //SoLoud doesn't support smooth transitions for now
+      _logger.debug("Setting rate to $rate");
+      filter.timeStretch(handle, clampedRate);
+      return rate;
+    }
+
+    _logger.debug("Setting rate to $rate");
+    filter.timeStretch(handle, clampedRate);
+    return rate;
   }
 
   /// Pauses or resumes a specific sound instance.
@@ -137,6 +154,7 @@ class AudioService {
 
     if (duration != null) {
       _logger.debug("Fading volume to $clampedVol over $duration");
+
       _soLoud?.fadeVolume(handle, clampedVol, duration);
     } else {
       _logger.debug("Setting volume to $clampedVol");
@@ -148,6 +166,19 @@ class AudioService {
   void setGlobalVolume(double volume) {
     _logger.debug("Setting global volume to $volume");
     _soLoud?.setGlobalVolume(volume.clamp(0.0, 1.0));
+  }
+
+  void setPitch(SoundHandle handle, double pitch) {
+    _logger.debug("Setting pitch to $pitch");
+
+    final source = _soLoud?.findAudioSourceByHandle(handle);
+
+    if (source == null) {
+      _logger.error("Can't find source for handle $handle");
+      return;
+    }
+
+    source.filters.pitchShiftFilter.shift(soundHandle: handle).value = pitch;
   }
 
   /// Returns the current playback position of a specific sound instance

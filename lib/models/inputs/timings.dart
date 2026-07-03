@@ -1,4 +1,4 @@
-// Represents the metrics/timings of immediate and delayed hardware events
+/// Represents the latency/processing duration metrics of immediate and delayed hardware events.
 class InputTimings {
   InputTimings({
     required this.delayedEventsDuration,

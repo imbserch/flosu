@@ -16,6 +16,10 @@ import 'package:flosu/ui/widgets/common/skewed_box.dart';
 ProviderContainer get globalRef =>
     ProviderScope.containerOf(rootNavigatorKey.currentContext!);
 
+/// Represents an action button configured for a custom dialog box.
+///
+/// Contains the display [label] widget, the color layout [color] of the button,
+/// and the callback [onTap] executed when clicked.
 class DialogAction {
   DialogAction({
     required this.label,

@@ -8,12 +8,16 @@ class Easy extends ConfigurableMod {
   String get acronym => "EZ";
 
   @override
+  String get assetPath => AppMods.ez;
+
+  @override
   String get description =>
       "Larger circles, more forgiving HP drain,"
       "less accuracy required, and three lives!";
 
   @override
-  double get scoreMultiplier => 0.3;
+  // Osu!lazer recently updated this value
+  double get scoreMultiplier => 0.5;
 
   @override
   Color get color => AppColors.green;
@@ -28,10 +32,10 @@ class Easy extends ConfigurableMod {
   @override
   BeatmapDifficulty applyTo(BeatmapDifficulty difficulty) {
     return difficulty.copyWith(
-      CS: difficulty.CS * 0.5,
-      AR: difficulty.AR * 0.5,
-      OD: difficulty.OD * 0.5,
-      HP: difficulty.HP * 0.5,
+      CS: difficulty.CS / 2,
+      AR: difficulty.AR / 2,
+      OD: difficulty.OD / 2,
+      HP: difficulty.HP / 2,
     );
   }
 }
@@ -42,6 +46,9 @@ class NoFail extends ConfigurableMod {
 
   @override
   String get acronym => "NF";
+
+  @override
+  String get assetPath => AppMods.nf;
 
   @override
   String get description => "You can't fail, no matter what";
@@ -68,6 +75,9 @@ class HalfTime extends ConfigurableMod {
 
   @override
   String get acronym => "HT";
+
+  @override
+  String get assetPath => AppMods.ht;
 
   @override
   String get description => "Less zoom...";
@@ -112,6 +122,9 @@ class Daycore extends ConfigurableMod {
   String get acronym => "DC";
 
   @override
+  String get assetPath => AppMods.dc;
+
+  @override
   String get description => "Whoaaaaa...";
 
   @override
@@ -134,6 +147,7 @@ class Daycore extends ConfigurableMod {
   void activate(ProviderContainer ref) {
     // Set the initial speed to 0.75x
     ref.read(audioProvider.notifier).setRate(0.75);
+    ref.read(audioProvider.notifier).setPitch(0.975);
     super.activate(ref);
   }
 
@@ -141,6 +155,7 @@ class Daycore extends ConfigurableMod {
   void deactivate(ProviderContainer ref) {
     // Restore the default speed to 1.0x
     ref.read(audioProvider.notifier).setRate(1.0);
+    ref.read(audioProvider.notifier).setPitch(1.0);
     super.deactivate(ref);
   }
 }

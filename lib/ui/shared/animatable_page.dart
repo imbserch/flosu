@@ -1,14 +1,21 @@
+import 'package:flosu/core/extensions/format.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flosu/core/extensions/ui.dart';
 
+/// Base class for all page widgets that support transition animations.
+///
+/// Ensures page entry and exit animations are coordinated based on routing paths.
 abstract class AnimatablePage extends ConsumerStatefulWidget {
   const AnimatablePage({super.key, required this.uri});
 
   final Uri uri;
 }
 
+/// The state implementation for animatable pages.
+///
+/// Drives the route animations and wraps the built page in standard visibility helpers.
 abstract class AnimatablePageState<T extends AnimatablePage>
     extends ConsumerState<T> {
   @override
@@ -25,7 +32,9 @@ abstract class AnimatablePageState<T extends AnimatablePage>
         final revAnim = route.secondaryAnimation!;
 
         final segments = widget.uri.pathSegments.length;
-        final targetSegments = GoRouterState.of(context).uri.pathSegments.length;
+        final targetSegments = GoRouterState.of(
+          context,
+        ).uri.pathSegments.length;
 
         double t;
 
@@ -47,10 +56,7 @@ abstract class AnimatablePageState<T extends AnimatablePage>
           t = Curves.easeOut.transform(animVal);
         }
 
-        return Opacity(
-          opacity: t,
-          child: buildPage(context, t),
-        );
+        return Opacity(opacity: t, child: buildPage(context, t));
       },
     ).hiddenCursor;
   }

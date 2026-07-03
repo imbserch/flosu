@@ -1,20 +1,29 @@
 import 'package:flosu/models/beatmap/beatmap.dart';
 
 /// A collection of [Beatmap]s that share the same song title and artist.
-///
-/// In osu! terminology this is analogous to a "beatmap set" — multiple
-/// difficulty levels for the same song, shown as a single card in the list.
 class BeatmapSet {
-  BeatmapSet(this.beatmaps)
-    : title = beatmaps.first.info.title,
-      artist = beatmaps.first.info.artist;
+  /// Creates a new [BeatmapSet] from a single [Beatmap].
+  BeatmapSet.fromBeatmap(Beatmap beatmap)
+    : id = beatmap.groupId,
+      title = beatmap.info.title,
+      artist = beatmap.info.artist,
+      beatmaps = List.of([beatmap]);
 
-  /// Shared song title for all beatmaps in this group.
+  /// Checks if a [Beatmap] belongs to this [BeatmapSet].
+  bool isInBeatmapSet(Beatmap beatmap) =>
+      beatmap.groupId == id &&
+      beatmap.info.title == title &&
+      beatmap.info.artist == artist;
+
+  /// The unique identifier of the beatmap set.
+  final int id;
+
+  /// The title of the beatmap set.
   final String title;
 
-  /// Shared artist name for all beatmaps in this group.
+  /// The artist of the beatmap set.
   final String artist;
 
-  /// All parsed difficulty variants for this song, in insertion order.
-  final List<Beatmap> beatmaps;
+  /// The list of beatmaps in the beatmap set.
+  List<Beatmap> beatmaps;
 }

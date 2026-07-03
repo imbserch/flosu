@@ -10,6 +10,9 @@ class Classic extends ConfigurableMod {
   String get acronym => "CL";
 
   @override
+  String get assetPath => AppMods.cl;
+
+  @override
   String get description => "Feeling nostalgic?";
 
   @override
@@ -32,6 +35,9 @@ class DifficultyAdjust extends ConfigurableMod {
 
   @override
   String get acronym => "DA";
+
+  @override
+  String get assetPath => AppMods.da;
 
   @override
   String get description => "Override a beatmap's difficulty settings";

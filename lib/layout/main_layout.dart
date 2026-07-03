@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flosu/core/assets.dart';
+import 'package:flosu/logic/services/sample.dart';
 import 'package:flosu/ui/widgets/navigation/notifications_drawer.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide PointerEvent;
@@ -16,6 +18,10 @@ import 'package:flosu/ui/widgets/navigation/settings_drawer.dart';
 import 'package:flosu/ui/widgets/navigation/top_bar.dart';
 import 'package:go_router/go_router.dart';
 
+/// The shell layout widget that envelopes the application pages.
+///
+/// Manages global overlays such as the volume slider, side navigation/settings drawers,
+/// parallax background, and the standard top bar layout.
 class MainLayout extends ConsumerStatefulWidget {
   const MainLayout({
     super.key,
@@ -133,6 +139,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
         final clampedVol = (volume + _scroll).clamp(0.0, 1.0);
 
         ref.read(storageProvider.notifier).setGlobalVolume(clampedVol);
+        ref.read(sampleService).play(AppSamples.uiCursorTap);
       }
     }
   }
@@ -141,16 +148,20 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
     if (mounted) setState(() => _topBarOpen = !_topBarOpen);
   }
 
+  void _handleDrawerChange(bool isOpen) {
+    ref
+        .read(sampleService)
+        .play(isOpen ? AppSamples.uiSettingsPopIn : AppSamples.uiMenuClose);
+
+    if (mounted) setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
-      onDrawerChanged: (_) {
-        if (mounted) setState(() {});
-      },
-      onEndDrawerChanged: (_) {
-        if (mounted) setState(() {});
-      },
+      onDrawerChanged: _handleDrawerChange,
+      onEndDrawerChanged: _handleDrawerChange,
       drawer: SettingsDrawer(
         onClose: () => isSettingsOpen ? scaffold?.closeDrawer() : null,
       ),

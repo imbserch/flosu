@@ -1,4 +1,5 @@
 import 'package:flutter/gestures.dart' as gestures;
+import 'package:flutter/rendering.dart' hide PointerEvent;
 import 'package:flutter/services.dart' hide PointerEvent;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flosu/core/extensions/ui.dart';
@@ -56,14 +57,18 @@ class InputService {
     final scale =
         rootNavigatorKey.currentContext!.scale *
         rootNavigatorKey.currentContext!.pixelRatio;
+
     final position = event.position;
+
+    final pressed = event is gestures.PointerDownEvent;
+
     final scroll = event is gestures.PointerScrollEvent
         ? event.scrollDelta
         : Offset.zero;
 
     final scaledOffset = Offset(position.dx / scale, position.dy / scale);
 
-    final pointerEvent = PointerEvent(scaledOffset, scroll);
+    final pointerEvent = PointerEvent(scaledOffset, scroll, pressed);
 
     for (final handler in _rawHandlers) {
       handler(pointerEvent);

@@ -27,7 +27,7 @@ sealed class HardwareEvent {
 
 /// A pointer (mouse / tablet) movement or scroll event.
 class PointerEvent extends HardwareEvent {
-  PointerEvent(this.position, this.scroll) : super();
+  PointerEvent(this.position, this.scroll, this.pressed) : super();
 
   /// Position of the pointer in the app's scaled coordinate space.
   ///
@@ -36,6 +36,9 @@ class PointerEvent extends HardwareEvent {
 
   /// Scroll delta for mouse wheel events; [Offset.zero] for move events.
   final Offset scroll;
+
+  /// If the pointer is pressed (left click)
+  final bool pressed;
 }
 
 /// A keyboard key press or release event.

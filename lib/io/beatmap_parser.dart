@@ -224,10 +224,8 @@ class BeatmapParser extends Parser<Beatmap> {
         events,
         objects,
       );
-    } catch (e, s) {
+    } catch (e) {
       // TODO: ADD THROW
-      /* "Error parsing file: $e".log();
-      "Stack: $s".log(); */
       return null;
     }
   }

@@ -3,6 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+/// A state notifier that manages tooltip visibility and content in the UI.
+///
+/// Handles displaying a specific tooltip widget and hiding it with a fade-out
+/// delay timer.
 class TooltipProvider extends Notifier<({Widget? content, bool hidden})> {
   Timer? _changeTimer;
 

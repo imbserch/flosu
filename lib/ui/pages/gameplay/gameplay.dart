@@ -18,7 +18,6 @@ import 'package:flosu/models/inputs/inputs.dart';
 import 'package:flosu/ui/pages/song_select/mods.dart';
 import 'package:flosu/logic/providers/gameplay_service.dart';
 import 'package:flosu/logic/providers/router.dart';
-import 'package:flosu/logic/services/sample.dart';
 import 'package:flosu/ui/painters/playfield.dart';
 import 'package:flosu/ui/shared/animatable_page.dart';
 import 'package:flosu/ui/widgets/common/skewed_box.dart';
@@ -106,13 +105,10 @@ class _GameplayPageState extends AnimatablePageState<GameplayPage> {
   /// sample currently playing.
   void _pauseResume() {
     final audio = ref.read(audioProvider.notifier);
-    final sampleManager = ref.read(sampleService);
 
     if (audio.playing) {
-      if (_sample != null) sampleManager.pause(_sample!.file);
       audio.setPlaying(false);
     } else {
-      if (_sample != null) sampleManager.resume(_sample!.file);
       audio.setPlaying(true);
     }
 
@@ -121,7 +117,7 @@ class _GameplayPageState extends AnimatablePageState<GameplayPage> {
 
   @override
   Widget buildPage(BuildContext context, double animProgress) {
-    final controller = ref.watch(gameplayControllerProvider);
+    // final controller = ref.watch(gameplayControllerProvider);
     final audio = ref.read(audioProvider.notifier);
     final details = ref.watch(gameplayService);
 

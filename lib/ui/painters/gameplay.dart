@@ -291,12 +291,12 @@ class ReplayMousePainter extends CustomPainter {
           ),
         ],
         [const Rect.fromLTWH(0, 0, 64, 64)],
-        [Colors.white],
-        .srcIn,
+        null,
+        null,
         null,
         Paint()
           ..isAntiAlias = false
-          ..filterQuality = .low,
+          ..filterQuality = FilterQuality.low,
       );
     }
   }

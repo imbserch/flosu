@@ -34,8 +34,27 @@ flutter:
   uses-material-design: true
 
   assets:
-      - assets/images/
-      - assets/mods/
+    - assets/images/
+    - assets/mods/
+    - assets/samples/
+    - assets/samples/DailyChallenge/
+    - assets/samples/Gameplay/
+    - assets/samples/Gameplay/Argon/
+    - assets/samples/Gameplay/ArgonPro/
+    - assets/samples/Intro/
+    - assets/samples/Intro/Welcome/
+    - assets/samples/Keyboard/
+    - assets/samples/MedalSplash/
+    - assets/samples/Menu/
+    - assets/samples/Multiplayer/
+    - assets/samples/Multiplayer/Matchmaking/
+    - assets/samples/Multiplayer/Matchmaking/Cloud/
+    - assets/samples/Multiplayer/Matchmaking/Ranked/
+    - assets/samples/Multiplayer/Matchmaking/Ranked/Results/
+    - assets/samples/Multiplayer/Matchmaking/Selection/
+    - assets/samples/Results/
+    - assets/samples/SongSelect/
+    - assets/samples/UI/
 
   fonts:
       - family: Torus

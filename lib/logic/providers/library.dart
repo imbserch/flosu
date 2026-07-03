@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:collection/collection.dart';
 import 'package:flosu/logic/providers/router.dart';
 import 'package:flosu/logic/providers/storage.dart';
 import 'package:flosu/logic/services/file_parser.dart';
@@ -101,25 +102,18 @@ class LibraryProvider extends Notifier<List<BeatmapSet>> {
 
   /// Inserts a [Beatmap] into the state, creating or updating a [BeatmapSet].
   void _addBeatmapToState(Beatmap beatmap) {
-    final title = beatmap.info.title;
-    final artist = beatmap.info.artist;
-
-    final groupIdx = state.indexWhere(
-      (group) => group.title == title && group.artist == artist,
+    final beatmapSet = state.firstWhereOrNull(
+      (group) => group.isInBeatmapSet(beatmap),
     );
 
-    if (groupIdx != -1) {
-      final updatedGroup = BeatmapSet([...state[groupIdx].beatmaps, beatmap]);
-
-      state = [
-        for (int idx = 0; idx < state.length; idx++)
-          if (idx == groupIdx) updatedGroup else state[idx],
-      ];
+    if (beatmapSet == null) {
+      // Create new beatmapset from beatmap
+      final newBeatmapSet = BeatmapSet.fromBeatmap(beatmap);
+      state = [...state, newBeatmapSet];
     } else {
-      state = [
-        ...state,
-        BeatmapSet([beatmap]),
-      ];
+      // Add beatmap to list
+      beatmapSet.beatmaps.add(beatmap);
+      state = [...state];
     }
   }
 
@@ -129,10 +123,11 @@ class LibraryProvider extends Notifier<List<BeatmapSet>> {
   Beatmap? getRandom() {
     if (state.isEmpty) return null;
 
-    int randomGroup = Random().nextInt(state.length);
-    int randomBeatmap = Random().nextInt(state[randomGroup].beatmaps.length);
+    int selectedGroup = Random().nextInt(state.length);
+    final group = state[selectedGroup];
 
-    return state[randomGroup].beatmaps[randomBeatmap];
+    int selectedBeatmap = Random().nextInt(group.beatmaps.length);
+    return group.beatmaps[selectedBeatmap];
   }
 
   void pickReplay() {

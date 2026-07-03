@@ -143,7 +143,6 @@ class _SongSelectPageState extends AnimatablePageState<SongSelectPage> {
           children: [
             CurrentBeatmapInfo(animProgress: animProgress),
 
-            //Beatmap List
             Positioned(
               top: 0,
               left: context.screenScaled.width / 2,
@@ -154,7 +153,7 @@ class _SongSelectPageState extends AnimatablePageState<SongSelectPage> {
                 child: Column(
                   crossAxisAlignment: .end,
                   children: [
-                    SkewedBox(
+                    /*  SkewedBox(
                       constraints: const BoxConstraints(
                         minWidth: 280,
                         maxWidth: 448,
@@ -232,6 +231,8 @@ class _SongSelectPageState extends AnimatablePageState<SongSelectPage> {
                         ],
                       ),
                     ),
+                     */
+                    // Beatmap list
                     const Expanded(child: BeatmapList()),
                   ],
                 ),

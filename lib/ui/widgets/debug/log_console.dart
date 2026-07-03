@@ -28,7 +28,6 @@ class LogConsole extends StatelessWidget {
               itemCount: logsList.length,
               itemBuilder: (context, index) {
                 final log = logsList[index];
-                final time = log.timestamp.toLocal().toString().split(' ').last;
 
                 Color levelColor = Colors.white;
 
