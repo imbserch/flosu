@@ -1,5 +1,3 @@
-part of "beatmap.dart";
-
 /// Base class for entries in the `[TimingPoints]` section of a `.osu` file.
 ///
 /// Each timing point starts at a given [time] and defines a beat structure

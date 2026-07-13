@@ -51,17 +51,3 @@ class KeyboardEvent extends HardwareEvent {
   /// `true` if the key was pressed, `false` if it was released.
   final bool pressed;
 }
-
-/// A simulated pointer event derived from a [ReplayFrame].
-///
-/// Used to animate the replay cursor on the playfield without routing through
-/// the real hardware event pipeline.
-class ReplayFrameEvent extends HardwareEvent {
-  ReplayFrameEvent(this.time, this.position) : super();
-
-  /// Replay frame timestamp in milliseconds.
-  final int time;
-
-  /// Cursor position in playfield coordinates.
-  final Offset position;
-}

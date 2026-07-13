@@ -1,6 +1,4 @@
-import 'package:flosu/core/assets.dart';
 import 'package:flosu/logic/services/logger.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_soloud/flutter_soloud.dart';
 
@@ -20,24 +18,6 @@ class SampleService {
   Future<void> init() async {
     //SoLoud has been initialized in AudioService, we just need to use the instance
     _soLoud = SoLoud.instance;
-
-    List<String> neededSamplesAtStart = [
-      AppSamples.uiCursorTap,
-      AppSamples.uiSettingsPopIn,
-      AppSamples.uiMenuClose,
-      AppSamples.introWelcomeWelcomePiano,
-    ];
-
-    for (final path in neededSamplesAtStart) {
-      await loadFromAsset(path);
-      _logger.debug("Loaded sample at start: $path");
-    }
-
-    //Play intro sample after a short delay
-    Future.delayed(
-      Durations.long2,
-      () => play(AppSamples.introWelcomeWelcomePiano),
-    );
   }
 
   SoLoud? _soLoud;
@@ -51,7 +31,7 @@ class SampleService {
 
     _sources[path] = sound!;
 
-    _logger.debug("Loaded sound: $path");
+    _logger.info("Loaded sound: $path");
   }
 
   Future<void> loadFromAsset(String path) async {
@@ -60,7 +40,19 @@ class SampleService {
     final sound = await _soLoud?.loadAsset(path);
     _sources[path] = sound!;
 
-    _logger.debug("Loaded sound from asset: $path");
+    _logger.info("Loaded sound from asset: $path");
+  }
+
+  Future<void> loadMultiple(List<String> paths) async {
+    for (final path in paths) {
+      await load(path);
+    }
+  }
+
+  Future<void> loadMultipleFromAsset(List<String> paths) async {
+    for (final path in paths) {
+      await loadFromAsset(path);
+    }
   }
 
   SoundHandle? play(String path, [double? volume]) {
@@ -78,6 +70,11 @@ class SampleService {
     _logger.debug("Playing sound: $path using handle ${handle.id}");
 
     return handle;
+  }
+
+  void setLoop(SoundHandle handle, Duration? from) {
+    _soLoud?.setLooping(handle, from != null);
+    _soLoud?.setLoopPoint(handle, from ?? .zero);
   }
 
   void pause(SoundHandle handle) => _soLoud?.setPause(handle, true);

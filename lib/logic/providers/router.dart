@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:flosu/ui/pages/gameplay/pause.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -143,10 +144,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       ShellRoute(
         navigatorKey: shellNavigatorKey,
         builder: (_, state, child) => MainLayout(
-          forceTopBarClosed: [
-            "splash",
-            "gameplay",
-          ].contains(state.uri.pathSegments.last),
+          forceTopBarClosed: state.uri.pathSegments.any(
+            (pathSegment) => ["splash", "gameplay"].contains(pathSegment),
+          ),
           child: child,
         ),
         routes: [
@@ -184,6 +184,13 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/gameplay',
             pageBuilder: (_, s) =>
                 buildPage(s, GameplayPage(key: ValueKey(s.name), uri: s.uri)),
+            routes: [
+              GoRoute(
+                path: '/pause',
+                pageBuilder: (_, s) =>
+                    buildPage(s, PausePage(key: ValueKey(s.name), uri: s.uri)),
+              ),
+            ],
           ),
 
           //Score results

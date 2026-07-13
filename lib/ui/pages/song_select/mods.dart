@@ -1,15 +1,15 @@
 import 'dart:ui';
 
+import 'package:flosu/logic/providers/gameplay_data.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flosu/core/theme/app_colors.dart';
 import 'package:flosu/models/mods/base.dart';
 import 'package:flosu/core/extensions/ui.dart';
-import 'package:flosu/logic/providers/gameplay_service.dart';
-import 'package:flosu/logic/providers/tooltip.dart';
 import 'package:flosu/ui/shared/animatable_page.dart';
 import 'package:flosu/ui/widgets/common/skewed_box.dart';
+import 'package:flosu/ui/widgets/song_select/mod_icon.dart';
+import 'package:flosu/ui/widgets/song_select/mod_item.dart';
 
 class ModsPage extends AnimatablePage {
   const ModsPage({super.key, required super.uri});
@@ -21,8 +21,8 @@ class ModsPage extends AnimatablePage {
 class _ModsPageState extends AnimatablePageState<ModsPage> {
   @override
   Widget buildPage(BuildContext context, double animProgress) {
-    final selectedMods = ref.watch(gameplayService);
-    final modsManager = ref.read(gameplayService.notifier);
+    final details = ref.watch(gameplayDataProvider);
+    final detailsManager = ref.read(gameplayDataProvider.notifier);
 
     return ColoredBox(
       color: Colors.black38,
@@ -170,12 +170,12 @@ class _ModsPageState extends AnimatablePageState<ModsPage> {
 
                                             return ModItem(
                                               mod: mod,
-                                              selected: selectedMods.mods.any(
+                                              selected: details.mods.any(
                                                 ((m) =>
                                                     m.acronym == mod.acronym),
                                               ),
                                               onTap: () =>
-                                                  modsManager.toggleMod(mod),
+                                                  detailsManager.toggleMod(mod),
                                             );
                                           },
                                           separatorBuilder: (_, _) =>
@@ -225,29 +225,26 @@ class _ModsPageState extends AnimatablePageState<ModsPage> {
                 child: Row(
                   mainAxisAlignment: .center,
                   children: [
-                    if (selectedMods.mods.isNotEmpty) ...[
-                      for (final mod in selectedMods.mods)
-                        ModIcon.display(mod: mod),
+                    if (details.mods.isNotEmpty) ...[
+                      for (final mod in details.mods) ModIcon.display(mod: mod),
                       const SizedBox(width: 8),
                     ],
 
                     Text(
-                      selectedMods.mods.isEmpty
-                          ? "No mods"
-                          : selectedMods.modsName,
+                      details.mods.isEmpty ? "No mods" : details.modsName,
                       style: const TextStyle(fontSize: 8, height: 1),
                     ),
                     const SizedBox(width: 9),
                     //Deselect mods
                     SkewedBox(
-                      opacity: selectedMods.mods.isNotEmpty ? 1 : 0,
+                      opacity: details.mods.isNotEmpty ? 1 : 0,
                       decoration: BoxDecoration(
                         borderRadius: .circular(4),
                         color: AppColors.container,
                       ),
                       useGradientBorder: true,
                       padding: const .all(9),
-                      onTap: modsManager.clearMods,
+                      onTap: detailsManager.clearMods,
                       child: const Text(
                         "Deselect all",
                         style: TextStyle(fontSize: 8),
@@ -302,26 +299,26 @@ class _ModsPageState extends AnimatablePageState<ModsPage> {
                     SkewedBox(
                       decoration: BoxDecoration(
                         borderRadius: .circular(4),
-                        color: selectedMods.isRanked
+                        color: details.isRanked
                             ? AppColors.container
                             : AppColors.yellow,
                       ),
-                      useGradientBorder: selectedMods.isRanked,
+                      useGradientBorder: details.isRanked,
                       padding: const .all(9),
                       child: Text(
-                        selectedMods.isRanked ? "Ranked" : "Unranked",
+                        details.isRanked ? "Ranked" : "Unranked",
                         style: TextStyle(
                           fontSize: 8,
-                          color: selectedMods.isRanked
+                          color: details.isRanked
                               ? Colors.white
                               : AppColors.background,
-                          fontWeight: selectedMods.isRanked ? .normal : .bold,
+                          fontWeight: details.isRanked ? .normal : .bold,
                         ),
                       ),
                     ),
 
                     TweenAnimationBuilder(
-                      tween: Tween(end: selectedMods.modMultiplier),
+                      tween: Tween(end: details.modMultiplier),
                       duration: Durations.short4,
                       curve: Curves.easeOut,
                       builder: (_, t, _) => Text(
@@ -342,158 +339,6 @@ class _ModsPageState extends AnimatablePageState<ModsPage> {
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-class ModItem extends ConsumerWidget {
-  const ModItem({
-    super.key,
-    required this.mod,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final ConfigurableMod mod;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final tooltipManager = ref.read(tooltipProvider.notifier);
-
-    return TweenAnimationBuilder(
-      tween: Tween(end: selected ? 1.0 : 0.0),
-      duration: Durations.short1,
-      curve: Curves.easeIn,
-      builder: (_, t, _) => SkewedBox.ignoreParentSkew(
-        onTap: onTap,
-        useGradientBorder: true,
-        decoration: BoxDecoration(
-          borderRadius: .circular(4),
-          color: Color.lerp(const Color(0xff39463a), mod.color, t / 3),
-        ),
-        child: MouseRegion(
-          onEnter: (_) => tooltipManager.showTooltip(
-            Column(
-              crossAxisAlignment: .stretch,
-              mainAxisSize: .min,
-              children: [
-                Text(mod.description),
-                if (mod.incompatibleMods.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  const Text(
-                    "Incompatible with",
-                    style: TextStyle(fontSize: 6),
-                  ),
-                  Row(
-                    children: [
-                      for (final incompatibleMod in mod.incompatibleMods)
-                        ModIcon(mod: incompatibleMod, selected: true, size: 12),
-                    ],
-                  ),
-                ],
-              ],
-            ),
-          ),
-          onExit: (_) => tooltipManager.hideTooltip(),
-          child: Row(
-            children: [
-              SkewedBox(
-                padding: const .symmetric(vertical: 4, horizontal: 6),
-                child: ModIcon(mod: mod, selected: selected),
-              ),
-              Expanded(
-                child: SkewedBox(
-                  margin: const .only(right: 4),
-                  padding: const .symmetric(vertical: 4, horizontal: 12),
-                  decoration: BoxDecoration(
-                    borderRadius: .circular(4),
-                    color: Color.lerp(const Color(0xff455446), mod.color, t),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: .stretch,
-                    children: [
-                      Text(
-                        mod.name,
-                        style: TextStyle(
-                          fontSize: 8,
-                          fontWeight: .w700,
-                          color: Color.lerp(Colors.white, Colors.black, t),
-                        ),
-                      ),
-                      Text(
-                        mod.description,
-                        maxLines: 1,
-                        overflow: .ellipsis,
-                        style: TextStyle(
-                          fontSize: 6,
-                          color: Color.lerp(Colors.white, Colors.black, t),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class ModIcon extends StatelessWidget {
-  const ModIcon({
-    super.key,
-    required this.mod,
-    required this.selected,
-    this.size = 20,
-  }) : isDisplay = false;
-
-  const ModIcon.display({super.key, required this.mod, this.size = 12})
-    : selected = true,
-      isDisplay = true;
-
-  final ConfigurableMod mod;
-  final bool selected;
-  final double size;
-
-  final bool isDisplay;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: size,
-      child: Align(
-        widthFactor: isDisplay ? .45 : 1,
-        child: Transform.rotate(
-          angle: 1 / 2,
-          child: TweenAnimationBuilder(
-            tween: Tween(end: selected ? 1.0 : 0.0),
-            duration: Durations.short1,
-            curve: Curves.easeIn,
-            builder: (_, t, _) => Container(
-              decoration: ShapeDecoration(
-                color: Color.lerp(const Color(0xff455446), mod.color, t),
-                shape: const StarBorder.polygon(pointRounding: .25, sides: 6),
-              ),
-              child: Transform.rotate(
-                angle: -1 / 2,
-                child: SizedBox.square(
-                  dimension: size,
-                  child: Image.asset(
-                    mod.assetPath,
-                    width: size,
-                    height: size,
-                    color: Color.lerp(Colors.white, Colors.black, t),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }

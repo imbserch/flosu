@@ -1,5 +1,9 @@
+import 'dart:math';
 import 'dart:ui';
 
+import 'package:collection/collection.dart';
+import 'package:flosu/core/math/geometry.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide PointerEvent, Image;
 import 'package:flosu/models/inputs/inputs.dart';
 
@@ -135,13 +139,17 @@ class MousePainter extends CustomPainter {
     this.color = Colors.pink,
   }) : super(repaint: events);
 
+  static final Paint _line = Paint()
+    ..strokeCap = .butt
+    ..strokeJoin = .round;
+
   /// Accent color for the cursor. Currently unused but kept for future use.
   final Color color;
 
   /// Notifier containing the recent [PointerEvent] history.
   ///
   /// The painter re-renders whenever this notifier fires.
-  final ValueNotifier<List<PointerEvent>> events;
+  final ValueListenable<List<PointerEvent>> events;
 
   /// When true, a fading white line is drawn connecting recent cursor positions.
   final bool showTrail;
@@ -156,10 +164,6 @@ class MousePainter extends CustomPainter {
     if (path.isEmpty) return;
 
     final last = path.last.position;
-
-    final line = Paint()
-      ..strokeCap = .butt
-      ..strokeJoin = .round;
 
     // Trail: iterate backwards through events, fading older segments out.
     if (path.length > 1 && showTrail) {
@@ -176,7 +180,7 @@ class MousePainter extends CustomPainter {
         c.drawLine(
           path[i].position,
           path[i - 1].position,
-          line
+          _line
             ..strokeWidth = 2 * progress
             ..color = Colors.white.withAlpha((255 * progress).round()),
         );
@@ -214,26 +218,36 @@ class MousePainter extends CustomPainter {
   bool shouldRepaint(covariant MousePainter old) => true;
 }
 
-/// Renders a replay cursor and its trail, driven by a [ReplayFrameEvent] list
-/// and the current audio [position] (in ms) instead of wall-clock time.
+/// Renders a replay cursor and its trail, driven by both frameTimes and frame positions
 ///
-/// Unlike [MousePainter], trail segment opacity is based on the time delta
-/// between each [ReplayFrameEvent.time] and the current [position] value, so
-/// that the trail matches the replay's original timing rather than real time.
+/// The trail is rendered using the audio position instead of the wall-clock time
+/// to match the replay's original timing rather than real time.
+///
+/// This implementation is different from [MousePainter]
+/// because the trail is not rendered in real-time
+/// but using the audio position instead.
 class ReplayMousePainter extends CustomPainter {
   ReplayMousePainter({
-    required this.events,
+    required this.framePos,
+    required this.frameTimes,
     required this.position,
     required this.showTrail,
     required this.cursorImage,
     this.color = Colors.pink,
-  }) : super(repaint: Listenable.merge([events, position]));
+  }) : super(repaint: position);
+
+  static final Paint _line = Paint()
+    ..strokeCap = .butt
+    ..strokeJoin = .round;
 
   /// Accent color (currently unused).
   final Color color;
 
-  /// Replay frame event history, filtered to recent entries.
-  final ValueNotifier<List<ReplayFrameEvent>> events;
+  /// Replay frame positions.
+  final List<Offset> framePos;
+
+  /// Replay frame times. Useful for finding current frame index
+  final List<int> frameTimes;
 
   /// Current audio position in milliseconds.
   final ValueNotifier<int> position;
@@ -244,33 +258,70 @@ class ReplayMousePainter extends CustomPainter {
   /// Pre-loaded cursor sprite. If null, only the trail is drawn.
   final Image? cursorImage;
 
+  int _indexAt(int position) {
+    final index = frameTimes.lowerBound(position, (a, b) => a.compareTo(b));
+    return index;
+  }
+
   @override
   void paint(Canvas c, Size s) {
-    final path = events.value;
+    final maxIndex = framePos.length - 1;
 
-    if (path.isEmpty) return;
+    final index = _indexAt(position.value);
 
-    final last = path.last.position;
+    final prevIndex = (index - 1).clamp(0, maxIndex);
+    final currentIndex = index.clamp(0, maxIndex);
 
-    final line = Paint()
-      ..strokeCap = .butt
-      ..strokeJoin = .round;
+    final lastVisibleIndex = min(_indexAt(position.value - 200), maxIndex);
 
-    if (path.length > 1 && showTrail) {
-      final now = position.value;
+    // Last or interpolated frame
+    Offset cursorPos = framePos[prevIndex];
 
-      for (int i = path.length - 1; i > 0; i--) {
-        final difference = now - path[i].time;
-        final progress = 1 - (difference.clamp(0.0, 200.0) / 200);
+    // Interpolate if between frames
+    if (prevIndex < currentIndex) {
+      final tStart = frameTimes[prevIndex];
+      final tEnd = frameTimes[currentIndex];
+      final duration = tEnd - tStart;
+      if (duration > 0) {
+        final t = (position.value - tStart) / duration;
+        cursorPos = LineUtils.getPoint(
+          framePos[prevIndex],
+          framePos[currentIndex],
+          t.clamp(0.0, 1.0),
+        );
+      }
+    }
 
-        if (progress <= 0.05) break;
+    if (showTrail) {
+      // Prevent using lists (allocation minimized)
+      for (int i = lastVisibleIndex; i < prevIndex; i++) {
+        final current = framePos[i];
+        final next = framePos[i + 1];
+
+        final delta = position.value - frameTimes[i + 1];
+        final progress = 1 - (delta.clamp(0.0, 200.0) / 200.0);
+
+        if (progress < 0.005) continue;
 
         c.drawLine(
-          path[i].position,
-          path[i - 1].position,
-          line
-            ..strokeWidth = 2 * progress
-            ..color = Colors.white.withAlpha((255 * progress).round()),
+          current,
+          next,
+          _line
+            ..color = Colors.white.withAlpha((255 * progress).round())
+            ..strokeWidth = 1.5 * progress,
+        );
+      }
+      // Connect last frame with interpolated frame
+      if (prevIndex < maxIndex && cursorPos != framePos[prevIndex]) {
+        final delta = position.value - frameTimes[prevIndex];
+        final progress = 1 - (delta.clamp(0.0, 200.0) / 200.0);
+
+        c.drawLine(
+          framePos[prevIndex],
+          cursorPos,
+          _line
+            ..color = Colors.white.withAlpha((255 * progress).round())
+            ..strokeWidth = 1.5 * progress,
         );
       }
     }
@@ -286,8 +337,8 @@ class ReplayMousePainter extends CustomPainter {
             scale: scale,
             anchorX: 32,
             anchorY: 32,
-            translateX: last.dx,
-            translateY: last.dy,
+            translateX: cursorPos.dx,
+            translateY: cursorPos.dy,
           ),
         ],
         [const Rect.fromLTWH(0, 0, 64, 64)],

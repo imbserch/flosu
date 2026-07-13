@@ -1,5 +1,8 @@
-import 'package:flosu/core/extensions/format.dart';
-import 'package:flutter/material.dart';
+import 'package:flosu/logic/providers/input.dart';
+import 'package:flosu/logic/providers/router.dart';
+import 'package:flosu/models/inputs/inputs.dart';
+import 'package:flutter/material.dart' hide PointerEvent;
+import 'package:flutter/services.dart' hide PointerEvent;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flosu/core/extensions/ui.dart';
@@ -18,6 +21,18 @@ abstract class AnimatablePage extends ConsumerStatefulWidget {
 /// Drives the route animations and wraps the built page in standard visibility helpers.
 abstract class AnimatablePageState<T extends AnimatablePage>
     extends ConsumerState<T> {
+  @override
+  void initState() {
+    ref.read(inputProvider.notifier).addInmediateHandler(onInput);
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    globalRef.read(inputProvider.notifier).removeInmediateHandler(onInput);
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final route = ModalRoute.of(context);
@@ -62,4 +77,5 @@ abstract class AnimatablePageState<T extends AnimatablePage>
   }
 
   Widget buildPage(BuildContext context, double t);
+  bool onInput(Set<LogicalKeyboardKey> keys, PointerEvent? pointer) => false;
 }

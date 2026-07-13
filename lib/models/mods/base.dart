@@ -1,6 +1,6 @@
 import 'package:collection/collection.dart';
 import 'package:flosu/logic/providers/audio.dart';
-import 'package:flosu/models/beatmap/beatmap.dart';
+import 'package:flosu/models/storage/beatmap_metadata.dart';
 import 'package:flutter/material.dart';
 import 'package:flosu/core/enums.dart';
 import 'package:flosu/core/assets.dart';
@@ -140,7 +140,8 @@ sealed class ConfigurableMod {
 
   Set<ConfigurableMod> get incompatibleMods => {};
 
-  BeatmapDifficulty applyTo(BeatmapDifficulty difficulty) => difficulty;
+  BeatmapDifficultyMetadata applyTo(BeatmapDifficultyMetadata difficulty) =>
+      difficulty;
 
   void activate(ProviderContainer ref) {
     // TODO: USE LEGACY LOG FOR NOW

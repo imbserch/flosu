@@ -2,14 +2,12 @@ import 'dart:ui';
 
 import 'package:flosu/core/assets.dart';
 import 'package:flosu/core/enums.dart';
-
-import 'package:flosu/logic/providers/gameplay_service.dart';
+import 'package:flosu/logic/providers/gameplay_data.dart';
 import 'package:flosu/logic/providers/audio.dart';
 import 'package:flosu/logic/providers/router.dart';
 import 'package:flosu/logic/providers/storage.dart';
 import 'package:flosu/logic/services/game_loop.dart';
 import 'package:flosu/logic/services/logger.dart';
-import 'package:flosu/models/inputs/inputs.dart';
 import 'package:flosu/ui/painters/gameplay.dart';
 import 'package:flutter/material.dart' hide PointerEvent, Image;
 import 'package:flutter/services.dart' hide PointerEvent;
@@ -24,18 +22,17 @@ class ReplayMouseCursor extends ConsumerStatefulWidget {
 
 class _ReplayMouseCursorState extends ConsumerState<ReplayMouseCursor> {
   final ScopedLogger _logger = Logger.requestLogger("ReplayMouseCursor");
-  final _cursorEvents = ValueNotifier<List<ReplayFrameEvent>>([]);
-  final _positionEvents = ValueNotifier<int>(0);
+  final _position = ValueNotifier<int>(0);
 
-  late final _frames = ref.watch(
-    gameplayService.select((it) => it.replay?.frames ?? []),
-  );
+  late final List<Offset> _framePos;
+  late final List<int> _frameTimes;
 
   Image? _mouseImage;
 
   @override
   void initState() {
     _instantiateCursorImage();
+    _getReplayFrames();
 
     ref.read(gameLoopService).subscribe(TickerPhase.visual, _onTick);
     super.initState();
@@ -62,31 +59,18 @@ class _ReplayMouseCursorState extends ConsumerState<ReplayMouseCursor> {
     }
   }
 
-  void _onTick(_) {
-    //Process mouse events and update the cursor position
-    //Using 200ms as pointer events buffer for show cursor trails
+  void _getReplayFrames() {
+    final frames = ref.read(gameplayDataProvider).replay?.frames ?? [];
 
+    _frameTimes = frames.map((it) => it.time).toList();
+    _framePos = frames.map((it) => it.pos).toList();
+  }
+
+  void _onTick(_) {
     final position = ref.read(audioProvider.notifier).positionInMs;
 
-    if (position == _positionEvents.value) return;
-
-    _positionEvents.value = position;
-
-    final eventsInRange = List.of(
-      _frames.where(
-        (frame) => frame.time >= position - 200 && frame.time <= position,
-      ),
-    );
-
-    final converted = eventsInRange
-        .map((e) => ReplayFrameEvent(e.time, e.pos))
-        .toList();
-
-    if (converted.isEmpty) return;
-
-    if (converted.last.position != _cursorEvents.value.lastOrNull?.position) {
-      _cursorEvents.value = converted;
-    }
+    if (_position.value == position) return;
+    _position.value = position;
   }
 
   @override
@@ -97,8 +81,9 @@ class _ReplayMouseCursorState extends ConsumerState<ReplayMouseCursor> {
 
     return CustomPaint(
       painter: ReplayMousePainter(
-        events: _cursorEvents,
-        position: _positionEvents,
+        framePos: _framePos,
+        frameTimes: _frameTimes,
+        position: _position,
         showTrail: showTrail,
         cursorImage: _mouseImage,
       ),

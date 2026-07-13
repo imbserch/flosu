@@ -1,9 +1,12 @@
 import 'dart:async';
 
+import 'package:flosu/core/assets.dart';
+import 'package:flosu/logic/providers/gameplay_data.dart';
+import 'package:flosu/logic/services/file_parser.dart';
+import 'package:flosu/logic/services/sample.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flosu/logic/providers/gameplay_service.dart';
 import 'package:flosu/logic/providers/audio.dart';
 import 'package:flosu/ui/widgets/common/osu_cube_loader.dart';
 import 'package:flosu/ui/widgets/common/osu_logo.dart';
@@ -27,6 +30,7 @@ class GameplayLoaderPage extends ConsumerStatefulWidget {
 
 class _GameplayLoaderPageState extends ConsumerState<GameplayLoaderPage> {
   bool _showInfo = false;
+  bool _isLoaded = false, _isValid = false;
 
   @override
   initState() {
@@ -36,28 +40,50 @@ class _GameplayLoaderPageState extends ConsumerState<GameplayLoaderPage> {
 
   /// Runs the full asset-loading sequence and navigates to `/gameplay`.
   void _load() async {
+    ref.listenManual(gameplayDataProvider, (_, details) {
+      _isValid = details.validForGameplay;
+      _startGameplay();
+    }, fireImmediately: true);
+
+    const songselectConfirm = AppSamples.songselectConfirmSelection;
+
+    final beatmap = ref.read(audioProvider)!;
+    final samples = ref.read(sampleService);
     final audio = ref.read(audioProvider.notifier);
+    final details = ref.read(gameplayDataProvider);
 
-    // Short pause so the page enter animation completes before I/O begins.
-    await Future.delayed(Durations.long2);
+    // Ensure feedback at loading screen
+    samples.play(songselectConfirm);
 
+    if (!details.validForGameplay) {
+      ref
+          .read(fileParserService)
+          .parseFile(beatmap.filePath, data: details.metadata);
+    }
+
+    await audio.load(beatmap);
+
+    // Pause before animation
+    await Future.delayed(Durations.medium1);
     if (mounted) setState(() => _showInfo = true);
 
-    final beatmap = ref.read(gameplayService).beatmap!;
+    _isLoaded = true;
+    _startGameplay();
+  }
 
-    // Pre-load all background samples defined in the beatmap's event list.
-    // TODO: Load samples in memory
+  void _startGameplay() async {
+    if (!_isValid || !_isLoaded) return;
 
-    // Load and start the beatmap's audio track.
-    await audio.load(beatmap);
+    final audio = ref.read(audioProvider.notifier);
+    final beatmap = ref.read(audioProvider)!;
+
     await audio.play(beatmap);
-
     if (mounted) context.go("/gameplay");
   }
 
   @override
   Widget build(BuildContext context) {
-    final details = ref.read(gameplayService);
+    final details = ref.read(gameplayDataProvider);
 
     return Column(
       mainAxisAlignment: .center,
@@ -77,7 +103,7 @@ class _GameplayLoaderPageState extends ConsumerState<GameplayLoaderPage> {
             children: [
               const SizedBox(height: 12),
               Text(
-                details.beatmap!.info.title,
+                details.metadata?.info.title ?? "Loading beatmap...",
                 maxLines: 1,
                 overflow: .ellipsis,
                 style: const TextStyle(
@@ -87,7 +113,7 @@ class _GameplayLoaderPageState extends ConsumerState<GameplayLoaderPage> {
                 ),
               ),
               Text(
-                details.beatmap!.info.artist,
+                details.metadata?.info.artist ?? "",
                 maxLines: 1,
                 overflow: .ellipsis,
                 style: const TextStyle(fontSize: 12, height: 1),

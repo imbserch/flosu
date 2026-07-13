@@ -58,7 +58,15 @@ class DifficultyAdjust extends ConfigurableMod {
   Set<ConfigurableMod> get incompatibleMods => {Easy(), HardRock()};
 
   @override
-  BeatmapDifficulty applyTo(BeatmapDifficulty difficulty) {
-    return difficulty.copyWith(CS: CS, AR: AR, OD: OD, HP: HP);
+  BeatmapDifficultyMetadata applyTo(BeatmapDifficultyMetadata difficulty) {
+    final newDifficulty = BeatmapDifficultyMetadata()
+      ..ar = difficulty.ar
+      ..cs = difficulty.cs
+      ..od = difficulty.od
+      ..hp = difficulty.hp
+      ..sliderMultiplier = difficulty.sliderMultiplier
+      ..sliderTickRate = difficulty.sliderTickRate;
+
+    return newDifficulty;
   }
 }

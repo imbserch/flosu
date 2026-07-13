@@ -1,9 +1,18 @@
-import 'package:collection/collection.dart';
+import 'dart:core';
+import 'dart:math';
+import 'dart:ui';
 
-import 'package:flutter/material.dart';
+import 'package:collection/collection.dart';
+import 'package:flosu/core/math/circular_arc.dart';
+import 'package:flosu/core/math/path_approximator.dart';
+
 import 'package:flosu/core/enums.dart';
 import 'package:flosu/core/math/geometry.dart';
-import 'package:flosu/models/beatmap/beatmap.dart';
+import 'package:flosu/models/beatmap/timing_points.dart';
+import 'package:flosu/models/storage/beatmap_metadata.dart';
+
+// ignore: constant_identifier_names
+const Offset STACK_OFFSET = Offset(4.0, 4.0);
 
 /// Base class for all playable hit objects in an osu! standard beatmap.
 ///
@@ -95,7 +104,7 @@ sealed class HitObject {
         duration: duration,
         slides: repeats,
         ticksPerSlide: ticksPerSlide,
-        props: SliderProps(
+        props: /* <SliderProps> */ (
           curveType: SliderCurve.parse(sliderData[0]),
           points: [pos, ..._parseControlPoints(sliderData.sublist(1))],
           length: length,
@@ -133,8 +142,8 @@ sealed class HitObject {
   }
 
   /// Returns `true` when this object should be rendered at the given
-  /// audio [position] (in ms) and beatmap [diff]iculty settings.
-  bool canShow(int position, BeatmapDifficulty diff);
+  /// audio [position] (in ms) and beatmap [metadata] settings.
+  bool canShow(int position, BeatmapMetadata metadata);
 }
 
 // =============================================================================
@@ -163,9 +172,9 @@ class HitCircle extends HitObject {
       );
 
   @override
-  bool canShow(int position, BeatmapDifficulty difficulty) =>
-      (hitTime - position) < difficulty.preempt &&
-      (position - hitTime) < difficulty.hit50;
+  bool canShow(int position, BeatmapMetadata metadata) =>
+      (hitTime - position) < metadata.preempt &&
+      (position - hitTime) < metadata.hit50;
 
   @override
   String toString() =>
@@ -193,7 +202,9 @@ class Slider extends HitObject {
     required this.slides,
     required this.ticksPerSlide,
     required this.props,
-  });
+  }) {
+    _precompute();
+  }
 
   /// Total duration of all slider repeats combined, in milliseconds.
   final double duration;
@@ -208,122 +219,173 @@ class Slider extends HitObject {
   final SliderProps props;
 
   /// Returns the computed path points for this slider.
+  List<Offset> get points => _cachedPoints;
+
+  /// Returns the relative accumulated lengths of the path segments.
   ///
-  /// On first access the points are computed and cached in [_cachedPoints].
-  /// Subsequent calls return the cached list.
-  List<Offset> get points =>
-      _cachedPoints.isEmpty ? _getSliderPoints() : _cachedPoints;
+  /// Relative to the slider length (1.0 at the end).
+  List<double> get relativeAccLengths => _cachedRelativeAccLengths;
 
-  final List<Offset> _cachedPoints = [];
+  /// The end time of the slider.
+  double get endTime => hitTime + duration;
 
-  /// Computes and caches the world-space points that define the slider path.
-  ///
-  /// The algorithm varies by [SliderCurve] type:
-  /// - **Catmull**: uses Flutter's [CatmullRomSpline].
-  /// - **Other types**: splits control points into segments at duplicate
-  ///   points, then processes each segment as a bezier, arc, or line.
-  List<Offset> _getSliderPoints() {
-    List<Offset> points = [];
+  /// The duration of one slide.
+  double get slideDuration => duration / slides;
 
-    final stackOffset = Offset(4.0 * stackIdx, 4.0 * stackIdx);
+  /// Stores the computed path points for this slider.
+  List<Offset> _cachedPoints = [];
 
-    final resPoints = props.points.map((off) => off + stackOffset).toList();
+  /// Stores the relative accumulated lengths of the path segments.
+  List<double> _cachedRelativeAccLengths = [];
 
-    // Catmull curves are processed as a single continuous spline.
-    if (props.curveType == .catmull) {
-      final spline = CatmullRomSpline.precompute(resPoints, tension: 0.25);
+  List<Offset> _processPath() {
+    final path = <Offset>[];
 
-      // Tolerance: minimum distance between consecutive sampled points.
-      final samples = spline.generateSamples(tolerance: 4);
-      return samples.map((s) => s.value).toList();
+    final stackedPath = List<Offset>.from(
+      props.points.map((p) => p + (STACK_OFFSET * stackIdx.toDouble())),
+    );
+
+    final subPaths = CurveUtils.toSegments(stackedPath);
+
+    for (final subPath in subPaths) {
+      final res = _processSubPath(subPath, props.curveType);
+
+      // Skip the first point of the subpath if it is the same as the last point of the path to avoid duplicates.
+      if (path.isNotEmpty && path.last == res.first) res.removeAt(0);
+
+      path.addAll(res);
     }
 
-    // All other curve types are split into segments at duplicated anchor points.
-    final segments = CurveUtils.toSegments(resPoints);
-
-    final List<Offset> curvePoints = [];
-
-    for (final spline in segments) {
-      List<Offset> splinePoints = _processSpline(
-        spline,
-        props.curveType,
-        curvePoints.lastOrNull,
-      );
-
-      if (splinePoints.isEmpty) continue;
-
-      // Remove the first point if it duplicates the last of the previous segment.
-      if (curvePoints.isNotEmpty && splinePoints.isNotEmpty) {
-        splinePoints.removeAt(0);
-      }
-
-      curvePoints.addAll(splinePoints);
-    }
-
-    final filtered = CurveUtils.removeNaN(curvePoints);
-    points.addAll(filtered);
-
-    _cachedPoints.addAll(points);
-    return _cachedPoints;
+    return path;
   }
 
-  /// Processes a single segment of control points into a series of world-space
-  /// positions, selecting the appropriate curve algorithm.
+  List<Offset> _processSubPath(List<Offset> subPath, SliderCurve curveType) {
+    switch (curveType) {
+      // Return points as is
+      case SliderCurve.lineal:
+        return PathApproximator.linearToPiecewiseLinear(subPath);
+
+      // Use circular arc to approximate the curve
+      case SliderCurve.perfect:
+        if (subPath.length != 3) break;
+
+        final arcProps = CircularArcProperties.fromControlPoints(subPath);
+        if (!arcProps.isValid) break;
+
+        // taken from https://github.com/ppy/osu-framework/blob/1201e641699a1d50d2f6f9295192dad6263d5820/osu.Framework/Utils/PathApproximator.cs#L181-L186
+        final subPoints = (2 * arcProps.radius <= 0.1)
+            ? 2
+            : max(
+                2,
+                arcProps.thetaRange /
+                    (2.0 * acos(1 - (0.1 / arcProps.radius))).ceil(),
+              );
+
+        if (subPoints >= 1000) break;
+
+        final res = PathApproximator.circularArcToPiecewiseLinear(subPath);
+        if (res.isEmpty) break;
+
+        return res;
+      // Use simplification of catmull curve
+      case SliderCurve.catmull:
+        final path = PathApproximator.catmullToPiecewiseLinear(subPath);
+        List<Offset> optimizedPath = [];
+
+        // Optimize path like osu!stable (ignoring optimizePath used in original sliderPath implementation)
+
+        Offset? lastStart;
+
+        for (int i = 0; i < path.length; i++) {
+          if (lastStart == null) {
+            optimizedPath.add(path[i]);
+            lastStart = path[i];
+            continue;
+          }
+
+          final distFromStart = (path[i] - lastStart).distance;
+
+          if (distFromStart > 6 ||
+              (i + 1) % PathApproximator.CATMULL_SEGMENT_LENGTH == 0 ||
+              i == path.length - 1) {
+            optimizedPath.add(path[i]);
+            lastStart = null;
+          }
+        }
+
+        return optimizedPath;
+      // Use default B-Spline to approximate the curve
+      default:
+        break;
+    }
+
+    return PathApproximator.bSplineToPiecewiseLinear(subPath, subPath.length);
+  }
+
+  Offset pointAt(double t) {
+    final clamped = t.clamp(0.0, 1.0);
+    final index = indexAt(t);
+
+    if (index == 0) return _cachedPoints.first;
+
+    final double prevLength = _cachedRelativeAccLengths[index - 1];
+    final double nextLength = _cachedRelativeAccLengths[index];
+    final double segmentLength = nextLength - prevLength;
+
+    final double tSegment = segmentLength == 0
+        ? 0.0
+        : (clamped - prevLength) / segmentLength;
+
+    return LineUtils.getPoint(
+      _cachedPoints[index - 1],
+      _cachedPoints[index],
+      tSegment,
+    );
+  }
+
+  int indexAt(double t) {
+    final clamped = t.clamp(0.0, 1.0);
+
+    if (clamped == 0.0) return 0;
+    if (clamped >= 1.0) return _cachedPoints.length - 1;
+
+    return _cachedRelativeAccLengths.lowerBound(
+      clamped,
+      (a, b) => a.compareTo(b),
+    );
+  }
+
+  /// Precomputes and caches the path points and relative accumulated lengths.
   ///
-  /// Fallbacks are applied for very long bezier segments to maintain performance:
-  /// - > 80 points: returns the raw control points.
-  /// - > 20 points: uses a [Polyline] approximation.
-  /// - ≤ 20 points: computes the full Bézier curve.
-  List<Offset> _processSpline(
-    List<Offset> spline,
-    SliderCurve curveType,
-    Offset? lastPoint,
-  ) {
-    final len = spline.length;
-
-    if (len == 0) return [];
-
-    // A single point is either a standalone control point or part of a line.
-    if (len == 1) {
-      if (lastPoint == null) return [spline.first];
-      return Line.getSpline([lastPoint, spline.first]);
+  /// This method should be called before using the slider's path points.
+  void _precompute() {
+    if (_cachedPoints.isNotEmpty && _cachedRelativeAccLengths.isNotEmpty) {
+      return;
     }
 
-    // Two points always define a straight line.
-    if (len == 2) {
-      return Line.getSpline(spline);
+    _cachedPoints = _processPath();
+
+    List<double> accumulatedLengths = [0];
+
+    for (int i = 1; i < _cachedPoints.length; i++) {
+      accumulatedLengths.add(
+        accumulatedLengths.last +
+            (_cachedPoints[i] - _cachedPoints[i - 1]).distance,
+      );
     }
 
-    // Three points with a "perfect" curve type define a circular arc.
-    if (len == 3 && curveType == .perfect) {
-      final arcLength = Arc.getLength(spline);
-
-      if (arcLength == null) {
-        // Points are collinear — fall back to a straight line.
-        return Line.getSpline(spline);
-      }
-
-      return Arc.getSpline(spline);
-    }
-
-    // Very complex bezier segments are approximated for performance.
-    if (spline.length > 80) {
-      return spline;
-    }
-
-    if (spline.length > 20) {
-      return Polyline.getSpline(spline);
-    }
-
-    return Bezier.getSpline(spline);
+    final totalLength = accumulatedLengths.last;
+    _cachedRelativeAccLengths = accumulatedLengths
+        .map((l) => l / totalLength)
+        .toList();
   }
 
   @override
-  bool canShow(int position, BeatmapDifficulty difficulty) {
+  bool canShow(int position, BeatmapMetadata metadata) {
     final remain = hitTime - position;
     final endSliderAt = hitTime + duration;
 
-    return (remain <= difficulty.preempt && endSliderAt >= position);
+    return (remain <= metadata.preempt && endSliderAt >= position);
   }
 
   @override
@@ -353,12 +415,12 @@ class Spinner extends HitObject {
   final int duration;
 
   @override
-  bool canShow(int position, BeatmapDifficulty difficulty) {
+  bool canShow(int position, BeatmapMetadata metadata) {
     final remain = hitTime - position;
     final endSpinAt = hitTime + duration;
 
     // Show during the preempt (fade-in) window and until the spinner ends.
-    return remain <= difficulty.preempt && endSpinAt >= position;
+    return remain <= metadata.preempt && endSpinAt >= position;
   }
 
   @override
@@ -372,25 +434,17 @@ class Spinner extends HitObject {
 
 /// Stores the raw curve definition for a [Slider], as parsed from the `.osu`
 /// file format.
-class SliderProps {
-  SliderProps({
-    required this.curveType,
-    required this.points,
-    required this.length,
-  });
-
+typedef SliderProps = ({
   /// The curve algorithm that should be used to interpolate the slider path.
-  ///
   /// Bezier-typed sliders may still contain linear sub-segments defined by
   /// duplicate anchor points.
-  final SliderCurve curveType;
+  SliderCurve curveType,
 
   /// The raw control points of the slider curve, including the starting point.
-  final List<Offset> points;
+  List<Offset> points,
 
   /// Nominal length of the slider in osu! pixels.
-  ///
   /// Used to calculate tick positions and total duration. Partially overridden
   /// by [SliderPainter] which trims the path to this length.
-  final double length;
-}
+  double length,
+});

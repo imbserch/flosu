@@ -1,13 +1,8 @@
-import 'dart:async';
-import 'dart:math';
 import 'dart:ui';
-
+ 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
-import 'package:flosu/logic/providers/audio.dart';
-import 'package:flosu/models/beatmap/beatmap.dart';
 import 'package:flosu/core/theme/app_colors.dart';
-import 'package:flosu/logic/providers/gameplay_service.dart';
 
 // ignore: constant_identifier_names
 const LOGO_SIZE = 512.0;
@@ -24,8 +19,11 @@ class OsuLogo extends ConsumerStatefulWidget {
 class _OsuLogoState extends ConsumerState<OsuLogo> {
   final _key = GlobalKey();
 
-  int _beats = 0;
-  double _beatLength = 60;
+  final int _beats = 0;
+  final double _beatLength = 60;
+
+  // TODO: REIMPLEMENT
+  /* 
   Timer? _beatTimer;
 
   @override
@@ -82,7 +80,7 @@ class _OsuLogoState extends ConsumerState<OsuLogo> {
       );
     }
   }
-
+ */
   @override
   Widget build(BuildContext context) {
     return Hero(

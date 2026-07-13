@@ -14,8 +14,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 const TIMINGS_SIZE = 100;
 
 class FrameStats extends ConsumerStatefulWidget {
-  const FrameStats({super.key, this.alignment = .centerLeft});
+  const FrameStats({
+    super.key,
+    required this.compact,
+    this.alignment = .bottomRight,
+  });
   final AlignmentGeometry alignment;
+  final bool compact;
 
   @override
   ConsumerState<FrameStats> createState() => _FrameStatsState();
@@ -110,77 +115,105 @@ class _FrameStatsState extends ConsumerState<FrameStats> {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      type: MaterialType.transparency,
-      child: IgnorePointer(
-        child: Align(
-          alignment: Alignment.bottomRight,
-          child: Container(
-            width: 300,
-            height: 150,
-            margin: const .all(4),
-            child: Column(
-              crossAxisAlignment: .stretch,
-              mainAxisSize: .min,
-              spacing: 2,
-              children: [
-                Expanded(
-                  child: FrameVisualizer(
-                    timingsType: "Input",
-                    details: [
-                      TimingDetails(
-                        timingsType: "Inmediate",
-                        timings: _inputImmTimings,
-                        timingIndex: timingIndexes["Input Imm"]!,
-                        timingMaxTime: 1,
-                        color: AppColors.lightBlue,
-                      ),
-                      TimingDetails(
-                        timingsType: "Delayed",
-                        timings: _inputDelTimings,
-                        timingIndex: timingIndexes["Input Del"]!,
-                        timingMaxTime: 3,
-                        color: AppColors.purple,
-                      ),
-                    ],
-                  ),
+    final expandedChild = Container(
+      width: 300,
+      height: 150,
+      margin: const .all(4),
+      child: Column(
+        crossAxisAlignment: .stretch,
+        mainAxisSize: .min,
+        spacing: 2,
+        children: [
+          Expanded(
+            child: FrameVisualizer(
+              timingsType: "Input",
+              details: [
+                TimingDetails(
+                  timingsType: "Inmediate",
+                  timings: _inputImmTimings,
+                  timingIndex: timingIndexes["Input Imm"]!,
+                  timingMaxTime: 1,
+                  color: AppColors.lightBlue,
                 ),
-                Expanded(
-                  child: FrameVisualizer(
-                    timingsType: "Audio",
-                    details: [
-                      TimingDetails(
-                        timingsType: "Delay",
-                        timings: _audioDelayTimings,
-                        timingIndex: timingIndexes["Audio"]!,
-                        timingMaxTime: 16,
-                        color: AppColors.pink,
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: FrameVisualizer(
-                    timingsType: "Draw",
-                    details: [
-                      TimingDetails(
-                        timingsType: "Raster",
-                        timings: _rasterTimings,
-                        timingIndex: timingIndexes["Raster"]!,
-                        color: AppColors.yellow,
-                      ),
-                      TimingDetails(
-                        timingsType: "Build",
-                        timings: _buildTimings,
-                        timingIndex: timingIndexes["Build"]!,
-                        color: AppColors.green,
-                      ),
-                    ],
-                  ),
+                TimingDetails(
+                  timingsType: "Delayed",
+                  timings: _inputDelTimings,
+                  timingIndex: timingIndexes["Input Del"]!,
+                  timingMaxTime: 3,
+                  color: AppColors.purple,
                 ),
               ],
             ),
           ),
+          Expanded(
+            child: FrameVisualizer(
+              timingsType: "Audio",
+              details: [
+                TimingDetails(
+                  timingsType: "Delay",
+                  timings: _audioDelayTimings,
+                  timingIndex: timingIndexes["Audio"]!,
+                  timingMaxTime: 16,
+                  color: AppColors.pink,
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: FrameVisualizer(
+              timingsType: "Draw",
+              details: [
+                TimingDetails(
+                  timingsType: "Raster",
+                  timings: _rasterTimings,
+                  timingIndex: timingIndexes["Raster"]!,
+                  color: AppColors.yellow,
+                ),
+                TimingDetails(
+                  timingsType: "Build",
+                  timings: _buildTimings,
+                  timingIndex: timingIndexes["Build"]!,
+                  color: AppColors.green,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+    final rasterTime =
+        _rasterTimings[(timingIndexes['Raster']! - 1) % TIMINGS_SIZE];
+    final buildTime =
+        _buildTimings[(timingIndexes['Build']! - 1) % TIMINGS_SIZE];
+
+    final frameTime = rasterTime + buildTime;
+
+    final compactChild = Container(
+      width: 48,
+      decoration: BoxDecoration(
+        color: AppColors.containerLow.withAlpha(128),
+        borderRadius: .circular(4),
+      ),
+      margin: const .all(4),
+      padding: const .all(4),
+      child: TweenAnimationBuilder(
+        duration: Durations.long2,
+        curve: Curves.fastOutSlowIn,
+        tween: Tween(end: 1000 / max(1, frameTime)),
+        builder: (_, t, _) => Text(
+          "${t.round()} fps",
+          style: const TextStyle(fontSize: 8, height: 1),
+        ),
+      ),
+    );
+
+    return Material(
+      type: MaterialType.transparency,
+      child: IgnorePointer(
+        child: Align(
+          alignment: widget.alignment,
+          child: widget.compact ? compactChild : expandedChild,
         ),
       ),
     );

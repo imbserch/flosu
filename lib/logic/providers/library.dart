@@ -5,11 +5,12 @@ import 'dart:math';
 import 'package:collection/collection.dart';
 import 'package:flosu/logic/providers/router.dart';
 import 'package:flosu/logic/providers/storage.dart';
+import 'package:flosu/logic/services/database.dart';
 import 'package:flosu/logic/services/file_parser.dart';
 import 'package:flosu/logic/services/logger.dart';
-import 'package:flosu/models/beatmap/beatmap.dart';
-import 'package:flosu/models/beatmap/beatmap_set.dart';
+import 'package:flosu/models/storage/beatmap_metadata.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:isar_community/isar.dart';
 
 /// Riverpod notifier that maintains the in-memory beatmap library.
 ///
@@ -21,14 +22,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Parsing is performed asynchronously — the state grows incrementally as
 /// files are parsed, so the UI can display results immediately without waiting
 /// for the entire library to load.
-class LibraryProvider extends Notifier<List<BeatmapSet>> {
+class LibraryProvider extends Notifier<List<BeatmapMetadata>> {
   @override
-  List<BeatmapSet> build() {
+  List<BeatmapMetadata> build() {
     Future.microtask(() async {
       // Subscribe to the file parser's result stream.
       final StreamSubscription<ParseResult> parserSubs = _parserService
           .resultStream
-          .where((r) => r is ParseResult<Beatmap>)
+          .where((r) => r is ParseResult<BeatmapMetadata>)
           .listen(_handleParserResult);
 
       // Trigger a reload whenever the beatmaps directory path changes.
@@ -49,6 +50,7 @@ class LibraryProvider extends Notifier<List<BeatmapSet>> {
 
   final ScopedLogger _logger = Logger.requestLogger("LibraryProvider");
   late final FileParserService _parserService = ref.read(fileParserService);
+  late final Isar _db = ref.read(databaseService.select((it) => it.db));
 
   /// Reacts to a change in the configured beatmaps directory path.
   ///
@@ -56,27 +58,27 @@ class LibraryProvider extends Notifier<List<BeatmapSet>> {
   /// directory for parsing. If [path] is null or the directory does not exist,
   /// the library is cleared and no parsing is started.
   void _listenStoragePathChanges(String? old, String? path) async {
-    if (path == null || path.isEmpty) {
-      state = [];
-      return;
-    }
+    if (path == null || path.isEmpty) return _clearBeatmapsDB();
 
     final dir = Directory(path);
-    if (!dir.existsSync()) {
-      state = [];
-      return;
-    }
+    if (!dir.existsSync()) return _clearBeatmapsDB();
 
-    // TODO: Add a DirectoryWatcher so new/removed files are detected at runtime.
+    final storedBeatmaps = await _db.beatmapMetadatas.where().findAll();
+    _addAndSort(storedBeatmaps);
 
     // Collect all .osu files recursively.
-    final matchingFilePaths = dir
+    final matchingPaths = dir
         .listSync(recursive: true, followLinks: false)
         .whereType<File>()
         .where((file) => file.path.endsWith(".osu"))
         .map((file) => file.path);
 
-    matchingFilePaths.forEach(_parserService.parseFile);
+    for (final path in matchingPaths) {
+      final isNewFile = storedBeatmaps.none((it) => it.filePath == path);
+      if (!isNewFile) continue;
+
+      _parserService.parseFile(path, onlyMetadata: true);
+    }
   }
 
   /// Handles a single [ParseResult] emitted by the [FileParserService].
@@ -91,18 +93,18 @@ class LibraryProvider extends Notifier<List<BeatmapSet>> {
     }
 
     final beatmap = result.data;
-    if (beatmap is! Beatmap) return;
+    if (beatmap is! BeatmapMetadata) return;
 
     _logger.debug(
       "Beatmap parsed: ${beatmap.info.title} (${beatmap.info.version})",
     );
 
-    _addBeatmapToState(beatmap);
+    _addBeatmapToDB(beatmap);
   }
 
-  /// Inserts a [Beatmap] into the state, creating or updating a [BeatmapSet].
-  void _addBeatmapToState(Beatmap beatmap) {
-    final beatmapSet = state.firstWhereOrNull(
+  /* /// Inserts a [Beatmap] into the state, creating or updating a [BeatmapSet].
+  void _addMetadataToState(BeatmapMetadata beatmap) {
+    /* final beatmapSet = state.firstWhereOrNull(
       (group) => group.isInBeatmapSet(beatmap),
     );
 
@@ -114,20 +116,54 @@ class LibraryProvider extends Notifier<List<BeatmapSet>> {
       // Add beatmap to list
       beatmapSet.beatmaps.add(beatmap);
       state = [...state];
-    }
+    } */
+  } */
+
+  void _addAndSort(List<BeatmapMetadata> metadatas) {
+    final newState = [...state, ...metadatas];
+
+    newState.sort((a, b) {
+      final compareSetId = (a.general.beatmapSetId ?? -1).compareTo(
+        b.general.beatmapSetId ?? -1,
+      );
+      if (compareSetId != 0) return compareSetId;
+
+      final compareTitle = a.info.title.compareTo(b.info.title);
+      if (compareTitle != 0) return compareTitle;
+
+      final compareArtist = a.info.artist.compareTo(b.info.artist);
+      if (compareArtist != 0) return compareArtist;
+
+      // Compare version
+      return a.info.version.compareTo(b.info.version);
+    });
+
+    state = newState;
+  }
+
+  void _addBeatmapToDB(BeatmapMetadata metadata) {
+    _db.writeTxn(() => _db.beatmapMetadatas.put(metadata));
+    _addAndSort([metadata]);
+  }
+
+  void _clearBeatmapsDB() {
+    _db.writeTxn(() => _db.beatmapMetadatas.where().deleteAll());
+    state = [];
   }
 
   /// Returns a randomly selected [Beatmap] from the entire library.
   ///
   /// Returns `null` if the library is empty.
-  Beatmap? getRandom() {
+  BeatmapMetadata? getRandom() {
     if (state.isEmpty) return null;
+    int selectedIndex = Random().nextInt(state.length);
 
-    int selectedGroup = Random().nextInt(state.length);
+    return state[selectedIndex];
+
+    /*  int selectedGroup = Random().nextInt(state.length);
     final group = state[selectedGroup];
 
-    int selectedBeatmap = Random().nextInt(group.beatmaps.length);
-    return group.beatmaps[selectedBeatmap];
+    return group.beatmaps[selectedBeatmap]; */
   }
 
   void pickReplay() {
@@ -141,6 +177,7 @@ class LibraryProvider extends Notifier<List<BeatmapSet>> {
 }
 
 /// Global provider for [LibraryProvider].
-final libraryProvider = NotifierProvider<LibraryProvider, List<BeatmapSet>>(
-  () => LibraryProvider(),
-);
+final libraryProvider =
+    NotifierProvider<LibraryProvider, List<BeatmapMetadata>>(
+      () => LibraryProvider(),
+    );

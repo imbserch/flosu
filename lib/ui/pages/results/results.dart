@@ -1,9 +1,9 @@
+import 'package:flosu/logic/providers/gameplay_data.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flosu/core/theme/app_colors.dart';
-import 'package:flosu/ui/pages/song_select/mods.dart';
-import 'package:flosu/logic/providers/gameplay_service.dart';
+import 'package:flosu/ui/widgets/song_select/mod_icon.dart';
 import 'package:flosu/logic/providers/router.dart';
 import 'package:flosu/ui/shared/animatable_page.dart';
 import 'package:flosu/ui/widgets/common/skewed_box.dart';
@@ -28,11 +28,6 @@ class _ResultsPageState extends AnimatablePageState<ResultsPage> {
   //This is meant for prevent losing replay data while going to gameplay page
   bool _reuseReplay = false;
 
-  @override
-  initState() {
-    super.initState();
-  }
-
   void _showGrade() {
     if (mounted) setState(() => _enableGrade = true);
   }
@@ -41,7 +36,7 @@ class _ResultsPageState extends AnimatablePageState<ResultsPage> {
   dispose() {
     if (!_reuseReplay) {
       Future.microtask(
-        () => globalRef.read(gameplayService.notifier).clearAll(),
+        () => globalRef.read(gameplayDataProvider.notifier).clearAll(),
       );
     }
 
@@ -50,7 +45,7 @@ class _ResultsPageState extends AnimatablePageState<ResultsPage> {
 
   @override
   Widget buildPage(BuildContext context, double animProgress) {
-    final details = ref.watch(gameplayService);
+    final details = ref.watch(gameplayDataProvider);
     final mods = details.mods;
 
     return Stack(
@@ -153,7 +148,7 @@ class _ResultsPageState extends AnimatablePageState<ResultsPage> {
                           mainAxisSize: .min,
                           children: [
                             Text(
-                              "${details.beatmap?.info.title}",
+                              "${details.metadata?.info.title}",
                               maxLines: 2,
                               overflow: .ellipsis,
                               style: const TextStyle(
@@ -163,7 +158,7 @@ class _ResultsPageState extends AnimatablePageState<ResultsPage> {
                               ),
                             ),
                             Text(
-                              "${details.beatmap?.info.artist}",
+                              "${details.metadata?.info.artist}",
                               maxLines: 1,
                               overflow: .ellipsis,
                               style: const TextStyle(
@@ -180,7 +175,7 @@ class _ResultsPageState extends AnimatablePageState<ResultsPage> {
                     Padding(
                       padding: const .fromLTRB(104, 8, 8, 8),
                       child: Text(
-                        "${details.beatmap?.info.version} mapped by ${details.beatmap?.info.creator}",
+                        "${details.metadata?.info.version} mapped by ${details.metadata?.info.creator}",
                         maxLines: 1,
                         overflow: .ellipsis,
                         style: const TextStyle(fontSize: 8, height: 1),
@@ -532,7 +527,7 @@ class _ResultsPageState extends AnimatablePageState<ResultsPage> {
             SkewedButtonLine(
               color: AppColors.green,
               icon: const Icon(Icons.replay),
-              onTap: details.beatmap != null
+              onTap: details.metadata != null
                   ? () {
                       _reuseReplay = true;
                       context.go("/load");

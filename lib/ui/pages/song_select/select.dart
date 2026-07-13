@@ -1,5 +1,5 @@
 import 'dart:async';
-
+ 
 import 'package:flosu/logic/providers/library.dart';
 import 'package:flosu/ui/widgets/beatmap/beatmap_list.dart';
 import 'package:flutter/foundation.dart';
@@ -7,20 +7,15 @@ import 'package:flutter/material.dart' hide PointerEvent;
 import 'package:flutter/services.dart' hide PointerEvent;
 import 'package:go_router/go_router.dart';
 import 'package:flosu/logic/providers/audio.dart';
-import 'package:flosu/logic/providers/input.dart';
-import 'package:flosu/models/beatmap/beatmap.dart';
 import 'package:flosu/core/theme/app_colors.dart';
 import 'package:flosu/core/extensions/models.dart';
 import 'package:flosu/core/extensions/ui.dart';
-import 'package:flosu/logic/providers/gameplay_service.dart';
 import 'package:flosu/models/inputs/inputs.dart';
-import 'package:flosu/logic/providers/router.dart';
 import 'package:flosu/ui/shared/animatable_page.dart';
 import 'package:flosu/ui/widgets/beatmap/current_beatmap_info.dart';
 import 'package:flosu/ui/widgets/common/skewed_box.dart';
 import 'package:flosu/ui/widgets/common/osu_logo.dart';
 import 'package:flosu/ui/widgets/common/skewed_button_line.dart';
-import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 class SongSelectPage extends AnimatablePage {
   const SongSelectPage({super.key, required super.uri});
@@ -30,276 +25,210 @@ class SongSelectPage extends AnimatablePage {
 }
 
 class _SongSelectPageState extends AnimatablePageState<SongSelectPage> {
-  final _scrollController = ItemScrollController();
-  final _itemListener = ItemPositionsListener.create();
   final _sCon = TextEditingController();
 
   Set<LogicalKeyboardKey> _lastKeys = {};
-  // ignore: unused_field
-  late int _currentIdx = _getCurrentIndex() ?? 0;
   Timer? _updateTimer;
-  // ignore: unused_field
-  List<ItemPosition> _itemPositions = [];
-
-  @override
-  initState() {
-    _itemListener.itemPositions.addListener(_updateItemPositions);
-    ref.read(inputProvider.notifier).addInmediateHandler(_onInput);
-    super.initState();
-  }
-
   @override
   dispose() {
     _lastKeys.clear();
     _updateTimer?.cancel();
-    _itemListener.itemPositions.removeListener(_updateItemPositions);
 
     //Widget is unsafe, calling from root navigator
-    globalRef.read(inputProvider.notifier).removeInmediateHandler(_onInput);
     _sCon.dispose();
     super.dispose();
   }
 
-  void _updateItemPositions() {
-    _itemPositions = _itemListener.itemPositions.value.toList();
-    if (mounted) setState(() {});
-  }
+  @override
+  bool onInput(Set<LogicalKeyboardKey> keys, PointerEvent? pointer) {
+    if (setEquals(_lastKeys, keys)) return false;
 
-  int? _getCurrentIndex() {
-    final beatmap = ref.read(gameplayService).beatmap;
-
-    if (beatmap == null) return null;
-
-    final groupIndex = ref
-        .read(libraryProvider)
-        .indexWhere((group) => group.beatmaps.any((bm) => bm == beatmap));
-
-    return groupIndex != -1 ? groupIndex : 0;
-  }
-
-  void _onInput(Set<LogicalKeyboardKey> keys, PointerEvent? pointer) {
-    if (setEquals(_lastKeys, keys)) return;
+    bool handled = false;
 
     //If F1 pressed and keys changed, open mods
     if (keys.changedAndPressed(LogicalKeyboardKey.f1, _lastKeys)) {
       if (mounted) context.go("/songs/mods");
+      handled = true;
     }
 
     //If F2 pressed and keys changed, play random song
     if (keys.changedAndPressed(LogicalKeyboardKey.f2, _lastKeys)) {
       _playRandom();
+      handled = true;
     }
 
     //If F3 pressed and keys changed, open replay window
     if (keys.changedAndPressed(LogicalKeyboardKey.f3, _lastKeys)) {
       ref.read(libraryProvider.notifier).pickReplay();
+      handled = true;
     }
 
     _lastKeys = keys.toSet();
-  }
-
-  void _setBeatmap(Beatmap beatmap, [bool skipScroll = false]) async {
-    final groupIndex = ref
-        .read(libraryProvider)
-        .indexWhere((group) => group.beatmaps.any((bm) => bm == beatmap));
-
-    if (groupIndex != -1) {
-      if (!skipScroll) _scrollTo(groupIndex);
-      if (mounted) setState(() => _currentIdx = groupIndex);
-    }
-
-    await ref.read(audioProvider.notifier).preview(beatmap);
+    return handled;
   }
 
   void _playRandom() async {
     final bm = ref.read(libraryProvider.notifier).getRandom();
-    if (bm != null) _setBeatmap(bm);
-  }
-
-  Future<void> _scrollTo(int index) async {
-    /* for (int i = 1; i < 5; i++) {
-      Future.delayed(
-        Durations.short1 * i,
-        () => */
-    _scrollController.isAttached
-        ? _scrollController.scrollTo(
-            index: index,
-            alignment: .4,
-            duration: Durations.short2,
-            curve: Curves.easeInOut,
-          )
-        : null /* ,
-      ) */;
-    // }
+    if (bm != null) ref.read(audioProvider.notifier).play(bm);
   }
 
   @override
   Widget buildPage(BuildContext context, double animProgress) {
     return Stack(
-      fit: .expand,
+      alignment: .bottomCenter,
       children: [
-        Stack(
-          alignment: .bottomCenter,
-          children: [
-            CurrentBeatmapInfo(animProgress: animProgress),
+        CurrentBeatmapInfo(animProgress: animProgress),
 
-            Positioned(
-              top: 0,
-              left: context.screenScaled.width / 2,
-              width: context.screenScaled.width / 2,
-              height: context.screenScaled.height - 60,
-              child: Opacity(
-                opacity: animProgress,
-                child: Column(
-                  crossAxisAlignment: .end,
-                  children: [
-                    /*  SkewedBox(
-                      constraints: const BoxConstraints(
-                        minWidth: 280,
-                        maxWidth: 448,
-                      ),
-                      width: context.screenScaled.width / 2,
-                      offset: const Offset(20, 0),
-                      padding: const .all(4),
-                      decoration: BoxDecoration(
-                        borderRadius: const .only(bottomLeft: .circular(8)),
-                        color: Colors.grey.shade900.withAlpha(128),
-                      ),
-                      child: Column(
-                        children: [
-                          SkewedBox(
-                            decoration: BoxDecoration(
-                              borderRadius: .circular(2),
-                              color: Colors.grey.shade800,
-                            ),
-                            margin: const .only(right: 22),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: SkewedBox(
-                                    decoration: BoxDecoration(
-                                      borderRadius: .circular(2),
-                                      color: Colors.grey.shade900,
-                                    ),
-                                    child: TextField(
-                                      controller: _sCon,
-                                      onChanged: (_) {
-                                        if (mounted) setState(() {});
-                                      },
-                                      style: const TextStyle(fontSize: 10),
-
-                                      decoration: InputDecoration(
-                                        isCollapsed: true,
-                                        contentPadding: const .only(top: 6),
-                                        constraints: const BoxConstraints(
-                                          maxHeight: 30,
-                                        ),
-                                        helper: Transform.translate(
-                                          offset: const Offset(0, -2),
-                                          child: const Text(
-                                            "0 matches",
-                                            style: TextStyle(
-                                              fontSize: 6,
-                                              color: Colors.amber,
-                                            ),
+        Positioned(
+          top: 0,
+          left: context.screenScaled.width / 2,
+          width: context.screenScaled.width / 2,
+          height: context.screenScaled.height - 60,
+          child: const Column(
+            crossAxisAlignment: .end,
+            children: [
+              /*  SkewedBox(
+                    constraints: const BoxConstraints(
+                      minWidth: 280,
+                      maxWidth: 448,
+                    ),
+                    width: context.screenScaled.width / 2,
+                    offset: const Offset(20, 0),
+                    padding: const .all(4),
+                    decoration: BoxDecoration(
+                      borderRadius: const .only(bottomLeft: .circular(8)),
+                      color: Colors.grey.shade900.withAlpha(128),
+                    ),
+                    child: Column(
+                      children: [
+                        SkewedBox(
+                          decoration: BoxDecoration(
+                            borderRadius: .circular(2),
+                            color: Colors.grey.shade800,
+                          ),
+                          margin: const .only(right: 22),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: SkewedBox(
+                                  decoration: BoxDecoration(
+                                    borderRadius: .circular(2),
+                                    color: Colors.grey.shade900,
+                                  ),
+                                  child: TextField(
+                                    controller: _sCon,
+                                    onChanged: (_) {
+                                      if (mounted) setState(() {});
+                                    },
+                                    style: const TextStyle(fontSize: 10),
+              
+                                    decoration: InputDecoration(
+                                      isCollapsed: true,
+                                      contentPadding: const .only(top: 6),
+                                      constraints: const BoxConstraints(
+                                        maxHeight: 30,
+                                      ),
+                                      helper: Transform.translate(
+                                        offset: const Offset(0, -2),
+                                        child: const Text(
+                                          "0 matches",
+                                          style: TextStyle(
+                                            fontSize: 6,
+                                            color: Colors.amber,
                                           ),
                                         ),
-                                        hintText: "search...",
-
-                                        hintStyle: const TextStyle(
-                                          fontSize: 10,
-                                        ),
-
-                                        border: const OutlineInputBorder(
-                                          borderSide: .none,
-                                        ),
+                                      ),
+                                      hintText: "search...",
+              
+                                      hintStyle: const TextStyle(
+                                        fontSize: 10,
+                                      ),
+              
+                                      border: const OutlineInputBorder(
+                                        borderSide: .none,
                                       ),
                                     ),
                                   ),
                                 ),
-                                SkewedBox(
-                                  decoration: BoxDecoration(
-                                    borderRadius: .circular(2),
-                                  ),
-                                  onTap: () {},
-                                  padding: const .fromLTRB(6, 8, 6, 8),
-                                  child: const Icon(Icons.search, size: 12),
+                              ),
+                              SkewedBox(
+                                decoration: BoxDecoration(
+                                  borderRadius: .circular(2),
                                 ),
-                              ],
-                            ),
+                                onTap: () {},
+                                padding: const .fromLTRB(6, 8, 6, 8),
+                                child: const Icon(Icons.search, size: 12),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                     */
-                    // Beatmap list
-                    const Expanded(child: BeatmapList()),
-                  ],
-                ),
-              ),
-            ),
+                  ),
+                   */
+              // Beatmap list
+              Expanded(child: BeatmapList()),
+            ],
+          ),
+        ),
 
-            //Actions
-            Container(
-              color: AppColors.background.withAlpha(
-                (255 * animProgress).round(),
+        //Actions
+        Container(
+          color: AppColors.background.withAlpha((255 * animProgress).round()),
+          height: 32,
+        ),
+        Row(
+          spacing: 4,
+          crossAxisAlignment: .end,
+          children: [
+            SkewedBox(
+              heroTag: "Back button",
+              opacity: animProgress,
+              decoration: BoxDecoration(
+                borderRadius: .circular(4),
+                color: AppColors.fucshia,
               ),
-              height: 32,
+              useGradientBorder: true,
+              margin: const .fromLTRB(18, 0, 0, 12),
+              padding: const .symmetric(vertical: 9, horizontal: 33),
+              onTap: () => context.go("/main"),
+              child: const Text("Back", style: TextStyle(fontSize: 8)),
             ),
-            Row(
-              spacing: 4,
-              crossAxisAlignment: .end,
-              children: [
-                SkewedBox(
-                  heroTag: "Back button",
-                  opacity: animProgress,
-                  decoration: BoxDecoration(
-                    borderRadius: .circular(4),
-                    color: AppColors.fucshia,
-                  ),
-                  useGradientBorder: true,
-                  margin: const .fromLTRB(18, 0, 0, 12),
-                  padding: const .symmetric(vertical: 9, horizontal: 33),
-                  onTap: () => context.go("/main"),
-                  child: const Text("Back", style: TextStyle(fontSize: 8)),
-                ),
-                const SizedBox(width: 16),
-                SkewedButtonLine(
-                  offset: Offset(0, 48 * (1 - animProgress)),
-                  color: AppColors.green,
-                  icon: const Icon(Icons.auto_awesome),
-                  onTap: () => context.go("/songs/mods"),
-                  label: const Text("Mods"),
-                ),
-                SkewedButtonLine(
-                  offset: Offset(0, 72 * (1 - animProgress)),
-                  color: AppColors.lightBlue,
-                  icon: const Icon(Icons.shuffle),
-                  onTap: _playRandom,
-                  label: const Text("Random"),
-                ),
-                SkewedButtonLine(
-                  offset: Offset(0, 96 * (1 - animProgress)),
-                  color: AppColors.pink,
-                  icon: const Icon(Icons.file_open_outlined),
-                  onTap: ref.read(libraryProvider.notifier).pickReplay,
-                  label: const Text("Open replay"),
-                ),
-                SkewedButtonLine(
-                  offset: Offset(0, 120 * (1 - animProgress)),
-                  color: AppColors.purple,
-                  icon: const Icon(Icons.settings_outlined),
-                  label: const Text("Options"),
-                ),
-                const Spacer(),
-                Padding(
-                  padding: const .all(12),
-                  child: OsuLogo(
-                    scale: (1 / 5) * animProgress,
-                    onTap: () => context.go("/load"),
-                  ),
-                ),
-              ],
+            const SizedBox(width: 16),
+            SkewedButtonLine(
+              offset: Offset(0, 48 * (1 - animProgress)),
+              color: AppColors.green,
+              icon: const Icon(Icons.auto_awesome),
+              onTap: () => context.go("/songs/mods"),
+              label: const Text("Mods"),
+            ),
+            SkewedButtonLine(
+              offset: Offset(0, 72 * (1 - animProgress)),
+              color: AppColors.lightBlue,
+              icon: const Icon(Icons.shuffle),
+              onTap: _playRandom,
+              label: const Text("Random"),
+            ),
+            SkewedButtonLine(
+              offset: Offset(0, 96 * (1 - animProgress)),
+              color: AppColors.pink,
+              icon: const Icon(Icons.file_open_outlined),
+              onTap: ref.read(libraryProvider.notifier).pickReplay,
+              label: const Text("Open replay"),
+            ),
+            SkewedButtonLine(
+              offset: Offset(0, 120 * (1 - animProgress)),
+              color: AppColors.purple,
+              icon: const Icon(Icons.settings_outlined),
+              label: const Text("Options"),
+            ),
+            const Spacer(),
+            Padding(
+              padding: const .all(12),
+              child: OsuLogo(
+                scale: (1 / 5) * animProgress,
+                onTap: () => context.go("/load"),
+              ),
             ),
           ],
         ),

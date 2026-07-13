@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:ui';
 
 import 'package:flosu/logic/providers/storage.dart';
+import 'package:flosu/logic/services/database.dart';
 import 'package:flosu/logic/services/library.dart';
 import 'package:flosu/logic/services/sample.dart';
 import 'package:flosu/ui/widgets/overlay/tooltip.dart';
@@ -21,17 +22,27 @@ import 'package:flosu/ui/widgets/gameplay/mouse_cursor.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  SchedulerBinding.instance.requestPerformanceMode(DartPerformanceMode.latency);
+  SchedulerBinding.instance.requestPerformanceMode(
+    DartPerformanceMode.throughput,
+  );
 
-  //Set a big image cache size for storing all beatmap images
+  // Set a big image cache size for storing all beatmap images
   imageCache.maximumSize = 64;
   imageCache.maximumSizeBytes = pow(1024, 3).round();
 
-  //Start services that needs initialization
+  // Start services that needs initialization
+  // Order matters, so be careful when changing the order
+  // For example:
+  // * SampleService needs audio initialized
+  // * DatabaseService needs storage initialized
+  // * LibraryService needs database initialized
   await AudioService.instance.init();
-  await StorageService.instance.init();
-  await LibraryService.instance.init();
   await SampleService.instance.init();
+
+  await StorageService.instance.init();
+  await DatabaseService.instance.init();
+  // LibraryService needs database initialized
+  await LibraryService.instance.init();
 
   runApp(const ProviderScope(child: MainApp()));
 }
@@ -66,11 +77,14 @@ class _MainAppState extends ConsumerState<MainApp> {
             (child ?? const SizedBox.shrink()).hiddenCursor,
             const RepaintBoundary(child: MouseCursor()),
             const Tooltip(),
-            if (showFps)
-              const Align(
-                alignment: Alignment.bottomRight,
-                child: RepaintBoundary(child: FrameStats()),
-              ),
+
+            // Fps counter
+            Align(
+              alignment: Alignment.bottomRight,
+              child: RepaintBoundary(child: FrameStats(compact: !showFps)),
+            ),
+
+            // Logs
             if (showLogs)
               const Align(
                 alignment: Alignment.bottomLeft,

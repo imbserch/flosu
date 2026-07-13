@@ -105,12 +105,15 @@ class Logger {
       return isDebugLog && diffSeconds < MAX_LOG_TIME;
     });
 
-    logs.value = [
-      ?lastDebugLog,
-      for (final log in currentLogs)
-        if (log.level != LogLevel.debug)
-          if (now.difference(log.timestamp).inSeconds < MAX_LOG_TIME) log,
-    ];
+    // Ensure log update is async
+    Future.microtask(
+      () => logs.value = [
+        ?lastDebugLog,
+        for (final log in currentLogs)
+          if (log.level != LogLevel.debug)
+            if (now.difference(log.timestamp).inSeconds < MAX_LOG_TIME) log,
+      ],
+    );
   }
 
   void releaseLogger(ScopedLogger logger) {
@@ -123,7 +126,8 @@ class Logger {
     // Don't add debug logs in release mode
     if (!kDebugMode && log.level == LogLevel.debug) return;
 
-    logs.value = [...logs.value, log];
+    // Ensure log update is async
+    Future.microtask(() => logs.value = [...logs.value, log]);
     _pruneLogs();
   }
 }

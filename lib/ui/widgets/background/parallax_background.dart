@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -56,7 +57,7 @@ class _ParallaxBackgroundState extends ConsumerState<ParallaxBackground> {
     final parallax = ref.watch(storageProvider.select((it) => it.parallax));
 
     final imageFile = ref.watch(
-      audioProvider.select((it) => it?.background?.file),
+      audioProvider.select((it) => it?.general.backgroundPath),
     );
 
     final width = context.screenScaled.width;
@@ -65,7 +66,7 @@ class _ParallaxBackgroundState extends ConsumerState<ParallaxBackground> {
     ImageProvider? getProvider() {
       if (imageFile == null || dim == 1) return null;
 
-      final baseProvider = FileImage(imageFile);
+      final baseProvider = FileImage(File(imageFile));
 
       if (blur > 0) {
         final double steppedBlur = ((blur * 4) / 4).clamp(0.25, 1.0);

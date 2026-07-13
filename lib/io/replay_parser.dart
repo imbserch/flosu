@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:ui';
 
+import 'package:collection/collection.dart';
 import 'package:crypto/crypto.dart';
 import 'package:lzma/lzma.dart';
 import 'package:flosu/core/enums.dart';
@@ -101,8 +102,8 @@ class ReplayParser extends Parser<Replay> {
     for (final f in rawFrames) {
       final delta = int.parse(f[0]);
 
-      // Skip seed used in Random mod and skip negative time frames
-      if (delta < 0 || delta == RANDOM_SEED_DELTA) continue;
+      // Skip seed used in Random mod
+      if (delta == RANDOM_SEED_DELTA) continue;
 
       final x = double.parse(f[1]);
       final y = double.parse(f[2]);
@@ -113,6 +114,9 @@ class ReplayParser extends Parser<Replay> {
       time += delta;
       frames.add(ReplayFrame(time, Offset(x, y), keys));
     }
+
+    // Ensure frames are sorted by time
+    frames.sortByCompare((frame) => frame.time, (a, b) => a.compareTo(b));
 
     _off += length + 8;
 

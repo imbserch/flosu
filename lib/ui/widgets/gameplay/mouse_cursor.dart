@@ -1,6 +1,5 @@
 import 'dart:ui';
 
-import 'package:collection/collection.dart';
 import 'package:flosu/core/assets.dart';
 import 'package:flosu/core/enums.dart';
 import 'package:flosu/logic/services/game_loop.dart';
@@ -17,6 +16,38 @@ import 'package:flosu/models/inputs/inputs.dart';
 import 'package:flosu/logic/providers/router.dart';
 import 'package:flosu/ui/painters/gameplay.dart';
 
+class EventListNotifier extends ChangeNotifier
+    implements ValueListenable<List<PointerEvent>> {
+  final List<PointerEvent> _events = [];
+
+  @override
+  List<PointerEvent> get value => _events;
+
+  void addAll(Iterable<PointerEvent> newEvents) {
+    _events.addAll(newEvents);
+    notifyListeners();
+  }
+
+  void updateEvents(DateTime now, Duration maxAge) {
+    if (_events.isEmpty) return;
+
+    final threshold = now.subtract(maxAge);
+    int removeCount = 0;
+
+    // Keep at least the last event so the list is never empty
+    final limit = _events.length - 1;
+    while (removeCount < limit &&
+        _events[removeCount].timestamp.isBefore(threshold)) {
+      removeCount++;
+    }
+
+    if (removeCount > 0) {
+      _events.removeRange(0, removeCount);
+      notifyListeners();
+    }
+  }
+}
+
 class MouseCursor extends ConsumerStatefulWidget {
   const MouseCursor({super.key});
 
@@ -26,7 +57,7 @@ class MouseCursor extends ConsumerStatefulWidget {
 
 class _MouseCursorState extends ConsumerState<MouseCursor> {
   final ScopedLogger _logger = Logger.requestLogger("MouseCursor");
-  final ValueNotifier<List<PointerEvent>> _eventsNotifier = ValueNotifier([]);
+  final EventListNotifier _eventsNotifier = EventListNotifier();
 
   Image? _mouseImage;
   bool _pressed = false;
@@ -70,8 +101,7 @@ class _MouseCursorState extends ConsumerState<MouseCursor> {
   void _getEvents(InputEvents events) {
     if (events.pointer.isEmpty) return;
 
-    // Call this first to ensure that the list has the most recent events
-    _eventsNotifier.value = [..._eventsNotifier.value, ...events.pointer];
+    _eventsNotifier.addAll(events.pointer);
 
     // Look for press events and fire click sample if necessary
     for (final event in events.pointer) {
@@ -81,27 +111,14 @@ class _MouseCursorState extends ConsumerState<MouseCursor> {
         if (event.pressed && _pressed) {
           // Play Tap Sound
           ref.read(sampleService).play(AppSamples.uiCursorTap);
+          break;
         }
       }
     }
   }
 
   void _updateEvents(_) {
-    //Don't try to remove the last event
-    if (_eventsNotifier.value.length == 1) return;
-
-    final onlyInRange = _eventsNotifier.value.where(
-      (e) => DateTime.now().difference(e.timestamp) <= Durations.short4,
-    );
-
-    List<PointerEvent> oldEvents = [
-      ...onlyInRange,
-      if (onlyInRange.isEmpty) ?_eventsNotifier.value.lastOrNull,
-    ];
-
-    if (!listEquals(_eventsNotifier.value, oldEvents)) {
-      _eventsNotifier.value = oldEvents;
-    }
+    _eventsNotifier.updateEvents(DateTime.now(), Durations.short4);
   }
 
   @override

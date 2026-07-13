@@ -1,11 +1,13 @@
+import 'dart:async';
 import 'dart:math';
 
-import 'package:flosu/logic/providers/library.dart';
+import 'package:flosu/core/assets.dart';
+import 'package:flosu/logic/providers/audio.dart';
+import 'package:flosu/logic/services/sample.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flosu/core/extensions/ui.dart';
-import 'package:flosu/logic/providers/audio.dart';
 import 'package:flosu/ui/shared/animatable_page.dart';
 import 'package:flosu/ui/widgets/common/skewed_box.dart';
 import 'package:flosu/ui/widgets/common/osu_logo.dart';
@@ -18,23 +20,49 @@ class MainSelectPage extends AnimatablePage {
 }
 
 class _MainSelectPageState extends AnimatablePageState<MainSelectPage> {
+  final _osuKey = GlobalKey();
+
+  Timer? _exitTimer;
+  bool _requestedExit = false;
+
   @override
-  void initState() {
-    SchedulerBinding.instance.addPostFrameCallback((_) => _playMusic());
-    super.initState();
+  dispose() {
+    super.dispose();
+    _exitTimer?.cancel();
   }
 
-  void _playMusic() async {
-    final audio = ref.read(audioProvider.notifier);
-    if (audio.playing) return;
+  void _exit() {
+    // App is already quitting
+    if (_requestedExit) return;
 
-    final beatmap = ref.read(libraryProvider.notifier).getRandom();
+    if (mounted) setState(() => _requestedExit = true);
 
-    if (beatmap != null) await audio.preview(beatmap);
+    ref.read(audioProvider.notifier).stop();
+    // Sample is already loaded in splash
+    ref.read(sampleService).play(AppSamples.introSeeya);
+
+    _exitTimer?.cancel();
+    _exitTimer = Timer(const Duration(seconds: 2, milliseconds: 500), () {
+      ServicesBinding.instance.exitApplication(.required);
+    });
   }
 
   @override
   Widget buildPage(BuildContext context, double animProgress) {
+    if (_requestedExit) {
+      return Center(
+        child: TweenAnimationBuilder(
+          tween: Tween(begin: 0.0, end: 1.0),
+          duration: const Duration(seconds: 2, milliseconds: 500),
+          builder: (_, t, child) => Opacity(
+            opacity: max(0, 1 - t * 1.25),
+            child: Transform.rotate(angle: t * pi / 16, child: child!),
+          ),
+          child: OsuLogo(key: _osuKey, scale: 1 / 2),
+        ),
+      );
+    }
+
     return Center(
       child: Stack(
         alignment: .center,
@@ -57,7 +85,9 @@ class _MainSelectPageState extends AnimatablePageState<MainSelectPage> {
                     borderRadius: .zero,
                   ),
                   padding: const .only(right: 20),
-                  onTap: () => Scaffold.of(context).openDrawer(),
+                  onTap: _requestedExit
+                      ? null
+                      : () => Scaffold.of(context).openDrawer(),
                   child: const Column(
                     spacing: 4,
                     mainAxisAlignment: .center,
@@ -76,7 +106,7 @@ class _MainSelectPageState extends AnimatablePageState<MainSelectPage> {
                     borderRadius: .zero,
                   ),
                   padding: const .only(left: 20),
-                  onTap: () => context.go("/songs"),
+                  onTap: _requestedExit ? null : () => context.go("/songs"),
                   child: const Column(
                     spacing: 4,
                     mainAxisAlignment: .center,
@@ -93,7 +123,7 @@ class _MainSelectPageState extends AnimatablePageState<MainSelectPage> {
                     color: Colors.pink,
                     borderRadius: .zero,
                   ),
-                  onTap: () {},
+                  onTap: _exit,
                   child: Column(
                     spacing: 4,
                     mainAxisAlignment: .center,
@@ -119,8 +149,9 @@ class _MainSelectPageState extends AnimatablePageState<MainSelectPage> {
                   0,
                 ),
                 child: OsuLogo(
+                  key: _osuKey,
                   scale: (1 / 3) * animProgress,
-                  onTap: () => context.go("/songs"),
+                  onTap: _requestedExit ? null : () => context.go("/songs"),
                 ),
               ),
               const SizedBox(width: 184),

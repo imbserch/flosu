@@ -1,8 +1,8 @@
+import 'package:flosu/logic/providers/gameplay_data.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flosu/core/theme/app_colors.dart';
 import 'package:flosu/core/extensions/ui.dart';
-import 'package:flosu/logic/providers/gameplay_service.dart';
 import 'package:flosu/ui/widgets/common/skewed_box.dart';
 
 class CurrentBeatmapInfo extends ConsumerWidget {
@@ -11,9 +11,9 @@ class CurrentBeatmapInfo extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final current = ref.watch(gameplayService.select((it) => it.beatmap));
+    final details = ref.watch(gameplayDataProvider);
 
-    if (current == null) return const SizedBox.shrink();
+    if (details.metadata == null) return const SizedBox.shrink();
 
     return Positioned(
       top: 0,
@@ -45,7 +45,7 @@ class CurrentBeatmapInfo extends ConsumerWidget {
                         mainAxisSize: .min,
                         children: [
                           Text(
-                            current.info.title,
+                            details.metadata!.info.title,
                             maxLines: 2,
                             overflow: .ellipsis,
                             style: const TextStyle(
@@ -55,7 +55,7 @@ class CurrentBeatmapInfo extends ConsumerWidget {
                             ),
                           ),
                           Text(
-                            current.info.artist,
+                            details.metadata!.info.artist,
                             maxLines: 1,
                             overflow: .ellipsis,
                             style: const TextStyle(
@@ -72,7 +72,7 @@ class CurrentBeatmapInfo extends ConsumerWidget {
                   Padding(
                     padding: const .fromLTRB(104, 8, 8, 8),
                     child: Text(
-                      "${current.info.version} mapped by ${current.info.creator}",
+                      "${details.metadata!.info.version} mapped by ${details.metadata!.info.creator}",
                       maxLines: 1,
                       overflow: .ellipsis,
                       style: const TextStyle(fontSize: 8, height: 1),
@@ -115,7 +115,7 @@ class CurrentBeatmapInfo extends ConsumerWidget {
                               style: TextStyle(fontSize: 5.5, height: 1),
                             ),
                             Text(
-                              current.info.source,
+                              details.metadata!.info.source,
                               maxLines: 1,
                               overflow: .ellipsis,
                               style: const TextStyle(
@@ -137,7 +137,7 @@ class CurrentBeatmapInfo extends ConsumerWidget {
                               style: TextStyle(fontSize: 5.5, height: 1),
                             ),
                             Text(
-                              current.info.creator,
+                              details.metadata!.info.creator,
                               maxLines: 1,
                               overflow: .ellipsis,
                               style: const TextStyle(
@@ -162,7 +162,7 @@ class CurrentBeatmapInfo extends ConsumerWidget {
                         style: TextStyle(fontSize: 5.5, height: 1),
                       ),
                       Text(
-                        "${current.groupId}",
+                        "${details.metadata!.general.beatmapSetId ?? -1}",
                         style: const TextStyle(
                           fontSize: 6,
                           height: 1,
@@ -182,7 +182,7 @@ class CurrentBeatmapInfo extends ConsumerWidget {
                         style: TextStyle(fontSize: 5.5, height: 1),
                       ),
                       Text(
-                        current.info.tags,
+                        details.metadata!.info.tags,
                         maxLines: 1,
                         overflow: .ellipsis,
                         style: const TextStyle(

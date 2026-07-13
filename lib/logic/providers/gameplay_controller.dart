@@ -1,7 +1,6 @@
 import 'package:flosu/core/enums.dart';
 //import 'package:flosu/logic/providers/gameplay_service.dart';
 //import 'package:flosu/logic/providers/audio.dart';
-import 'package:flosu/logic/providers/input.dart';
 import 'package:flosu/logic/services/game_loop.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' hide PointerEvent;
@@ -14,11 +13,9 @@ class GameplayController extends Notifier<void> {
   // Initialize state and dispose event listeners for all services used in gameplay
   @override
   void build() {
-    ref.read(inputProvider.notifier).addInmediateHandler(_input);
     ref.read(gameLoopService).subscribe(TickerPhase.logic, _processTick);
 
     ref.onDispose(() {
-      ref.read(inputProvider.notifier).removeInmediateHandler(_input);
       ref.read(gameLoopService).unsubscribe(TickerPhase.logic, _processTick);
     });
   }
@@ -27,7 +24,7 @@ class GameplayController extends Notifier<void> {
   int _lastValidPointerTimeMs = 0;
   Set<LogicalKeyboardKey> _lastKeys = {};
 
-  void _input(Set<LogicalKeyboardKey> keys, PointerEvent? pointer) {
+  bool input(Set<LogicalKeyboardKey> keys, PointerEvent? pointer) {
     // Check if the set of active keyboard keys has changed.
     final keysChanged = !setEquals(_lastKeys, keys);
 
@@ -43,7 +40,7 @@ class GameplayController extends Notifier<void> {
       _lastValidPointerTimeMs = now;
 
       _processInput();
-      return;
+      return false;
     }
 
     // Otherwise, throttle pointer events to once every 4ms.
@@ -52,7 +49,10 @@ class GameplayController extends Notifier<void> {
       _lastValidPointerTimeMs = now;
 
       _processInput();
+      return false;
     }
+
+    return false;
   }
 
   void _processInput() {

@@ -30,13 +30,16 @@ class Easy extends ConfigurableMod {
   };
 
   @override
-  BeatmapDifficulty applyTo(BeatmapDifficulty difficulty) {
-    return difficulty.copyWith(
-      CS: difficulty.CS / 2,
-      AR: difficulty.AR / 2,
-      OD: difficulty.OD / 2,
-      HP: difficulty.HP / 2,
-    );
+  BeatmapDifficultyMetadata applyTo(BeatmapDifficultyMetadata difficulty) {
+    final newDifficulty = BeatmapDifficultyMetadata()
+      ..cs = difficulty.cs / 2
+      ..ar = difficulty.ar / 2
+      ..od = difficulty.od / 2
+      ..hp = difficulty.hp / 2
+      ..sliderMultiplier = difficulty.sliderMultiplier
+      ..sliderTickRate = difficulty.sliderTickRate;
+
+    return newDifficulty;
   }
 }
 

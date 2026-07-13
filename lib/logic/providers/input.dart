@@ -11,7 +11,7 @@ export 'package:flosu/models/inputs/timings.dart';
 /// Signature for a callback that receives the current key state and the latest
 /// pointer event immediately after a hardware event fires.
 typedef ImmediateInputsCallback =
-    void Function(Set<LogicalKeyboardKey> keys, PointerEvent? pointer);
+    bool Function(Set<LogicalKeyboardKey> keys, PointerEvent? pointer);
 
 /// Signature for a callback that receives a batch of events accumulated since
 /// the last frame tick.
@@ -19,7 +19,6 @@ typedef DelayedInputsCallback = void Function(InputEvents events);
 
 /// Signature for a callback that receives the input timings.
 typedef InputTimingsCallback = void Function(InputTimings timings);
-
 
 /// Riverpod provider that bridges [InputService] hardware events to higher-level
 /// consumers in the widget tree.
@@ -80,7 +79,7 @@ class InputProvider extends Notifier<void> {
   /// The callback receives the full set of currently pressed keys and the
   /// most recent pointer position.
   void addInmediateHandler(ImmediateInputsCallback callback) {
-    _inmediateHandlers.add(callback);
+    _inmediateHandlers.insert(0, callback);
   }
 
   /// Removes a previously registered immediate handler.
@@ -107,10 +106,6 @@ class InputProvider extends Notifier<void> {
   void removeTimingsHandler(InputTimingsCallback callback) {
     _timingHandlers.remove(callback);
   }
-
-  // ---------------------------------------------------------------------------
-  // Event processing
-  // ---------------------------------------------------------------------------
 
   /// Processes an incoming [HardwareEvent] from [InputService].
   void _onEvent(HardwareEvent event) {
@@ -140,7 +135,8 @@ class InputProvider extends Notifier<void> {
     final sw = Stopwatch()..start();
 
     for (final handler in _inmediateHandlers) {
-      handler(_pressedKeys, _lastPointerEvent);
+      final handled = handler(_pressedKeys, _lastPointerEvent);
+      if (handled) break;
     }
 
     sw.stop();

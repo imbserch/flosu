@@ -2,13 +2,15 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
 
-// 
+//
 import 'package:file_picker/file_picker.dart';
-import 'package:flosu/io/beatmap_parser.dart';
+import 'package:flosu/io/beatmap_content_parser.dart';
+import 'package:flosu/io/beatmap_metadata_parser.dart';
 import 'package:flosu/io/parser.dart';
 import 'package:flosu/io/replay_parser.dart';
-import 'package:flosu/models/beatmap/beatmap.dart';
+import 'package:flosu/models/beatmap/beatmap_content.dart';
 import 'package:flosu/models/replay/replay.dart';
+import 'package:flosu/models/storage/beatmap_metadata.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class ParseResult<T extends Object> {
@@ -21,10 +23,12 @@ class ParseResult<T extends Object> {
   bool get hasError => error != null;
 }
 
-class _ParseCommand {
-  _ParseCommand(this.filePath);
+class _ParseCommand<T extends Object> {
+  _ParseCommand(this.filePath, this.onlyMetadata, {this.data});
 
   final String filePath;
+  final T? data;
+  final bool onlyMetadata;
 }
 
 class FileParserService {
@@ -84,9 +88,13 @@ class FileParserService {
   ///
   /// The current worker will try to infer the parser based on the file extension.
   /// For example, if [filePath] ends with ".osr", the [ReplayParser] will be used.
-  Future<void> parseFile(String filePath) async {
+  Future<void> parseFile(
+    String filePath, {
+    bool onlyMetadata = false,
+    Object? data,
+  }) async {
     await _ready.future;
-    _commandsPort!.send(_ParseCommand(filePath));
+    _commandsPort!.send(_ParseCommand(filePath, onlyMetadata, data: data));
   }
 
   void dispose() {
@@ -115,7 +123,9 @@ void _isolateWorker(SendPort mainSendPort) {
         }
 
         if (message.filePath.endsWith(".osu")) {
-          currentParser = BeatmapParser(file);
+          currentParser = message.onlyMetadata
+              ? BeatmapMetadataParser(file)
+              : BeatmapContentParser(file, message.data as BeatmapMetadata);
         }
 
         if (message.filePath.endsWith(".osr")) {
@@ -139,9 +149,21 @@ void _isolateWorker(SendPort mainSendPort) {
           );
         }
 
-        if (result is Beatmap) {
+        if (result is BeatmapContent) {
           return mainSendPort.send(
-            ParseResult<Beatmap>(filePath: message.filePath, data: result),
+            ParseResult<BeatmapContent>(
+              filePath: message.filePath,
+              data: result,
+            ),
+          );
+        }
+
+        if (result is BeatmapMetadata) {
+          return mainSendPort.send(
+            ParseResult<BeatmapMetadata>(
+              filePath: message.filePath,
+              data: result,
+            ),
           );
         }
 

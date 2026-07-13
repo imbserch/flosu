@@ -27,13 +27,16 @@ class HardRock extends ConfigurableMod {
   };
 
   @override
-  BeatmapDifficulty applyTo(BeatmapDifficulty difficulty) {
-    return difficulty.copyWith(
-      CS: (difficulty.CS * 1.3).clamp(0, 10),
-      AR: (difficulty.AR * 1.4).clamp(0, 10),
-      OD: (difficulty.OD * 1.4).clamp(0, 10),
-      HP: (difficulty.HP * 1.4).clamp(0, 10),
-    );
+  BeatmapDifficultyMetadata applyTo(BeatmapDifficultyMetadata difficulty) {
+    final newDifficulty = BeatmapDifficultyMetadata()
+      ..cs = (difficulty.cs * 1.3).clamp(0, 10)
+      ..ar = (difficulty.ar * 1.4).clamp(0, 10)
+      ..od = (difficulty.od * 1.4).clamp(0, 10)
+      ..hp = (difficulty.hp * 1.4).clamp(0, 10)
+      ..sliderMultiplier = difficulty.sliderMultiplier
+      ..sliderTickRate = difficulty.sliderTickRate;
+
+    return newDifficulty;
   }
 }
 

@@ -1,4 +1,9 @@
+import 'dart:async';
+import 'dart:math';
+
+import 'package:flosu/core/assets.dart';
 import 'package:flosu/logic/providers/library.dart';
+import 'package:flosu/logic/services/sample.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -13,48 +18,76 @@ class SplashPage extends ConsumerStatefulWidget {
 }
 
 class _SplashPageState extends ConsumerState<SplashPage> {
+  bool _ready = false;
+  Timer? _timer;
+
   @override
-  initState() {
-    _initBeatmaps();
+  void initState() {
+    _init();
     super.initState();
   }
 
-  void _initBeatmaps() async {
-    //Only keep this provider waiting for initial update
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  // Updated flow of loading
+  // This is posible because of local database
+  void _init() async {
+    // Load library until database is loaded
     ref.read(libraryProvider);
 
-    //Stop audio
-    Future.microtask(() {
-      ref.read(audioProvider.notifier).stop();
-      // TODO: Implement .stopAll()
-      // ref.read(sampleService.notifier).dispose();
-    });
+    const welcomeSample = AppSamples.introWelcome;
 
-    //Await for user to read the text
-    await Future.delayed(const Duration(seconds: 3));
-    if (mounted) context.go("/main");
+    final audio = ref.read(audioProvider.notifier);
+    final samples = ref.read(sampleService);
+
+    Future.microtask(audio.stop);
+
+    await samples.loadMultipleFromAsset([
+      AppSamples.songselectConfirmSelection,
+      AppSamples.uiCursorTap,
+      AppSamples.uiSettingsPopIn,
+      AppSamples.uiMenuClose,
+      AppSamples.introSeeya,
+      welcomeSample,
+    ]);
+
+    final random = ref.read(libraryProvider.notifier).getRandom();
+    if (random != null) await audio.load(random);
+
+    if (mounted) setState(() => _ready = true);
+    samples.play(welcomeSample);
+
+    Future.delayed(const Duration(seconds: 2), () {
+      if (random != null) audio.preview(random);
+      if (mounted) context.go("/main");
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: .all(24),
+    return Padding(
+      padding: const .all(24),
       child: Center(
-        child: Column(
-          mainAxisSize: .min,
-          mainAxisAlignment: .center,
-          crossAxisAlignment: .center,
-          children: [
-            Text("Welcome to flosu", style: TextStyle(fontWeight: .w900)),
-            Text(
-              "This is an experimental osu!lazer proyect built with Flutter. May contain bugs.",
-              textAlign: .center,
-              style: TextStyle(fontSize: 8, fontWeight: .w300),
-            ),
-            SizedBox(height: 4),
-            OsuCubeLoader(scale: .75),
-          ],
-        ),
+        child: _ready
+            ? TweenAnimationBuilder(
+                tween: Tween(begin: 0.0, end: 1.0),
+                duration: Durations.extralong4,
+                curve: Curves.easeOut,
+                builder: (_, t, _) => Text(
+                  "Welcome",
+                  style: TextStyle(
+                    fontWeight: .bold,
+                    letterSpacing: 1 + t,
+                    fontSize: 20 + pow(t / 4, 2).toDouble(),
+                    color: Colors.white.withValues(alpha: pow(t, 2) as double),
+                  ),
+                ),
+              )
+            : const OsuCubeLoader(),
       ),
     );
   }

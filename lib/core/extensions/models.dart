@@ -1,6 +1,4 @@
-import 'package:collection/collection.dart';
 import 'package:flutter/services.dart';
-import 'package:flosu/models/beatmap/beatmap.dart';
 import 'package:flosu/models/mods/base.dart';
 
 /// Extension on a [Set<LogicalKeyboardKey>] for concise key-state queries.
@@ -35,13 +33,6 @@ extension KeysExtension on Set<LogicalKeyboardKey> {
 extension OffsetExtension on Offset {
   /// Returns an [Offset] with both components made non-negative.
   Offset abs() => Offset(dx.abs(), dy.abs());
-}
-
-/// Extension on [Iterable<Beatmap>] for grouping beatmaps by song title.
-extension BeatmapGroups on Iterable<Beatmap> {
-  /// Groups beatmaps into lists sharing the same [BeatmapInfo.title].
-  List<List<Beatmap>> get asGroups =>
-      groupListsBy((beatmap) => beatmap.info.title).values.toList();
 }
 
 /// Extension on [Iterable<ConfigurableMod>] for mod-set queries.
