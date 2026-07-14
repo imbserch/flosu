@@ -174,50 +174,58 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
       endDrawer: NotificationsDrawer(
         onClose: () => isNotificationsOpen ? scaffold?.closeEndDrawer() : null,
       ),
-      body: Stack(
-        fit: .expand,
-        children: [
-          const ParallaxBackground(),
-          TweenAnimationBuilder(
-            duration: Durations.medium1,
-            curve: Curves.easeOut,
-            tween: Tween(
-              end: isSettingsOpen
-                  ? 32.0
-                  : isNotificationsOpen
-                  ? -32.0
-                  : 0.0,
-            ),
-            builder: (_, t, child) =>
-                Transform.translate(offset: Offset(t, 0), child: child),
-            child: Column(
-              children: [
-                RepaintBoundary(
-                  child: TweenAnimationBuilder(
-                    duration: Durations.medium1,
-                    curve: Curves.easeOut,
-                    tween: Tween(
-                      end: _topBarOpen && !widget.forceTopBarClosed ? 0.0 : 1.0,
-                    ),
-                    builder: (_, t, child) => ClipRect(
-                      child: Align(
-                        alignment: .bottomCenter,
-                        heightFactor: 1 - t,
-                        child: child,
+      body: SafeArea(
+        left: false,
+        right: false,
+        bottom: false,
+        top: false,
+        child: Stack(
+          fit: .expand,
+          children: [
+            const ParallaxBackground(),
+            TweenAnimationBuilder(
+              duration: Durations.medium1,
+              curve: Curves.easeOut,
+              tween: Tween(
+                end: isSettingsOpen
+                    ? 32.0
+                    : isNotificationsOpen
+                    ? -32.0
+                    : 0.0,
+              ),
+              builder: (_, t, child) =>
+                  Transform.translate(offset: Offset(t, 0), child: child),
+              child: Column(
+                children: [
+                  RepaintBoundary(
+                    child: TweenAnimationBuilder(
+                      duration: Durations.medium1,
+                      curve: Curves.easeOut,
+                      tween: Tween(
+                        end: _topBarOpen && !widget.forceTopBarClosed
+                            ? 0.0
+                            : 1.0,
+                      ),
+                      builder: (_, t, child) => ClipRect(
+                        child: Align(
+                          alignment: .bottomCenter,
+                          heightFactor: 1 - t,
+                          child: child,
+                        ),
+                      ),
+                      child: TopBar(
+                        onSettingsTap: () => scaffold?.openDrawer(),
+                        onNotificationsTap: () => scaffold?.openEndDrawer(),
                       ),
                     ),
-                    child: TopBar(
-                      onSettingsTap: () => scaffold?.openDrawer(),
-                      onNotificationsTap: () => scaffold?.openEndDrawer(),
-                    ),
                   ),
-                ),
-                Expanded(child: widget.child),
-              ],
+                  Expanded(child: widget.child),
+                ],
+              ),
             ),
-          ),
-          const VolumeBar(),
-        ],
+            const VolumeBar(),
+          ],
+        ),
       ),
     );
   }

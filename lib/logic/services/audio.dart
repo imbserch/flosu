@@ -17,14 +17,14 @@ class AudioService {
 
   /// Initializes the audio engine with a specific buffer size.
   ///
-  /// The [bufferSize] is set to 256 to balance latency and performance.
+  /// The [bufferSize] is set to 128 to balance latency and performance.
   /// Any failure during initialization is logged and prevents playback.
   Future<void> init() async {
     try {
       await SoLoud.instance.init(bufferSize: 128);
       _soLoud = SoLoud.instance;
 
-      _soLoud!.setMaxActiveVoiceCount(64);
+      _soLoud!.setMaxActiveVoiceCount(32);
       _soLoud!.filters.pitchShiftFilter.activate();
 
       _logger.info("AudioService has been initialized");

@@ -34,9 +34,10 @@ class Reescalable extends StatelessWidget {
           child: MediaQuery(
             data: MediaQuery.of(context).copyWith(
               padding: .zero,
-              viewPadding: .zero,
               viewInsets: .zero,
-              systemGestureInsets: .zero,
+              viewPadding: .zero,
+              textScaler: TextScaler.noScaling,
+              // size: screenScaled,
             ),
             child: FittedBox(
               key: const Key("Reescalable key"),

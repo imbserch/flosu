@@ -9,6 +9,7 @@ import 'package:flosu/ui/widgets/overlay/tooltip.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide Slider, MouseCursor, Tooltip;
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart' hide MouseCursor;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flosu/core/extensions/ui.dart';
 import 'package:flosu/logic/services/audio.dart';
@@ -26,9 +27,17 @@ void main() async {
     DartPerformanceMode.throughput,
   );
 
+  // System Configurations
+  await SystemChrome.setEnabledSystemUIMode(.immersiveSticky);
+  await SystemChrome.setPreferredOrientations([
+    .landscapeLeft,
+    .landscapeRight,
+  ]);
+
   // Set a big image cache size for storing all beatmap images
-  imageCache.maximumSize = 64;
-  imageCache.maximumSizeBytes = pow(1024, 3).round();
+  imageCache
+    ..maximumSize = 64
+    ..maximumSizeBytes = pow(1024, 3).round();
 
   // Start services that needs initialization
   // Order matters, so be careful when changing the order
@@ -38,10 +47,8 @@ void main() async {
   // * LibraryService needs database initialized
   await AudioService.instance.init();
   await SampleService.instance.init();
-
   await StorageService.instance.init();
   await DatabaseService.instance.init();
-  // LibraryService needs database initialized
   await LibraryService.instance.init();
 
   runApp(const ProviderScope(child: MainApp()));
@@ -94,8 +101,10 @@ class _MainAppState extends ConsumerState<MainApp> {
         ),
       ),
       theme: ThemeData(
+        visualDensity: .compact,
         fontFamily: "Torus",
         brightness: Brightness.dark,
+        materialTapTargetSize: .shrinkWrap,
         sliderTheme: const SliderThemeData(
           trackHeight: 3,
           trackGap: 12,
@@ -115,6 +124,7 @@ class _MainAppState extends ConsumerState<MainApp> {
         ),
         filledButtonTheme: FilledButtonThemeData(
           style: ButtonStyle(
+            tapTargetSize: .shrinkWrap,
             mouseCursor: const WidgetStatePropertyAll(SystemMouseCursors.none),
             shape: WidgetStatePropertyAll(
               RoundedRectangleBorder(borderRadius: .circular(6)),
@@ -127,6 +137,7 @@ class _MainAppState extends ConsumerState<MainApp> {
         ),
         iconButtonTheme: IconButtonThemeData(
           style: ButtonStyle(
+            tapTargetSize: .shrinkWrap,
             mouseCursor: const WidgetStatePropertyAll(SystemMouseCursors.none),
             minimumSize: const WidgetStatePropertyAll(Size.square(28)),
             padding: const WidgetStatePropertyAll(.all(4)),
@@ -136,7 +147,7 @@ class _MainAppState extends ConsumerState<MainApp> {
           ),
         ),
       ),
-      title: "Osu! Flutter",
+      title: "flosu",
     );
   }
 }
