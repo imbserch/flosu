@@ -16,7 +16,7 @@ import 'package:flutter/painting.dart';
 class SliderDrawable extends HitObjectDrawable<Slider> {
   SliderDrawable({
     required super.hitObject,
-    required super.metadata,
+    required super.difficulty,
     required super.mods,
   }) {
     // Simulate slider being hold at hitTime
@@ -26,7 +26,7 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
   @override
   bool isExpired(int position) {
     // Ensure animations are rendered for some milliseconds after the end of the slider
-    return position > hitObject.endTime + metadata.preempt;
+    return position > hitObject.endTime + difficulty.preempt;
   }
 
   static final Paint _bodyPaint = Paint()
@@ -118,7 +118,7 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
 
     // If the slider is growing because it will appear
     // 16 ms is the threshold for slider full render
-    if (position <= hitObject.hitTime - metadata.preemptFullOp + 16) {
+    if (position <= hitObject.hitTime - difficulty.preemptFullOp + 16) {
       return _cachedVersion + 1;
     }
 
@@ -142,8 +142,8 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
     // If the slider is growing because it will appear
     // at any moment
     if (position < hitObject.hitTime) {
-      final shrink = hitObject.hitTime - metadata.preempt;
-      final expanded = hitObject.hitTime - metadata.preemptFullOp;
+      final shrink = hitObject.hitTime - difficulty.preempt;
+      final expanded = hitObject.hitTime - difficulty.preemptFullOp;
 
       final progress = (position - shrink) / (expanded - shrink);
       final index = hitObject.indexAt(progress);
@@ -197,7 +197,13 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
 
     // Paint using hit circle
     if (position < hitObject.hitTime) {
-      HitCircleDrawable.paintHitCircle(c, position, metadata, hitObject, mods);
+      HitCircleDrawable.paintHitCircle(
+        c,
+        position,
+        difficulty,
+        hitObject,
+        mods,
+      );
     }
   }
 
@@ -206,8 +212,8 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
 
     // Opacity calculations
     if (position <= hitObject.hitTime) {
-      final hidden = hitObject.hitTime - metadata.preempt;
-      final visible = hitObject.hitTime - metadata.preemptFullOp;
+      final hidden = hitObject.hitTime - difficulty.preempt;
+      final visible = hitObject.hitTime - difficulty.preemptFullOp;
 
       // Use fade in before hitTime
       opacity = ((position - hidden) / (visible - hidden)).clamp(0.0, 1.0);
@@ -225,7 +231,7 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
         // Use fade out before endTime + preempt / 6
         if (position >= hitObject.endTime) {
           final visible = hitObject.endTime;
-          final hidden = hitObject.endTime + metadata.preemptFullOp / 2;
+          final hidden = hitObject.endTime + difficulty.preemptFullOp / 2;
 
           final t = ((position - visible) / (hidden - visible)).clamp(0.0, 1.0);
           opacity = 1.0 - t;
@@ -310,14 +316,14 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
       final endTime = hitObject.hitTime + (i + 1) * hitObject.slideDuration;
 
       if (position < endTime) {
-        final hidden = endTime - (metadata.preempt / 2);
+        final hidden = endTime - (difficulty.preempt / 2);
         final visible = endTime;
 
         final t = ((position - hidden) / (visible - hidden));
         opacity = t.clamp(0.0, 1.0);
       } else {
         final start = endTime;
-        final end = endTime + (metadata.preempt / 4);
+        final end = endTime + (difficulty.preempt / 4);
 
         final t = ((position - start) / (end - start));
 
@@ -364,7 +370,7 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
             Offset(-radius / 32, -radius / 8),
           ],
           _arrowPaint
-            ..strokeWidth = metadata.circleRadius / 16
+            ..strokeWidth = radius / 16
             ..color = backgroundColor,
         )
         ..restore();
@@ -404,7 +410,7 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
 
     if (_sliderHandled) {
       final shrink = _sliderHandlePosition;
-      final full = shrink + metadata.preemptFullOp / 2;
+      final full = shrink + difficulty.preemptFullOp / 2;
 
       final relativeT = ((position - shrink) / (full - shrink));
       t = Curves.easeOut.transform(relativeT.clamp(0.0, 1.0));
@@ -412,7 +418,7 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
       scale = 1 + t;
     } else {
       final full = _sliderHandlePosition;
-      final overflow = full + metadata.preemptFullOp / 2;
+      final overflow = full + difficulty.preemptFullOp / 2;
 
       final relativeT = ((position - full) / (overflow - full));
       t = 1 - Curves.easeOut.transform(relativeT.clamp(0.0, 1.0));
@@ -432,7 +438,7 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
     c
       ..drawCircle(
         .zero,
-        metadata.circleRadius * scale,
+        radius * scale,
         _ballPaint
           ..style = .fill
           ..color = borderColor.withValues(alpha: t / 4),
@@ -440,10 +446,10 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
       // Ball threshold ring
       ..drawCircle(
         .zero,
-        metadata.circleRadius * scale,
+        radius * scale,
         _ballPaint
           ..style = .stroke
-          ..strokeWidth = (metadata.circleRadius / 8) * t
+          ..strokeWidth = (radius / 8) * t
           ..color = borderColor.withValues(alpha: t),
       );
 
@@ -453,7 +459,7 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
       c
         ..drawCircle(
           .zero,
-          metadata.circleRadius * (7 / 8),
+          radius * (7 / 8),
           _ballPaint
             ..style = .fill
             ..color = Colors.white.withValues(alpha: t),
@@ -468,14 +474,14 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
               Colors.black,
               1 / 3,
             )!.withValues(alpha: t)
-            ..strokeWidth = metadata.circleRadius * (11 / 8),
+            ..strokeWidth = radius * (11 / 8),
           // Arrow shape: ^
         )
         ..drawPoints(
           .polygon,
           [Offset(-bx, -by), Offset(bx, 0), Offset(-bx, by)],
           _arrowPaint
-            ..strokeWidth = metadata.circleRadius / 8
+            ..strokeWidth = radius / 8
             ..color = Colors.white.withValues(alpha: t),
         );
     }

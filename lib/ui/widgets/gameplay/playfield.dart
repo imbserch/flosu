@@ -54,8 +54,7 @@ class _PlayfieldState extends ConsumerState<Playfield> {
   void _updatePlayfield(_) {
     final position = ref.read(audioProvider.notifier).positionInMs;
 
-    final metadata = _details.metadata!;
-    final preempt = metadata.preempt;
+    final preempt = _details.difficultyWithMods.preempt;
     final mods = _details.mods;
 
     final currentIndex = _objectHitTimes.lowerBound(
@@ -77,21 +76,22 @@ class _PlayfieldState extends ConsumerState<Playfield> {
         );
 
         if (!alreadyExists) {
+          // All objects use same difficulty with mods applied
           final drawable = switch (object) {
             HitCircle() => HitCircleDrawable(
               hitObject: object,
-              metadata: metadata,
+              difficulty: _details.difficultyWithMods,
               mods: mods,
             ),
             // Set last stored snake state
             Slider() => SliderDrawable(
               hitObject: object,
-              metadata: metadata,
+              difficulty: _details.difficultyWithMods,
               mods: mods,
             )..enableSnake = _canSnake,
             Spinner() => SpinnerDrawable(
               hitObject: object,
-              metadata: metadata,
+              difficulty: _details.difficultyWithMods,
               mods: mods,
             ),
           };

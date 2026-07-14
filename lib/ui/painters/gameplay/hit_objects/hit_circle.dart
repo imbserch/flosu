@@ -11,7 +11,7 @@ import 'package:flutter/painting.dart';
 class HitCircleDrawable extends HitObjectDrawable<HitCircle> {
   HitCircleDrawable({
     required super.hitObject,
-    required super.metadata,
+    required super.difficulty,
     required super.mods,
   });
 
@@ -32,13 +32,13 @@ class HitCircleDrawable extends HitObjectDrawable<HitCircle> {
     super.paint(c, position);
 
     // Directly paint from helper function
-    paintHitCircle(c, position, metadata, hitObject, mods);
+    paintHitCircle(c, position, difficulty, hitObject, mods);
   }
 
   static void paintHitCircle(
     Canvas c,
     int position,
-    BeatmapMetadata metadata,
+    BeatmapDifficultyMetadata difficulty,
     HitObject hitObject,
     Set<ConfigurableMod> mods,
   ) {
@@ -47,9 +47,9 @@ class HitCircleDrawable extends HitObjectDrawable<HitCircle> {
     final Color tertiaryColor = Color.lerp(primaryColor, Colors.black, 2 / 3)!;
 
     final center = hitObject is Slider ? hitObject.points.first : hitObject.pos;
-    final radius = metadata.circleRadius;
+    final radius = difficulty.circleRadius;
 
-    final fullSize = hitObject.hitTime - metadata.preemptFullOp;
+    final fullSize = hitObject.hitTime - difficulty.preemptFullOp;
     final isHidden = mods.containsMod(Hidden());
 
     // Default values
@@ -58,15 +58,15 @@ class HitCircleDrawable extends HitObjectDrawable<HitCircle> {
 
     // Opacity calculations
     if (position <= fullSize) {
-      final hidden = hitObject.hitTime - metadata.preempt;
-      final visible = hitObject.hitTime - metadata.preemptFullOp;
+      final hidden = hitObject.hitTime - difficulty.preempt;
+      final visible = hitObject.hitTime - difficulty.preemptFullOp;
 
       // Use fade in
       final t = ((position - hidden) / (visible - hidden));
       opacity = t.clamp(0.0, 1.0);
     } else {
       if (isHidden) {
-        final visible = hitObject.hitTime - metadata.preemptFullOp;
+        final visible = hitObject.hitTime - difficulty.preemptFullOp;
         final hidden = hitObject.hitTime;
 
         // Use fade out
@@ -81,7 +81,7 @@ class HitCircleDrawable extends HitObjectDrawable<HitCircle> {
 
     // Approach circle scaling calculations
     if (position < hitObject.hitTime) {
-      final expanded = hitObject.hitTime - metadata.preempt;
+      final expanded = hitObject.hitTime - difficulty.preempt;
       final shrink = hitObject.hitTime;
 
       final t = ((position - expanded) / (shrink - expanded));

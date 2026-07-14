@@ -75,7 +75,7 @@ class BeatmapContentParser extends Parser<BeatmapContent> {
               : BeatmapColors.fromList(colorData);
           break;
         case "[HitObjects]":
-          final stackThreshold = metadata.preempt * stackLeniency;
+          final stackThreshold = metadata.difficulty.preempt * stackLeniency;
 
           int currentComboIdx = 0;
           int currentColorIdx = 0;

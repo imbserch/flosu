@@ -45,20 +45,17 @@ class GameplayInfo {
     );
   }
 
-  /* 
+  BeatmapDifficultyMetadata get difficultyWithMods {
+    if (metadata == null) return BeatmapDifficultyMetadata();
 
-  /// Returns the beatmap difficulty, modified by mods.
-  BeatmapDifficulty? get difficultyWithMods {
-    if (beatmap == null) return null;
-
-    var difficulty = beatmap!.difficulty;
+    var difficulty = metadata!.difficulty;
 
     for (final mod in mods) {
       difficulty = mod.applyTo(difficulty);
     }
 
     return difficulty;
-  } */
+  }
 
   /// Combined score multiplier from all active mods.
   double get modMultiplier =>

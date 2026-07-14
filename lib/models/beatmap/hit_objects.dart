@@ -139,8 +139,8 @@ sealed class HitObject {
   }
 
   /// Returns `true` when this object should be rendered at the given
-  /// audio [position] (in ms) and beatmap [metadata] settings.
-  bool canShow(int position, BeatmapMetadata metadata);
+  /// audio [position] (in ms) and beatmap [difficulty] settings.
+  bool canShow(int position, BeatmapDifficultyMetadata difficulty);
 }
 
 // =============================================================================
@@ -169,9 +169,9 @@ class HitCircle extends HitObject {
       );
 
   @override
-  bool canShow(int position, BeatmapMetadata metadata) =>
-      (hitTime - position) < metadata.preempt &&
-      (position - hitTime) < metadata.hit50;
+  bool canShow(int position, BeatmapDifficultyMetadata difficulty) =>
+      (hitTime - position) < difficulty.preempt &&
+      (position - hitTime) < difficulty.hit50;
 
   @override
   String toString() =>
@@ -378,11 +378,11 @@ class Slider extends HitObject {
   }
 
   @override
-  bool canShow(int position, BeatmapMetadata metadata) {
+  bool canShow(int position, BeatmapDifficultyMetadata difficulty) {
     final remain = hitTime - position;
     final endSliderAt = hitTime + duration;
 
-    return (remain <= metadata.preempt && endSliderAt >= position);
+    return (remain <= difficulty.preempt && endSliderAt >= position);
   }
 
   @override
@@ -411,12 +411,12 @@ class Spinner extends HitObject {
   final int duration;
 
   @override
-  bool canShow(int position, BeatmapMetadata metadata) {
+  bool canShow(int position, BeatmapDifficultyMetadata difficulty) {
     final remain = hitTime - position;
     final endSpinAt = hitTime + duration;
 
     // Show during the preempt (fade-in) window and until the spinner ends.
-    return remain <= metadata.preempt && endSpinAt >= position;
+    return remain <= difficulty.preempt && endSpinAt >= position;
   }
 
   @override

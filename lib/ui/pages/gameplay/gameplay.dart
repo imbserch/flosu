@@ -127,7 +127,7 @@ class _GameplayPageState extends AnimatablePageState<GameplayPage> {
               child: Container(
                 margin: const .fromLTRB(0, 8, 0, 0),
                 child: Container(
-                  margin: .all(1.5 * details.metadata!.circleRadius),
+                  margin: .all(1.5 * details.difficultyWithMods.circleRadius),
                   height: 384,
                   width: 512,
                   child: Stack(

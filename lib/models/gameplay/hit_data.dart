@@ -8,12 +8,12 @@ class HitData {
   const HitData(
     this.timeLeft,
     this.fromCenter,
-    this.metadata,
+    this.difficulty,
     this.hitObject,
   );
 
   /// Constructs a miss entry for an object that was never hit.
-  const HitData.fromMiss(this.hitObject, this.metadata)
+  const HitData.fromMiss(this.hitObject, this.difficulty)
     : fromCenter = Offset.zero,
       timeLeft = -1000000;
 
@@ -25,7 +25,7 @@ class HitData {
   final Offset fromCenter;
 
   /// The metadata of the beatmap containing difficulty settings.
-  final BeatmapMetadata metadata;
+  final BeatmapDifficultyMetadata difficulty;
 
   /// The [HitObject] that was evaluated.
   final HitObject hitObject;
@@ -34,9 +34,9 @@ class HitData {
   HitResult get result {
     final absTime = timeLeft.abs();
 
-    if (absTime <= metadata.hit300) return HitResult.great;
-    if (absTime <= metadata.hit100) return HitResult.ok;
-    if (absTime <= metadata.hit50) return HitResult.meh;
+    if (absTime <= difficulty.hit300) return HitResult.great;
+    if (absTime <= difficulty.hit100) return HitResult.ok;
+    if (absTime <= difficulty.hit50) return HitResult.meh;
     return HitResult.miss;
   }
 }

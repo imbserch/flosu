@@ -33,12 +33,15 @@ sealed class ConfigurableMod {
         final acronym = rawMod["acronym"] as String?;
         if (acronym == null) continue;
 
-        final ConfigurableMod mod = switch (acronym.log()) {
+        final ConfigurableMod mod = switch (acronym) {
           "CL" => Classic(),
           "EZ" => Easy(),
-          "HD" => Hidden(),
+          "HT" => HalfTime(),
+          "DC" => Daycore(),
           "HR" => HardRock(),
+          "HD" => Hidden(),
           "DT" => DoubleTime(),
+          "NC" => Nightcore(),
           "RX" => Relax(),
           String default_ => Unimplemented(default_),
         };
@@ -73,20 +76,21 @@ sealed class ConfigurableMod {
       final ConfigurableMod mod = switch (recoveredMod) {
         /* Mod.noFail => Unimplemented(), */
         Mod.easy => Easy(),
-        /* Mod.touch => Unimplemented(), */
+        Mod.halfTime => HalfTime(),
+        //  Note: daycore isn't available though osu!stable
+        Mod.hardRock => HardRock(),
         Mod.hidden => Hidden(),
-        /* Mod.hardRock => Unimplemented(),
-        Mod.suddenDeath => Unimplemented(),
-        Mod.doubleTime => Unimplemented(),
-        Mod.relax => Unimplemented(),
-        Mod.halfTime => Unimplemented(),
-        Mod.nightcore => Unimplemented(),
-        Mod.flashlight => Unimplemented(),
-        Mod.autoplay => Unimplemented(),
-        Mod.spunOut => Unimplemented(),
-        Mod.autopilot => Unimplemented(),
-        Mod.perfect => Unimplemented(),
-        Mod.cinema => Unimplemented(), */
+        Mod.doubleTime => DoubleTime(),
+        Mod.nightcore => Nightcore(),
+        Mod.relax => Relax(),
+        /* Mod.suddenDeath => Unimplemented(), */
+        /* Mod.touch => Unimplemented(), */
+        // Mod.flashlight => Unimplemented(),
+        // Mod.autoplay => Unimplemented(),
+        // Mod.spunOut => Unimplemented(),
+        // Mod.autopilot => Unimplemented(),
+        // Mod.perfect => Unimplemented(),
+        // Mod.cinema => Unimplemented(),
         Mod default_ => Unimplemented(default_.name),
       };
 

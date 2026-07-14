@@ -10,7 +10,7 @@ import 'package:flutter/painting.dart';
 class SpinnerDrawable extends HitObjectDrawable<Spinner> {
   SpinnerDrawable({
     required super.hitObject,
-    required super.metadata,
+    required super.difficulty,
     required super.mods,
   });
 
