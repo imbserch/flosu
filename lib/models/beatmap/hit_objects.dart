@@ -3,6 +3,7 @@ import 'dart:math';
 import 'dart:ui';
 
 import 'package:collection/collection.dart';
+import 'package:flosu/core/constants.dart';
 import 'package:flosu/core/math/circular_arc.dart';
 import 'package:flosu/core/math/path_approximator.dart';
 
@@ -10,9 +11,6 @@ import 'package:flosu/core/enums.dart';
 import 'package:flosu/core/math/geometry.dart';
 import 'package:flosu/models/beatmap/timing_points.dart';
 import 'package:flosu/models/storage/beatmap_metadata.dart';
-
-// ignore: constant_identifier_names
-const Offset STACK_OFFSET = Offset(4.0, 4.0);
 
 /// Base class for all playable hit objects in an osu! standard beatmap.
 ///
@@ -116,7 +114,6 @@ sealed class HitObject {
       final int endTime = int.tryParse(row[5]) ?? hitTime;
 
       return Spinner(
-        pos: const Offset(256, 192),
         hitTime: hitTime,
         color: color,
         comboIdx: index,
@@ -306,7 +303,7 @@ class Slider extends HitObject {
           final distFromStart = (path[i] - lastStart).distance;
 
           if (distFromStart > 6 ||
-              (i + 1) % PathApproximator.CATMULL_SEGMENT_LENGTH == 0 ||
+              (i + 1) % CATMULL_SEGMENT_LENGTH == 0 ||
               i == path.length - 1) {
             optimizedPath.add(path[i]);
             lastStart = null;
@@ -402,14 +399,13 @@ class Slider extends HitObject {
 /// Spinners are always centred at (256, 192) in the playfield. The [pos] field
 /// is inherited but ignored.
 class Spinner extends HitObject {
+  // pos is ignored because this element is always centred.
   Spinner({
-    // pos is ignored because this element is always centred.
-    super.pos = Offset.zero,
     required super.hitTime,
     required this.duration,
     required super.color,
     required super.comboIdx,
-  });
+  }) : super(pos: SPINNER_CENTRE);
 
   /// Duration the player must spin for, in milliseconds.
   final int duration;

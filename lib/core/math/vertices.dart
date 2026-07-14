@@ -1,6 +1,8 @@
 import 'dart:math';
 import 'dart:ui';
 
+import 'package:flosu/core/constants.dart';
+
 class VerticesUtils {
   static Vertices computeStrokeVertices(
     List<Offset> points,
@@ -9,7 +11,7 @@ class VerticesUtils {
     final List<Offset> uniquePoints = [];
     for (final p in points) {
       if (uniquePoints.isEmpty ||
-          (p - uniquePoints.last).distanceSquared > 1e-6) {
+          (p - uniquePoints.last).distanceSquared > EPSILON) {
         uniquePoints.add(p);
       }
     }
@@ -61,10 +63,14 @@ class VerticesUtils {
       final cosPhiMinus = cos(phi - pi / 2);
       final sinPhiMinus = sin(phi - pi / 2);
 
-      final vLs = pStart + Offset(cosPhiPlus * strokeWidth, sinPhiPlus * strokeWidth);
-      final vRs = pStart + Offset(cosPhiMinus * strokeWidth, sinPhiMinus * strokeWidth);
-      final vLe = pEnd + Offset(cosPhiPlus * strokeWidth, sinPhiPlus * strokeWidth);
-      final vRe = pEnd + Offset(cosPhiMinus * strokeWidth, sinPhiMinus * strokeWidth);
+      final vLs =
+          pStart + Offset(cosPhiPlus * strokeWidth, sinPhiPlus * strokeWidth);
+      final vRs =
+          pStart + Offset(cosPhiMinus * strokeWidth, sinPhiMinus * strokeWidth);
+      final vLe =
+          pEnd + Offset(cosPhiPlus * strokeWidth, sinPhiPlus * strokeWidth);
+      final vRe =
+          pEnd + Offset(cosPhiMinus * strokeWidth, sinPhiMinus * strokeWidth);
 
       final int idxLs = builder.addVertex(vLs);
       final int idxRs = builder.addVertex(vRs);
@@ -87,7 +93,7 @@ class VerticesUtils {
         delta += 2 * pi;
       }
 
-      if (delta.abs() < 1e-5) continue;
+      if (delta.abs() < EPSILON) continue;
 
       if (delta > 0) {
         builder.addSector(
@@ -131,7 +137,7 @@ class MeshBuilder {
 
   void addSector(Offset center, double r, double startAngle, double endAngle) {
     final double angleSpan = endAngle - startAngle;
-    if (angleSpan.abs() < 1e-5) return;
+    if (angleSpan.abs() < EPSILON) return;
 
     // 15 degrees per step is a good heuristic: pi / 12
     const double stepAngle = pi / 12;
@@ -139,14 +145,18 @@ class MeshBuilder {
     final double dTheta = angleSpan / steps;
 
     final int centerIdx = addVertex(center);
-    
+
     double currentAngle = startAngle;
-    int prevOuterIdx = addVertex(center + Offset(cos(currentAngle) * r, sin(currentAngle) * r));
+    int prevOuterIdx = addVertex(
+      center + Offset(cos(currentAngle) * r, sin(currentAngle) * r),
+    );
 
     for (int step = 1; step <= steps; step++) {
       currentAngle = startAngle + step * dTheta;
-      final int outerIdx = addVertex(center + Offset(cos(currentAngle) * r, sin(currentAngle) * r));
-      
+      final int outerIdx = addVertex(
+        center + Offset(cos(currentAngle) * r, sin(currentAngle) * r),
+      );
+
       if (dTheta > 0) {
         addTriangle(centerIdx, prevOuterIdx, outerIdx);
       } else {

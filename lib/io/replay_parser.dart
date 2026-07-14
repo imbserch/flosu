@@ -4,15 +4,13 @@ import 'dart:ui';
 
 import 'package:collection/collection.dart';
 import 'package:crypto/crypto.dart';
+import 'package:flosu/core/constants.dart';
 import 'package:lzma/lzma.dart';
 import 'package:flosu/core/enums.dart';
 import 'package:flosu/models/replay/replay.dart';
 import 'package:flosu/models/replay/replay_frame.dart';
 import 'package:flosu/models/mods/base.dart';
 import 'package:flosu/io/parser.dart';
-
-// ignore: constant_identifier_names
-const RANDOM_SEED_DELTA = -12345;
 
 /// A parser for `.osr` (osu! replay) files.
 ///

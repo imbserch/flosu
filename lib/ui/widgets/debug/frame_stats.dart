@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'dart:ui';
 
+import 'package:flosu/core/constants.dart';
 import 'package:flosu/core/theme/app_colors.dart';
 import 'package:flosu/logic/providers/audio.dart';
 import 'package:flosu/logic/providers/input.dart';
@@ -9,9 +10,6 @@ import 'package:flosu/logic/providers/router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-// ignore: constant_identifier_names
-const TIMINGS_SIZE = 100;
 
 class FrameStats extends ConsumerStatefulWidget {
   const FrameStats({

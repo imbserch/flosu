@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:flosu/core/constants.dart';
 import 'package:flosu/core/extensions/models.dart';
 import 'package:flosu/models/beatmap/hit_objects.dart';
 import 'package:flosu/models/mods/base.dart';
@@ -221,10 +222,10 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
         final t = ((position - visible) / (hidden - visible)).clamp(0.0, 1.0);
         opacity = 1.0 - Curves.easeOut.transform(t);
       } else {
-        // Use fade out before endTime + preempt
+        // Use fade out before endTime + preempt / 6
         if (position >= hitObject.endTime) {
           final visible = hitObject.endTime;
-          final hidden = hitObject.endTime + metadata.preemptFullOp;
+          final hidden = hitObject.endTime + metadata.preemptFullOp / 2;
 
           final t = ((position - visible) / (hidden - visible)).clamp(0.0, 1.0);
           opacity = 1.0 - t;
@@ -329,10 +330,10 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
       if (isForward) {
         // Forward
         pointA = hitObject.pointAt(0);
-        pointB = hitObject.pointAt(1e-7);
+        pointB = hitObject.pointAt(EPSILON);
       } else {
         pointA = hitObject.pointAt(1);
-        pointB = hitObject.pointAt(1 - 1e-7);
+        pointB = hitObject.pointAt(1 - EPSILON);
       }
 
       final angle = (pointB - pointA).direction + (pi / 2);
@@ -391,8 +392,8 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
     final progress = _ballProgress(position);
     final direction = _ballDirection(position);
 
-    final current = hitObject.pointAt(min(progress, 1.0 - 1e-7));
-    final next = hitObject.pointAt(min(progress + 1e-7, 1.0));
+    final current = hitObject.pointAt(min(progress, 1.0 - EPSILON));
+    final next = hitObject.pointAt(min(progress + EPSILON, 1.0));
 
     final angle = (next - current).direction;
 
@@ -403,20 +404,20 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
 
     if (_sliderHandled) {
       final shrink = _sliderHandlePosition;
-      final full = shrink + metadata.preemptFullOp;
+      final full = shrink + metadata.preemptFullOp / 2;
 
       final relativeT = ((position - shrink) / (full - shrink));
       t = Curves.easeOut.transform(relativeT.clamp(0.0, 1.0));
 
-      scale = 1 + (1.5 * t);
+      scale = 1 + t;
     } else {
       final full = _sliderHandlePosition;
-      final overflow = full + metadata.preemptFullOp;
+      final overflow = full + metadata.preemptFullOp / 2;
 
       final relativeT = ((position - full) / (overflow - full));
       t = 1 - Curves.easeOut.transform(relativeT.clamp(0.0, 1.0));
 
-      scale = 3.5 - t;
+      scale = 2.5 - (t / 2);
     }
 
     if (t == 0) return;
@@ -444,37 +445,39 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
           ..style = .stroke
           ..strokeWidth = (metadata.circleRadius / 8) * t
           ..color = borderColor.withValues(alpha: t),
-      )
-      // Ball border
-      ..drawCircle(
-        .zero,
-        metadata.circleRadius * (7 / 8),
-        _ballPaint
-          ..style = .fill
-          ..color = Colors.white.withValues(alpha: t),
-      )
-      // Ball background
-      ..drawPoints(
-        .points,
-        [.zero],
-        _ballPaint
-          ..color = Color.lerp(
-            borderColor,
-            Colors.black,
-            1 / 3,
-          )!.withValues(alpha: t)
-          ..strokeWidth = metadata.circleRadius * (11 / 8),
       );
 
-    // Arrow shape: ^
+    // Don't draw ball after endTime
     if (position < hitObject.endTime) {
-      c.drawPoints(
-        .polygon,
-        [Offset(-bx, -by), Offset(bx, 0), Offset(-bx, by)],
-        _arrowPaint
-          ..strokeWidth = metadata.circleRadius / 8
-          ..color = Colors.white.withValues(alpha: t),
-      );
+      // Ball border
+      c
+        ..drawCircle(
+          .zero,
+          metadata.circleRadius * (7 / 8),
+          _ballPaint
+            ..style = .fill
+            ..color = Colors.white.withValues(alpha: t),
+        )
+        // Ball background
+        ..drawPoints(
+          .points,
+          [.zero],
+          _ballPaint
+            ..color = Color.lerp(
+              borderColor,
+              Colors.black,
+              1 / 3,
+            )!.withValues(alpha: t)
+            ..strokeWidth = metadata.circleRadius * (11 / 8),
+          // Arrow shape: ^
+        )
+        ..drawPoints(
+          .polygon,
+          [Offset(-bx, -by), Offset(bx, 0), Offset(-bx, by)],
+          _arrowPaint
+            ..strokeWidth = metadata.circleRadius / 8
+            ..color = Colors.white.withValues(alpha: t),
+        );
     }
 
     // Restore transformations

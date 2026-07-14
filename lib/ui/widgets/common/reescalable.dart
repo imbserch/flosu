@@ -31,9 +31,17 @@ class Reescalable extends StatelessWidget {
         size: screen,
         child: AspectRatio(
           aspectRatio: screen.aspectRatio,
-          child: FittedBox(
-            key: const Key("Reescalable key"),
-            child: SizedBox.fromSize(size: screenScaled, child: child),
+          child: MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              padding: .zero,
+              viewPadding: .zero,
+              viewInsets: .zero,
+              systemGestureInsets: .zero,
+            ),
+            child: FittedBox(
+              key: const Key("Reescalable key"),
+              child: SizedBox.fromSize(size: screenScaled, child: child),
+            ),
           ),
         ),
       ),

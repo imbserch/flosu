@@ -1,17 +1,10 @@
-// ignore_for_file: constant_identifier_names
-
 import 'dart:math';
+import 'package:flosu/core/constants.dart';
 import 'package:flosu/core/math/circular_arc.dart';
 import 'package:flosu/core/math/interpolation.dart';
 import 'package:flutter/services.dart';
 
 class PathApproximator {
-  static const double BEZIER_TOLERANCE = 0.25;
-  static const CATMULL_DETAIL = 50;
-  static const CATMULL_SEGMENT_LENGTH = CATMULL_DETAIL * 2;
-  static const double CIRCULAR_ARC_TOLERANCE = 0.1;
-  static const LAGRANGE_STEPS = 51;
-
   static List<Offset> bezierToPiecewiseLinear(List<Offset> controlPoints) {
     return bSplineToPiecewiseLinear(
       controlPoints,

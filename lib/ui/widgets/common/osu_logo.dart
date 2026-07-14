@@ -1,11 +1,9 @@
 import 'dart:ui';
- 
+
+import 'package:flosu/core/constants.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:flosu/core/theme/app_colors.dart';
-
-// ignore: constant_identifier_names
-const LOGO_SIZE = 512.0;
 
 class OsuLogo extends ConsumerStatefulWidget {
   const OsuLogo({super.key, this.scale = 1, this.onTap});

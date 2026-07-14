@@ -1,9 +1,7 @@
+import 'package:flosu/core/constants.dart';
 import 'package:flutter/services.dart';
 
 class Precision {
-  // ignore: constant_identifier_names
-  static const EPSILON = 1e-7;
-
   static bool almostEquals(
     Offset a,
     Offset b, [

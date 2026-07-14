@@ -1,13 +1,11 @@
 import 'dart:async';
 
 import 'package:collection/collection.dart';
+import 'package:flosu/core/constants.dart';
 import 'package:flosu/core/enums.dart';
 import 'package:flutter/foundation.dart';
 
 export 'package:flosu/core/enums.dart' show LogLevel;
-
-// ignore: constant_identifier_names
-const MAX_LOG_TIME = 20;
 
 class ScopedLogger {
   ScopedLogger._(this.serviceName);
