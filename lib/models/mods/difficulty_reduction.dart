@@ -148,17 +148,20 @@ class Daycore extends ConfigurableMod {
 
   @override
   void activate(ProviderContainer ref) {
-    // Set the initial speed to 0.75x
-    ref.read(audioProvider.notifier).setRate(0.75);
-    ref.read(audioProvider.notifier).setPitch(0.975);
+    ref.read(audioProvider.notifier)
+      // Set the initial speed to 0.75x
+      ..setRate(0.75)
+      // 2.5% lower pitch
+      ..setPitch(0.975);
     super.activate(ref);
   }
 
   @override
   void deactivate(ProviderContainer ref) {
     // Restore the default speed to 1.0x
-    ref.read(audioProvider.notifier).setRate(1.0);
-    ref.read(audioProvider.notifier).setPitch(1.0);
+    ref.read(audioProvider.notifier)
+      ..setRate(1.0)
+      ..setPitch(1.0);
     super.deactivate(ref);
   }
 }
