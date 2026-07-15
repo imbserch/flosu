@@ -1,6 +1,5 @@
-import 'dart:math';
-
 import 'package:flosu/ui/pages/gameplay/pause.dart';
+import 'package:flosu/ui/pages/song_select/replay_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,115 +11,27 @@ import 'package:flosu/ui/pages/results/results.dart';
 import 'package:flosu/ui/pages/song_select/select.dart';
 import 'package:flosu/ui/pages/splash/splash.dart';
 import 'package:flosu/ui/pages/song_select/mods.dart';
-import 'package:flosu/ui/widgets/common/skewed_box.dart';
 
-ProviderContainer get globalRef =>
-    ProviderScope.containerOf(rootNavigatorKey.currentContext!);
-
-/// Represents an action button configured for a custom dialog box.
-///
-/// Contains the display [label] widget, the color layout [color] of the button,
-/// and the callback [onTap] executed when clicked.
-class DialogAction {
-  DialogAction({
-    required this.label,
-    required this.onTap,
-    this.color = Colors.black,
-  });
-
-  final Widget label;
-  final VoidCallback onTap;
-  final Color color;
-}
-
-Future<T?> openDialog<T extends Object>({
-  required Widget title,
-  required Widget content,
-  required Widget icon,
-  required List<DialogAction> Function(BuildContext context) actionsBuilder,
-}) async {
-  return await showDialog<T?>(
-    context: rootNavigatorKey.currentContext!,
-    animationStyle: const AnimationStyle(
-      curve: Curves.elasticOut,
-      duration: Durations.medium1,
-      reverseCurve: Curves.easeIn,
-      reverseDuration: Durations.medium1,
-    ),
-    builder: (context) => TweenAnimationBuilder(
-      tween: Tween(begin: .75, end: 1.0),
-      curve: Curves.elasticOut,
-      duration: Durations.extralong4,
-      builder: (_, t, child) => Opacity(
-        opacity: min((t - .75) * 4, 1.0),
-        child: Transform.scale(filterQuality: .none, scale: t, child: child),
-      ),
-      child: Dialog(
-        insetAnimationDuration: Durations.medium1,
-        insetAnimationCurve: Curves.easeOut,
-        insetPadding: .zero,
-        shape: RoundedRectangleBorder(borderRadius: .circular(12)),
-        backgroundColor: const Color(0xff241b23),
-        clipBehavior: .antiAliasWithSaveLayer,
-        child: Container(
-          padding: const .fromLTRB(0, 24, 0, 36),
-          width: 310,
-          child: Column(
-            crossAxisAlignment: .stretch,
-            mainAxisSize: .min,
-            children: [
-              IconTheme(
-                data: const IconThemeData(size: 48, color: Colors.white),
-                child: icon,
-              ),
-              const SizedBox(height: 20),
-              DefaultTextStyle.merge(
-                textAlign: .center,
-                style: const TextStyle(fontSize: 12, height: 1),
-                child: title,
-              ),
-              const SizedBox(height: 12),
-              DefaultTextStyle.merge(
-                textAlign: .center,
-                style: const TextStyle(fontSize: 10, height: 1),
-                child: content,
-              ),
-              const SizedBox(height: 26),
-              Container(
-                padding: const .symmetric(horizontal: 24),
-                color: const Color(0xff150e14),
-                child: Column(
-                  crossAxisAlignment: .stretch,
-                  children: actionsBuilder(context)
-                      .map(
-                        (a) => SkewedBox(
-                          onTap: a.onTap,
-                          padding: const .all(8),
-                          decoration: BoxDecoration(
-                            color: a.color,
-                            borderRadius: .zero,
-                          ),
-                          child: DefaultTextStyle.merge(
-                            textAlign: .center,
-                            style: const TextStyle(
-                              fontSize: 10,
-                              height: 1,
-                              fontWeight: .w700,
-                            ),
-                            child: a.label,
-                          ),
-                        ),
-                      )
-                      .toList(),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    ),
-  );
-}
+// The router is used to navigate between different pages in the app.
+// It's a pretty complex router, but it's also very flexible.
+//
+// The router tree is:
+// /splash                  (Loader of all required resources. It will always be the first page)
+// /main                    (Main menu)
+//    /songs                (Song select)
+//       /mods              (Mods selection)
+//       /pick-replay       (Replay picker)
+//    /load                 (Loader of a single beatmap)
+// /gameplay                (Gameplay)
+//    /pause                (Pause)
+// /scoring                 (Results)
+//
+// The routes will contain both StatefulWidget and AnimatablePage widgets
+// AnimatablePage is a custom StatefulWidget that is used to animate between pages
+// And it exposes a function to build the page.
+//
+// buildPage() is a helper function that is used to build the page
+// It is used to build the page and it's used by AnimatablePages to animate between pages.
 
 Page buildPage(GoRouterState state, Widget child) {
   return CustomTransitionPage<void>(
@@ -172,6 +83,15 @@ final routerProvider = Provider<GoRouter>((ref) {
                 pageBuilder: (_, s) =>
                     buildPage(s, ModsPage(key: ValueKey(s.name), uri: s.uri)),
               ),
+              // New route, we will use it in the next feature
+              // it will remove the FilePicker package
+              GoRoute(
+                path: '/pick-replay',
+                pageBuilder: (_, s) => buildPage(
+                  s,
+                  ReplayPickerPage(key: ValueKey(s.name), uri: s.uri),
+                ),
+              ),
             ],
           ),
 
@@ -207,3 +127,6 @@ final routerProvider = Provider<GoRouter>((ref) {
 
 final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 final shellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
+
+ProviderContainer get globalRef =>
+    ProviderScope.containerOf(rootNavigatorKey.currentContext!);

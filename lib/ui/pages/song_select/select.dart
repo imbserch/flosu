@@ -1,7 +1,8 @@
 import 'dart:async';
- 
+
 import 'package:flosu/logic/providers/library.dart';
 import 'package:flosu/ui/widgets/beatmap/beatmap_list.dart';
+import 'package:flosu/ui/widgets/common/actions_bar.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide PointerEvent;
 import 'package:flutter/services.dart' hide PointerEvent;
@@ -13,7 +14,6 @@ import 'package:flosu/core/extensions/ui.dart';
 import 'package:flosu/models/inputs/inputs.dart';
 import 'package:flosu/ui/shared/animatable_page.dart';
 import 'package:flosu/ui/widgets/beatmap/current_beatmap_info.dart';
-import 'package:flosu/ui/widgets/common/skewed_box.dart';
 import 'package:flosu/ui/widgets/common/osu_logo.dart';
 import 'package:flosu/ui/widgets/common/skewed_button_line.dart';
 
@@ -59,12 +59,16 @@ class _SongSelectPageState extends AnimatablePageState<SongSelectPage> {
 
     //If F3 pressed and keys changed, open replay window
     if (keys.changedAndPressed(LogicalKeyboardKey.f3, _lastKeys)) {
-      ref.read(libraryProvider.notifier).pickReplay();
+      _pickReplay();
       handled = true;
     }
 
     _lastKeys = keys.toSet();
     return handled;
+  }
+
+  void _pickReplay() {
+    if (mounted) context.go("/songs/pick-replay");
   }
 
   void _playRandom() async {
@@ -172,29 +176,11 @@ class _SongSelectPageState extends AnimatablePageState<SongSelectPage> {
           ),
         ),
 
-        //Actions
-        Container(
-          color: AppColors.background.withAlpha((255 * animProgress).round()),
-          height: 32,
-        ),
-        Row(
-          spacing: 4,
-          crossAxisAlignment: .end,
-          children: [
-            SkewedBox(
-              heroTag: "Back button",
-              opacity: animProgress,
-              decoration: BoxDecoration(
-                borderRadius: .circular(4),
-                color: AppColors.fucshia,
-              ),
-              useGradientBorder: true,
-              margin: const .fromLTRB(18, 0, 0, 12),
-              padding: const .symmetric(vertical: 9, horizontal: 33),
-              onTap: () => context.go("/main"),
-              child: const Text("Back", style: TextStyle(fontSize: 8)),
-            ),
-            const SizedBox(width: 16),
+        ActionsBar(
+          onBack: () => context.go("/main"),
+          actionsPadding: const .only(left: 24),
+          actionsSpacing: 4,
+          actions: [
             SkewedButtonLine(
               offset: Offset(0, 48 * (1 - animProgress)),
               color: AppColors.green,
@@ -213,7 +199,7 @@ class _SongSelectPageState extends AnimatablePageState<SongSelectPage> {
               offset: Offset(0, 96 * (1 - animProgress)),
               color: AppColors.pink,
               icon: const Icon(Icons.file_open_outlined),
-              onTap: ref.read(libraryProvider.notifier).pickReplay,
+              onTap: _pickReplay,
               label: const Text("Open replay"),
             ),
             SkewedButtonLine(
@@ -223,14 +209,14 @@ class _SongSelectPageState extends AnimatablePageState<SongSelectPage> {
               label: const Text("Options"),
             ),
             const Spacer(),
-            Padding(
-              padding: const .all(12),
-              child: OsuLogo(
-                scale: (1 / 5) * animProgress,
-                onTap: () => context.go("/load"),
-              ),
-            ),
           ],
+          trailing: Padding(
+            padding: const .all(12),
+            child: OsuLogo(
+              scale: (1 / 5) * animProgress,
+              onTap: () => context.go("/load"),
+            ),
+          ),
         ),
       ],
     );

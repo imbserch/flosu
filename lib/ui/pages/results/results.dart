@@ -1,4 +1,5 @@
 import 'package:flosu/logic/providers/gameplay_data.dart';
+import 'package:flosu/ui/widgets/common/actions_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -505,36 +506,11 @@ class _ResultsPageState extends AnimatablePageState<ResultsPage> {
           ),
         ),
 
-        Container(color: AppColors.background, height: 32),
-        Row(
-          spacing: 4,
-          crossAxisAlignment: .end,
-          children: [
-            SkewedBox(
-              heroTag: "Back button",
-              opacity: animProgress,
-              decoration: BoxDecoration(
-                borderRadius: .circular(4),
-                color: AppColors.fucshia,
-              ),
-              useGradientBorder: true,
-              margin: const .fromLTRB(18, 0, 0, 12),
-              padding: const .symmetric(vertical: 9, horizontal: 33),
-              onTap: () => context.go("/songs"),
-              child: const Text("Back", style: TextStyle(fontSize: 8)),
-            ),
-            const SizedBox(width: 16),
-            SkewedButtonLine(
-              color: AppColors.green,
-              icon: const Icon(Icons.replay),
-              onTap: details.metadata != null
-                  ? () {
-                      _reuseReplay = true;
-                      context.go("/load");
-                    }
-                  : null,
-              label: const Text("Watch replay"),
-            ),
+        ActionsBar(
+          onBack: () => context.go("/songs"),
+          actionsPadding: const .only(left: 24),
+          actionsSpacing: 4,
+          actions: [
             const SkewedButtonLine(
               color: AppColors.lightBlue,
               icon: Icon(Icons.download_outlined),
@@ -551,6 +527,28 @@ class _ResultsPageState extends AnimatablePageState<ResultsPage> {
               label: Text("More info"),
             ),
           ],
+          trailing: details.metadata != null
+              ? SkewedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: .circular(4),
+                    color: AppColors.purple,
+                  ),
+                  useGradientBorder: true,
+                  margin: const .fromLTRB(0, 12, 18, 12),
+                  padding: const .symmetric(vertical: 9, horizontal: 33),
+                  onTap: () {
+                    _reuseReplay = true;
+                    context.go("/load");
+                  },
+                  child: const Row(
+                    spacing: 4,
+                    children: [
+                      Icon(Icons.play_arrow_rounded, size: 8),
+                      Text("Watch replay", style: TextStyle(fontSize: 8)),
+                    ],
+                  ),
+                )
+              : null,
         ),
       ],
     );

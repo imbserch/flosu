@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:isolate';
 import 'dart:math';
 
 import 'package:flosu/core/assets.dart';
@@ -42,8 +43,11 @@ class _MainSelectPageState extends AnimatablePageState<MainSelectPage> {
     ref.read(sampleService).play(AppSamples.introSeeya);
 
     _exitTimer?.cancel();
-    _exitTimer = Timer(const Duration(seconds: 2, milliseconds: 500), () {
-      ServicesBinding.instance.exitApplication(.required);
+    _exitTimer = Timer(const Duration(seconds: 2, milliseconds: 500), () async {
+      final result = await ServicesBinding.instance.exitApplication(.required);
+
+      // App can't be closed in a safe way: kill process
+      if (result == .cancel) Isolate.current.kill();
     });
   }
 

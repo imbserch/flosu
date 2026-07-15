@@ -2,7 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
-class SkewedBox extends StatelessWidget {
+class SkewedBox extends StatefulWidget {
   const SkewedBox({
     super.key,
     this.heroTag,
@@ -102,71 +102,111 @@ class SkewedBox extends StatelessWidget {
   }
 
   @override
+  State<SkewedBox> createState() => _SkewedBoxState();
+}
+
+class _SkewedBoxState extends State<SkewedBox> {
+  bool _pressed = false;
+
+  @override
   Widget build(BuildContext context) {
-    final resSkew = skew * (inverted ? -1 : 1);
+    final resSkew = widget.skew * (widget.inverted ? -1 : 1);
 
     Widget result = const SizedBox.shrink();
 
-    if (opacity == 0) return result;
+    if (widget.opacity == 0) return result;
 
-    if (isContainer) {
+    if (widget.isContainer) {
       result = Transform(
         alignment: FractionalOffset.center,
         transform: .skewX(-resSkew),
-        child: Transform.translate(key: key, offset: offset, child: child),
+        child: Transform.translate(
+          key: widget.key,
+          offset: widget.offset,
+          child: widget.child,
+        ),
       );
     } else {
       result = Transform(
         alignment: FractionalOffset.center,
         transform: .skewX(resSkew),
-        child: Padding(key: key, padding: padding ?? .zero, child: child),
+        child: Padding(
+          key: widget.key,
+          padding: widget.padding ?? .zero,
+          child: widget.child,
+        ),
       );
 
-      if (onTap != null) {
+      if (widget.onTap != null) {
         result = Material(
           type: .transparency,
           child: InkWell(
-            onTap: onTap,
+            onTapDown: widget.onTap != null
+                ? (_) {
+                    if (mounted) setState(() => _pressed = true);
+                  }
+                : null,
+            onTapUp: widget.onTap != null
+                ? (_) {
+                    if (mounted) setState(() => _pressed = false);
+                  }
+                : null,
+            onTapCancel: widget.onTap != null
+                ? () {
+                    if (mounted) setState(() => _pressed = false);
+                  }
+                : null,
+            onTap: widget.onTap,
             mouseCursor: SystemMouseCursors.none,
-            borderRadius: .circular(4),
+            borderRadius:
+                widget.decoration?.borderRadius?.resolve(.ltr) ?? .circular(4),
             child: result,
           ),
         );
       }
 
       result = Transform.translate(
-        offset: offset,
-        child: AnimatedContainer(
-          width: width,
-          height: height,
-          constraints: constraints,
+        offset: widget.offset,
+        child: AnimatedScale(
+          scale: _pressed ? .95 : 1,
+          duration: Durations.long2,
           curve: Curves.easeOut,
-          duration: animDuration ?? Durations.medium1,
-          margin: margin,
-          clipBehavior: useGradientBorder ? .antiAlias : .none,
-          decoration: useGradientBorder
-              ? BoxDecoration(
-                  border: useGradientBorder ? null : decoration?.border,
-                  color: decoration?.color,
-                  borderRadius: decoration?.borderRadius ?? .circular(4),
-                  gradient: decoration?.gradient,
-                )
-              : decoration?.copyWith(
-                  borderRadius: decoration?.borderRadius ?? .circular(4),
-                ),
-          child: CustomPaint(
-            painter: useGradientBorder
-                ? SkewedBoxGradientBorderPainter(
-                    decoration: decoration,
-                    width: gradientBorderWidth ?? 1.0,
+          child: AnimatedContainer(
+            width: widget.width,
+            height: widget.height,
+            constraints: widget.constraints,
+            curve: Curves.easeOut,
+            duration: widget.animDuration ?? Durations.medium1,
+            margin: widget.margin,
+            clipBehavior: widget.useGradientBorder ? .antiAlias : .none,
+            decoration: widget.useGradientBorder
+                ? BoxDecoration(
+                    border: widget.useGradientBorder
+                        ? null
+                        : widget.decoration?.border,
+                    color: widget.decoration?.color,
+                    borderRadius:
+                        widget.decoration?.borderRadius ?? .circular(4),
+                    gradient: widget.decoration?.gradient,
                   )
-                : null,
-            child: result,
+                : widget.decoration?.copyWith(
+                    borderRadius:
+                        widget.decoration?.borderRadius ?? .circular(4),
+                  ),
+            child: CustomPaint(
+              painter: widget.useGradientBorder
+                  ? SkewedBoxGradientBorderPainter(
+                      decoration: widget.decoration,
+                      width: widget.gradientBorderWidth ?? 1.0,
+                    )
+                  : null,
+              child: result,
+            ),
           ),
         ),
       );
 
-      if (!ignoreParenSkew) {
+      if (!widget.ignoreParenSkew) {
         result = Transform(
           alignment: FractionalOffset.center,
           transform: .skewX(-resSkew),
@@ -174,8 +214,12 @@ class SkewedBox extends StatelessWidget {
         );
       }
 
-      if (opacity < 1) result = Opacity(opacity: opacity, child: result);
-      if (heroTag != null) result = Hero(tag: heroTag!, child: result);
+      if (widget.opacity < 1) {
+        result = Opacity(opacity: widget.opacity, child: result);
+      }
+      if (widget.heroTag != null) {
+        result = Hero(tag: widget.heroTag!, child: result);
+      }
     }
 
     return result;
@@ -211,7 +255,7 @@ class SkewedBoxGradientBorderPainter extends CustomPainter {
       ..style = .stroke
       ..strokeWidth = width
       ..shader = LinearGradient(
-        colors: [Color.lerp(color, Colors.white, 1 / 12)!, color],
+        colors: [Color.lerp(color, Colors.white, 1 / 8)!, color],
         stops: [0, 1.1],
         begin: .bottomCenter,
         end: .topCenter,
