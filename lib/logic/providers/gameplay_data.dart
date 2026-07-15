@@ -100,9 +100,7 @@ class GameplayData extends Notifier<GameplayInfo> {
   void toggleMod(ConfigurableMod mod) {
     Set<ConfigurableMod> remainMods = {};
 
-    final storedMod = state.mods.firstWhereOrNull(
-      (m) => m.acronym == mod.acronym,
-    );
+    final storedMod = state.mods.firstWhereOrNull((m) => m.mod == mod.mod);
 
     if (storedMod != null) {
       // Deactivate mod
@@ -115,7 +113,7 @@ class GameplayData extends Notifier<GameplayInfo> {
 
       // Single pass: separate incompatible mods from remaining ones
       for (final m in state.mods) {
-        if (mod.incompatibleMods.any((im) => im.acronym == m.acronym)) {
+        if (mod.incompatibleMods.any((im) => im.mod == m.mod)) {
           incompatibles.add(m);
         } else {
           remaining.add(m);
@@ -135,7 +133,7 @@ class GameplayData extends Notifier<GameplayInfo> {
 
     // Re-order to the canonical display order defined in ConfigurableMod.
     final result = ConfigurableMod.allOrdered
-        .where((m) => remainMods.any((r) => r.acronym == m.acronym))
+        .where((m) => remainMods.any((r) => r.mod == m.mod))
         .toSet();
 
     state = state.copyWith(mods: result);

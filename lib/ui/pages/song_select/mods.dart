@@ -134,9 +134,7 @@ class _ModsPageState extends AnimatablePageState<ModsPage> {
                                                 return ModItem(
                                                   mod: mod,
                                                   selected: details.mods.any(
-                                                    ((m) =>
-                                                        m.acronym ==
-                                                        mod.acronym),
+                                                    ((m) => m.mod == mod.mod),
                                                   ),
                                                   onTap: () => detailsManager
                                                       .toggleMod(mod),

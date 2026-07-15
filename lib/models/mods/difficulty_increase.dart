@@ -2,10 +2,7 @@ part of "base.dart";
 
 class HardRock extends ConfigurableMod {
   @override
-  String get name => "Hard Rock";
-
-  @override
-  String get acronym => "HR";
+  Mod get mod => Mod.hardRock;
 
   @override
   String get assetPath => AppMods.hr;
@@ -42,10 +39,7 @@ class HardRock extends ConfigurableMod {
 
 class SuddenDeath extends ConfigurableMod {
   @override
-  String get name => "Sudden Death";
-
-  @override
-  String get acronym => "SD";
+  Mod get mod => Mod.suddenDeath;
 
   @override
   String get assetPath => AppMods.sd;
@@ -67,10 +61,7 @@ class SuddenDeath extends ConfigurableMod {
 
 class Perfect extends ConfigurableMod {
   @override
-  String get name => "Perfect";
-
-  @override
-  String get acronym => "PF";
+  Mod get mod => Mod.perfect;
 
   @override
   String get assetPath => AppMods.pf;
@@ -92,10 +83,7 @@ class Perfect extends ConfigurableMod {
 
 class DoubleTime extends ConfigurableMod {
   @override
-  String get name => "Double Time";
-
-  @override
-  String get acronym => "DT";
+  Mod get mod => Mod.doubleTime;
 
   @override
   String get assetPath => AppMods.dt;
@@ -136,10 +124,7 @@ class DoubleTime extends ConfigurableMod {
 
 class Nightcore extends ConfigurableMod {
   @override
-  String get name => "Nightcore";
-
-  @override
-  String get acronym => "NC";
+  Mod get mod => Mod.nightcore;
 
   @override
   String get assetPath => AppMods.nc;
@@ -185,10 +170,7 @@ class Nightcore extends ConfigurableMod {
 
 class Hidden extends ConfigurableMod {
   @override
-  String get name => "Hidden";
-
-  @override
-  String get acronym => "HD";
+  Mod get mod => Mod.hidden;
 
   @override
   String get assetPath => AppMods.hd;
@@ -217,10 +199,7 @@ class Hidden extends ConfigurableMod {
 
 class Flashlight extends ConfigurableMod {
   @override
-  String get name => "Flashlight";
-
-  @override
-  String get acronym => "FL";
+  Mod get mod => Mod.flashlight;
 
   @override
   String get assetPath => AppMods.fl;
@@ -245,10 +224,7 @@ class Flashlight extends ConfigurableMod {
 
 class Blinds extends ConfigurableMod {
   @override
-  String get name => "Blinds";
-
-  @override
-  String get acronym => "BL";
+  Mod get mod => Mod.blinds;
 
   @override
   String get assetPath => AppMods.bl;
@@ -268,10 +244,7 @@ class Blinds extends ConfigurableMod {
 
 class StrictTracking extends ConfigurableMod {
   @override
-  String get name => "Strict Tracking";
-
-  @override
-  String get acronym => "ST";
+  Mod get mod => Mod.strictTracking;
 
   @override
   String get assetPath => AppMods.st;
@@ -295,10 +268,7 @@ class StrictTracking extends ConfigurableMod {
 
 class AccuracyChallenge extends ConfigurableMod {
   @override
-  String get name => "Accuracy Challenge";
-
-  @override
-  String get acronym => "AC";
+  Mod get mod => Mod.accuracyChallenge;
 
   @override
   String get assetPath => AppMods.ac;

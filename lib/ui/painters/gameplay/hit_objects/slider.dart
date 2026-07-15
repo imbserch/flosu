@@ -3,7 +3,6 @@ import 'dart:math';
 import 'package:flosu/core/constants.dart';
 import 'package:flosu/core/extensions/models.dart';
 import 'package:flosu/models/beatmap/hit_objects.dart';
-import 'package:flosu/models/mods/base.dart';
 import 'package:flosu/ui/painters/gameplay/base.dart';
 import 'package:flosu/ui/painters/gameplay/hit_objects/hit_circle.dart';
 import 'package:flutter/material.dart' show Colors, Curves;
@@ -218,7 +217,7 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
       // Use fade in before hitTime
       opacity = ((position - hidden) / (visible - hidden)).clamp(0.0, 1.0);
     } else {
-      final hiddenEnabled = mods.containsMod(Hidden());
+      final hiddenEnabled = mods.containsMod(.hidden);
 
       if (hiddenEnabled) {
         final visible = hitObject.hitTime;

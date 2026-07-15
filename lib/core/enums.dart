@@ -1,5 +1,7 @@
 import 'dart:ui';
 
+import 'package:flosu/models/mods/base.dart';
+
 /// Game loop phases.
 enum TickerPhase { input, logic, visual }
 
@@ -109,27 +111,45 @@ enum OsuKey {
 ///
 /// Used when parsing `.osr` replay files via [ConfigurableMod.fromStableBit].
 enum Mod {
-  noFail(1),
-  easy(2),
-  touch(4),
-  hidden(8),
-  hardRock(16),
-  suddenDeath(32),
-  doubleTime(64),
-  relax(128),
-  halfTime(256),
-  nightcore(512),
-  flashlight(1024),
-  autoplay(2048),
-  spunOut(4096),
-  autopilot(8192), // Originally named "Relax2" in the osu! codebase.
-  perfect(16384),
-  cinema(4194304); // Originally named "LastMod".
+  noFail(1, 'NF', "No Fail"),
+  easy(2, 'EZ', "Easy"),
+  touch(4, 'TD', "Touch Device"),
+  hidden(8, 'HD', "Hidden"),
+  hardRock(16, 'HR', "Hard Rock"),
+  suddenDeath(32, 'SD', "Sudden Death"),
+  doubleTime(64, 'DT', "Double Time"),
+  relax(128, 'RX', "Relax"),
+  halfTime(256, 'HT', "Half Time"),
+  nightcore(512, 'NC', "Nightcore"),
+  flashlight(1024, 'FL', "Flashlight"),
+  autoplay(2048, 'AT', "Autoplay"),
+  spunOut(4096, 'SO', "Spun Out"),
+  autopilot(8192, 'AP', "Autopilot"), // Originally named "Relax2"
+  perfect(16384, 'PF', "Perfect"),
+  cinema(4194304, 'CN', "Cinema"), // Originally named "LastMod"
+  // osu!lazer mods (not recognized in osu!stable)
+  daycore(null, 'DC', "Daycore"),
+  blinds(null, 'BL', "Blinds"),
+  strictTracking(null, 'ST', "Strict Tracking"),
+  accuracyChallenge(null, 'AC', "Accuracy Challenge"),
+  difficultyAdjust(null, 'DA', "Difficulty Adjust"),
+  noScope(null, 'NS', "No Scope"),
+  // When osu!lazer detects any stable replay
+  classic(null, 'CL', "Classic"),
+  // Used when a mod is not recognized.
+  unimplemented(null, '??', 'Unimplemented');
 
-  const Mod(this.v);
+  const Mod(this.v, this.acronym, this.name);
 
   /// The bitmask value for this mod.
-  final int v;
+  /// This value is null for osu!lazer mods.
+  final int? v;
+
+  /// The acronym for this mod, used in file names and short-form display.
+  final String acronym;
+
+  /// The name of the mod
+  final String name;
 }
 
 /// Centralized logger levels.

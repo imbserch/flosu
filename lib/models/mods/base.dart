@@ -30,20 +30,38 @@ sealed class ConfigurableMod {
           .toList();
 
       for (final rawMod in rawModContents) {
-        final acronym = rawMod["acronym"] as String?;
-        if (acronym == null) continue;
+        final rawAcronym = rawMod["acronym"] as String?;
+        if (rawAcronym == null) continue;
 
-        final ConfigurableMod mod = switch (acronym) {
-          "CL" => Classic(),
-          "EZ" => Easy(),
-          "HT" => HalfTime(),
-          "DC" => Daycore(),
-          "HR" => HardRock(),
-          "HD" => Hidden(),
-          "DT" => DoubleTime(),
-          "NC" => Nightcore(),
-          "RX" => Relax(),
-          String default_ => Unimplemented(default_),
+        final modData = Mod.values.firstWhereOrNull(
+          (m) => m.acronym == rawAcronym,
+        );
+
+        final ConfigurableMod mod = switch (modData) {
+          Mod.noFail => NoFail(),
+          Mod.easy => Easy(),
+          // Mod.touch => TouchDevice(),
+          Mod.hidden => Hidden(),
+          Mod.hardRock => HardRock(),
+          Mod.suddenDeath => SuddenDeath(),
+          Mod.doubleTime => DoubleTime(),
+          Mod.relax => Relax(),
+          Mod.halfTime => HalfTime(),
+          Mod.nightcore => Nightcore(),
+          Mod.flashlight => Flashlight(),
+          Mod.autoplay => Autoplay(),
+          // Mod.spunOut => SpunOut(),
+          // Mod.autopilot => Autopilot(),
+          Mod.perfect => Perfect(),
+          Mod.cinema => Cinema(),
+          Mod.daycore => Daycore(),
+          Mod.blinds => Blinds(),
+          Mod.strictTracking => StrictTracking(),
+          Mod.accuracyChallenge => AccuracyChallenge(),
+          Mod.difficultyAdjust => DifficultyAdjust(),
+          Mod.noScope => NoScope(),
+          Mod.classic => Classic(),
+          _ => Unimplemented(modData?.acronym ?? Mod.unimplemented.acronym),
         };
 
         finalMods.add(mod);
@@ -57,47 +75,47 @@ sealed class ConfigurableMod {
   }
 
   static Set<ConfigurableMod> fromStableBit(int bit) {
-    //Search for mod values and reconstruct mod configurations
-    final List<Mod> foundMods = [];
-
-    for (int i = 0; i < 32; i++) {
-      final modValue = 1 << i;
-
-      if ((modValue & bit) != 0) {
-        final selectedMod = Mod.values.firstWhereOrNull((m) => m.v == modValue);
-        if (selectedMod != null) foundMods.add(selectedMod);
-      }
-    }
-
     //Assuming the stable replays use Classic behavior
-    final Set<ConfigurableMod> finalMods = {Classic()};
+    final Set<ConfigurableMod> foundMods = {Classic()};
 
-    for (final recoveredMod in foundMods) {
-      final ConfigurableMod mod = switch (recoveredMod) {
-        /* Mod.noFail => Unimplemented(), */
+    for (int i = 0; i < Mod.values.length; i++) {
+      final value = 1 << i;
+      final bit = Mod.values[i].v;
+      // Is a osu!lazer mod
+      if (bit == null) continue;
+
+      // Is not in the provided bit
+      if ((value & bit) == 0) continue;
+
+      final selectedMod = Mod.values.firstWhereOrNull((m) => m.v == value);
+      if (selectedMod == null) continue;
+
+      final ConfigurableMod? mod = switch (selectedMod) {
+        // Skip mods that aren't implemented in osu!stable
+        var _ when selectedMod.v == null => null,
+        Mod.noFail => NoFail(),
         Mod.easy => Easy(),
-        Mod.halfTime => HalfTime(),
-        //  Note: daycore isn't available though osu!stable
-        Mod.hardRock => HardRock(),
+        // Mod.touch => TouchDevice(),
         Mod.hidden => Hidden(),
+        Mod.hardRock => HardRock(),
+        Mod.suddenDeath => SuddenDeath(),
         Mod.doubleTime => DoubleTime(),
-        Mod.nightcore => Nightcore(),
         Mod.relax => Relax(),
-        /* Mod.suddenDeath => Unimplemented(), */
-        /* Mod.touch => Unimplemented(), */
-        // Mod.flashlight => Unimplemented(),
-        // Mod.autoplay => Unimplemented(),
-        // Mod.spunOut => Unimplemented(),
-        // Mod.autopilot => Unimplemented(),
-        // Mod.perfect => Unimplemented(),
-        // Mod.cinema => Unimplemented(),
-        Mod default_ => Unimplemented(default_.name),
+        Mod.halfTime => HalfTime(),
+        Mod.nightcore => Nightcore(),
+        Mod.flashlight => Flashlight(),
+        Mod.autoplay => Autoplay(),
+        // Mod.spunOut => SpunOut(),
+        // Mod.autopilot => Autopilot(),
+        Mod.perfect => Perfect(),
+        Mod.cinema => Cinema(),
+        _ => Unimplemented(selectedMod.acronym),
       };
 
-      finalMods.add(mod);
+      if (mod != null) foundMods.add(mod);
     }
 
-    return finalMods;
+    return foundMods;
   }
 
   static Map<String, Set<ConfigurableMod>> get diffSections => {
@@ -129,8 +147,7 @@ sealed class ConfigurableMod {
     return all;
   }
 
-  String get name;
-  String get acronym;
+  Mod get mod;
 
   String get description;
 
@@ -148,13 +165,11 @@ sealed class ConfigurableMod {
       difficulty;
 
   void activate(ProviderContainer ref) {
-    // TODO: USE LEGACY LOG FOR NOW
-    "Activating $name mod".log();
+    "Activating ${mod.name} mod".log();
   }
 
   void deactivate(ProviderContainer ref) {
-    // TODO: USE LEGACY LOG FOR NOW
-    "Deactivating $name mod".log();
+    "Deactivating ${mod.name} mod".log();
   }
 }
 
@@ -166,13 +181,10 @@ class Unimplemented extends ConfigurableMod {
   final dynamic data;
 
   @override
-  String get acronym => "??";
+  Mod get mod => Mod.unimplemented;
 
   @override
   String get assetPath => AppMods.at;
-
-  @override
-  String get name => "Unimplemented";
 
   @override
   String get description => "Mod with invalid or unimplemented data: $data";

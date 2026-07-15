@@ -50,7 +50,7 @@ class HitCircleDrawable extends HitObjectDrawable<HitCircle> {
     final radius = difficulty.circleRadius;
 
     final fullSize = hitObject.hitTime - difficulty.preemptFullOp;
-    final isHidden = mods.containsMod(Hidden());
+    final isHidden = mods.containsMod(.hidden);
 
     // Default values
     double opacity = 1.0;

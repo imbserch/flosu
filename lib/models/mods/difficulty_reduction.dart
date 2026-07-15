@@ -2,10 +2,7 @@ part of "base.dart";
 
 class Easy extends ConfigurableMod {
   @override
-  String get name => "Easy";
-
-  @override
-  String get acronym => "EZ";
+  Mod get mod => Mod.easy;
 
   @override
   String get assetPath => AppMods.ez;
@@ -45,10 +42,7 @@ class Easy extends ConfigurableMod {
 
 class NoFail extends ConfigurableMod {
   @override
-  String get name => "No Fail";
-
-  @override
-  String get acronym => "NF";
+  Mod get mod => Mod.noFail;
 
   @override
   String get assetPath => AppMods.nf;
@@ -74,10 +68,7 @@ class NoFail extends ConfigurableMod {
 // Note: This mod will not sound like the original Osu! HT because of SoLoud implementation
 class HalfTime extends ConfigurableMod {
   @override
-  String get name => "Half Time";
-
-  @override
-  String get acronym => "HT";
+  Mod get mod => Mod.halfTime;
 
   @override
   String get assetPath => AppMods.ht;
@@ -116,13 +107,9 @@ class HalfTime extends ConfigurableMod {
   }
 }
 
-// Note: This mod will sound exactly like Osu! DC because of SoLoud pitch shifting
 class Daycore extends ConfigurableMod {
   @override
-  String get name => "Daycore";
-
-  @override
-  String get acronym => "DC";
+  Mod get mod => Mod.daycore;
 
   @override
   String get assetPath => AppMods.dc;

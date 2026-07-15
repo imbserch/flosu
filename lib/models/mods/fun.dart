@@ -2,13 +2,10 @@ part of "base.dart";
 
 class NoScope extends ConfigurableMod {
   @override
-  String get acronym => "NS";
-
-  @override
   String get assetPath => AppMods.ns;
 
   @override
-  String get name => "No Scope";
+  Mod get mod => Mod.noScope;
 
   @override
   String get description => "Where's the cursor?";

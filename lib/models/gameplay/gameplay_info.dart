@@ -65,5 +65,5 @@ class GameplayInfo {
   bool get isRanked => mods.every((m) => m.ranked);
 
   /// A concatenated string of mod acronyms (e.g. `"HDDTHR"`).
-  String get modsName => mods.fold("", (str, mod) => str += mod.acronym);
+  String get modsName => mods.fold("", (str, mod) => str += mod.mod.acronym);
 }

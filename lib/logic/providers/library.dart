@@ -102,23 +102,6 @@ class LibraryProvider extends Notifier<List<BeatmapMetadata>> {
     _addBeatmapToDB(beatmap);
   }
 
-  /* /// Inserts a [Beatmap] into the state, creating or updating a [BeatmapSet].
-  void _addMetadataToState(BeatmapMetadata beatmap) {
-    /* final beatmapSet = state.firstWhereOrNull(
-      (group) => group.isInBeatmapSet(beatmap),
-    );
-
-    if (beatmapSet == null) {
-      // Create new beatmapset from beatmap
-      final newBeatmapSet = BeatmapSet.fromBeatmap(beatmap);
-      state = [...state, newBeatmapSet];
-    } else {
-      // Add beatmap to list
-      beatmapSet.beatmaps.add(beatmap);
-      state = [...state];
-    } */
-  } */
-
   void _addAndSort(List<BeatmapMetadata> metadatas) {
     final newState = [...state, ...metadatas];
 

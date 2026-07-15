@@ -4,10 +4,7 @@ part of "base.dart";
 
 class Classic extends ConfigurableMod {
   @override
-  String get name => "Classic";
-
-  @override
-  String get acronym => "CL";
+  Mod get mod => Mod.classic;
 
   @override
   String get assetPath => AppMods.cl;
@@ -34,16 +31,13 @@ class DifficultyAdjust extends ConfigurableMod {
   final double? HP;
 
   @override
-  String get acronym => "DA";
+  Mod get mod => Mod.difficultyAdjust;
 
   @override
   String get assetPath => AppMods.da;
 
   @override
   String get description => "Override a beatmap's difficulty settings";
-
-  @override
-  String get name => "Difficulty Adjust";
 
   @override
   double get scoreMultiplier => 0.5;

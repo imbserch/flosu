@@ -2,10 +2,7 @@ part of "base.dart";
 
 class Autoplay extends ConfigurableMod {
   @override
-  String get name => "Autoplay";
-
-  @override
-  String get acronym => "AT";
+  Mod get mod => Mod.autoplay;
 
   @override
   String get assetPath => AppMods.at;
@@ -36,10 +33,7 @@ class Autoplay extends ConfigurableMod {
 
 class Cinema extends ConfigurableMod {
   @override
-  String get name => "Cinema";
-
-  @override
-  String get acronym => "CN";
+  Mod get mod => Mod.cinema;
 
   @override
   String get assetPath => AppMods.cn;
@@ -74,10 +68,7 @@ class Cinema extends ConfigurableMod {
 
 class Relax extends ConfigurableMod {
   @override
-  String get name => "Relax";
-
-  @override
-  String get acronym => "RX";
+  Mod get mod => Mod.relax;
 
   @override
   String get assetPath => AppMods.rx;

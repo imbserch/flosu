@@ -65,7 +65,10 @@ class ModItem extends ConsumerWidget {
               Expanded(
                 child: SkewedBox(
                   margin: const EdgeInsets.only(right: 4),
-                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 4,
+                    horizontal: 12,
+                  ),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(4),
                     color: Color.lerp(const Color(0xff455446), mod.color, t),
@@ -74,7 +77,7 @@ class ModItem extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        mod.name,
+                        mod.mod.name,
                         style: TextStyle(
                           fontSize: 8,
                           fontWeight: FontWeight.w700,

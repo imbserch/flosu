@@ -1,3 +1,4 @@
+import 'package:flosu/core/enums.dart';
 import 'package:flutter/services.dart';
 import 'package:flosu/models/mods/base.dart';
 
@@ -37,6 +38,6 @@ extension OffsetExtension on Offset {
 
 /// Extension on [Iterable<ConfigurableMod>] for mod-set queries.
 extension ConfigurableModFinder on Iterable<ConfigurableMod> {
-  /// Returns `true` if a mod with the same acronym as [mod] is present.
-  bool containsMod(ConfigurableMod mod) => any((m) => m.acronym == mod.acronym);
+  /// Returns `true` if a mod with the same data as [mod] is present.
+  bool containsMod(Mod mod) => any((m) => m.mod == mod);
 }
