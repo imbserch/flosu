@@ -2,7 +2,7 @@ import 'dart:core';
 
 import 'package:collection/collection.dart';
 import 'package:flosu/logic/providers/audio.dart';
-import 'package:flosu/logic/providers/library.dart';
+import 'package:flosu/logic/providers/beatmap.dart';
 import 'package:flosu/logic/providers/router.dart';
 import 'package:flosu/logic/services/file_parser.dart';
 import 'package:flosu/logic/services/logger.dart';
@@ -51,7 +51,7 @@ class GameplayData extends Notifier<GameplayInfo> {
       final replay = result.data;
 
       final contentRelated = ref
-          .read(libraryProvider)
+          .read(beatmapProvider)
           .firstWhereOrNull((b) => b.md5 == replay!.hash);
 
       if (contentRelated == null) {

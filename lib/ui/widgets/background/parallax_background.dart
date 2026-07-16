@@ -6,7 +6,7 @@ import 'package:image_fade/image_fade.dart' show ImageFade;
 import 'package:flosu/core/extensions/ui.dart';
 import 'package:flosu/logic/providers/audio.dart';
 import 'package:flosu/logic/providers/input.dart';
-import 'package:flosu/logic/providers/storage.dart';
+import 'package:flosu/logic/providers/settings.dart';
 import 'package:flosu/models/inputs/inputs.dart';
 
 class ParallaxBackground extends ConsumerStatefulWidget {
@@ -34,9 +34,9 @@ class _ParallaxBackgroundState extends ConsumerState<ParallaxBackground> {
   }
 
   void _onInput(InputEvents event) {
-    final parallax = ref.read(storageProvider).parallax;
+    final parallaxEnabled = ref.read(settingsProvider).parallaxEnabled;
 
-    if (event.pointer.isEmpty || !parallax) return;
+    if (event.pointer.isEmpty || !parallaxEnabled) return;
 
     final currentPos = event.pointer.last.position;
 
@@ -52,16 +52,18 @@ class _ParallaxBackgroundState extends ConsumerState<ParallaxBackground> {
 
   @override
   Widget build(BuildContext context) {
-    final blur = ref.watch(storageProvider.select((it) => it.backgroundBlur));
-    final dim = ref.watch(storageProvider.select((it) => it.backgroundDim));
-    final parallax = ref.watch(storageProvider.select((it) => it.parallax));
+    final blur = ref.watch(settingsProvider.select((it) => it.backgroundBlur));
+    final dim = ref.watch(settingsProvider.select((it) => it.backgroundDim));
+    final parallaxEnabled = ref.watch(
+      settingsProvider.select((it) => it.parallaxEnabled),
+    );
 
     final imageFile = ref.watch(
       audioProvider.select((it) => it?.general.backgroundPath),
     );
 
     final width = context.screenScaled.width;
-    final scale = parallax ? 1.0 : 0.0;
+    final scale = parallaxEnabled ? 1.0 : 0.0;
 
     ImageProvider? getProvider() {
       if (imageFile == null || dim == 1) return null;
@@ -114,12 +116,12 @@ class _ParallaxBackgroundState extends ConsumerState<ParallaxBackground> {
       animation: _offsetNotifier,
       builder: (context, child) {
         final currentOffset = _offsetNotifier.value;
-        final traslatedOffset = parallax
+        final traslatedOffset = parallaxEnabled
             ? currentOffset - const Offset(.5, .5)
             : Offset.zero;
 
         return Transform(
-          key: ValueKey(parallax),
+          key: ValueKey(parallaxEnabled),
           transform: .identity()
             ..translateByDouble(
               traslatedOffset.dx * 96,

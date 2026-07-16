@@ -1,8 +1,11 @@
 // ignore_for_file: constant_identifier_names
 
-// From Path Approximator
-import 'package:flutter/painting.dart' show Offset;
+import 'dart:ui' show PointerDeviceKind, Offset;
 
+import 'package:flutter/material.dart'
+    show MaterialScrollBehavior, BouncingScrollPhysics, ScrollBehavior;
+
+// From Path Approximator
 const double BEZIER_TOLERANCE = 0.25;
 const int CATMULL_DETAIL = 50;
 const int CATMULL_SEGMENT_LENGTH = CATMULL_DETAIL * 2;
@@ -27,3 +30,13 @@ const double LOGO_SIZE = 512.0;
 
 // From Frame Stats
 const int TIMINGS_SIZE = 100;
+
+// From Scroll config
+// Isn't a constant, but it's used in multiple places
+final ScrollBehavior defaultScrollBehavior = const MaterialScrollBehavior()
+    .copyWith(
+      dragDevices: PointerDeviceKind.values.toSet(),
+      physics: const BouncingScrollPhysics(),
+      scrollbars: false,
+      overscroll: false,
+    );

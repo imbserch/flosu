@@ -9,7 +9,7 @@ class TopBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const .symmetric(horizontal: 24),
+      margin: const .fromLTRB(24, 0, 24, 8),
       decoration: const BoxDecoration(
         borderRadius: BorderRadius.only(
           bottomLeft: .circular(8),

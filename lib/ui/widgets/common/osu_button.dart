@@ -5,7 +5,9 @@ class OsuButton extends StatelessWidget {
     super.key,
     this.onPressed,
     required this.child,
+    this.borderRadius,
     this.color = Colors.pink,
+    this.useMinimumSize = true,
   }) : icon = null;
 
   const OsuButton.icon({
@@ -13,27 +15,35 @@ class OsuButton extends StatelessWidget {
     this.onPressed,
     required this.child,
     required this.icon,
+    this.borderRadius,
     this.color = Colors.pink,
+    this.useMinimumSize = true,
   });
 
   final VoidCallback? onPressed;
   final Widget child;
   final Widget? icon;
 
+  final BorderRadiusGeometry? borderRadius;
   final Color color;
+
+  final bool useMinimumSize;
 
   @override
   Widget build(BuildContext context) {
     return FilledButtonTheme(
       data: FilledButtonThemeData(
         style: ButtonStyle(
+          mouseCursor: const WidgetStatePropertyAll(SystemMouseCursors.none),
           backgroundColor: WidgetStatePropertyAll(color),
           shape: WidgetStatePropertyAll(
-            RoundedRectangleBorder(borderRadius: .circular(6)),
+            RoundedRectangleBorder(borderRadius: borderRadius ?? .circular(6)),
           ),
           iconSize: const WidgetStatePropertyAll(12),
           iconColor: const WidgetStatePropertyAll(Colors.white),
-          minimumSize: const WidgetStatePropertyAll(Size(120, 32)),
+          minimumSize: WidgetStatePropertyAll(
+            useMinimumSize ? const Size(120, 32) : const Size.square(24),
+          ),
           padding: const WidgetStatePropertyAll(.all(4)),
         ),
       ),

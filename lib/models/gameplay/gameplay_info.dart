@@ -1,7 +1,7 @@
 import 'package:flosu/models/beatmap/beatmap_content.dart';
 import 'package:flosu/models/mods/base.dart';
 import 'package:flosu/models/replay/replay.dart';
-import 'package:flosu/models/storage/beatmap_metadata.dart';
+import 'package:flosu/models/generated/beatmap_metadata.dart';
 
 class GameplayInfo {
   const GameplayInfo({

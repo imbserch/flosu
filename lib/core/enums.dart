@@ -107,6 +107,21 @@ enum OsuKey {
       values.where((v) => (v.keys.any((key) => (key & bit != 0)))).toList();
 }
 
+enum SettingsKey {
+  beatmapsPath,
+  audioCompensation,
+  globalVolume,
+  musicVolume,
+  osuKeys,
+  snakingSlidersEnabled,
+  parallaxEnabled,
+  backgroundDim,
+  backgroundBlur,
+  cursorTrailEnabled,
+  logsEnabled,
+  fpsMonitorEnabled,
+}
+
 /// Bitmask values for gameplay modifiers (mods) as encoded in osu! stable files.
 ///
 /// Used when parsing `.osr` replay files via [ConfigurableMod.fromStableBit].

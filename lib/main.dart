@@ -1,10 +1,11 @@
 import 'dart:math';
 import 'dart:ui';
 
-import 'package:flosu/logic/providers/storage.dart';
-import 'package:flosu/logic/services/database.dart';
+import 'package:flosu/logic/providers/settings.dart';
 import 'package:flosu/logic/services/library.dart';
 import 'package:flosu/logic/services/sample.dart';
+import 'package:flosu/repositories/beatmap.dart';
+import 'package:flosu/repositories/settings.dart';
 import 'package:flosu/ui/widgets/overlay/tooltip.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide Slider, MouseCursor, Tooltip;
@@ -13,7 +14,6 @@ import 'package:flutter/services.dart' hide MouseCursor;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flosu/core/extensions/ui.dart';
 import 'package:flosu/logic/services/audio.dart';
-import 'package:flosu/logic/services/storage.dart';
 import 'package:flosu/logic/providers/router.dart';
 import 'package:flosu/ui/widgets/common/reescalable.dart';
 import 'package:flosu/ui/widgets/debug/frame_stats.dart';
@@ -39,19 +39,28 @@ void main() async {
     ..maximumSize = 64
     ..maximumSizeBytes = pow(1024, 3).round();
 
+  // Initialize settings repository
+  final settingsRepository = SettingsRepository();
+  await settingsRepository.init();
+
+  // Initialize beatmap repository
+  final beatmapRepository = BeatmapRepository();
+  await beatmapRepository.init();
+
   // Start services that needs initialization
-  // Order matters, so be careful when changing the order
-  // For example:
-  // * SampleService needs audio initialized
-  // * DatabaseService needs storage initialized
-  // * LibraryService needs database initialized
   await AudioService.instance.init();
   await SampleService.instance.init();
-  await StorageService.instance.init();
-  await DatabaseService.instance.init();
   await LibraryService.instance.init();
 
-  runApp(const ProviderScope(child: MainApp()));
+  runApp(
+    ProviderScope(
+      overrides: [
+        settingsRepositoryProvider.overrideWithValue(settingsRepository),
+        beatmapRepositoryProvider.overrideWithValue(beatmapRepository),
+      ],
+      child: const MainApp(),
+    ),
+  );
 }
 
 class MainApp extends ConsumerStatefulWidget {
@@ -66,10 +75,12 @@ class _MainAppState extends ConsumerState<MainApp> {
   Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
 
-    final showFps = ref.watch(
-      storageProvider.select((it) => it.showFpsMonitor),
+    final fpsMonitorEnabled = ref.watch(
+      settingsProvider.select((it) => it.fpsMonitorEnabled),
     );
-    final showLogs = ref.watch(storageProvider.select((it) => it.showLogs));
+    final logsEnabled = ref.watch(
+      settingsProvider.select((it) => it.logsEnabled),
+    );
 
     return MaterialApp.router(
       checkerboardOffscreenLayers: kDebugMode,
@@ -88,11 +99,13 @@ class _MainAppState extends ConsumerState<MainApp> {
             // Fps counter
             Align(
               alignment: Alignment.bottomRight,
-              child: RepaintBoundary(child: FrameStats(compact: !showFps)),
+              child: RepaintBoundary(
+                child: FrameStats(compact: !fpsMonitorEnabled),
+              ),
             ),
 
             // Logs
-            if (showLogs)
+            if (logsEnabled)
               const Align(
                 alignment: Alignment.bottomLeft,
                 child: RepaintBoundary(child: LogConsole()),

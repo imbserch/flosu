@@ -10,7 +10,7 @@ import 'package:flutter/material.dart' hide PointerEvent;
 import 'package:flutter/services.dart' hide PointerEvent;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flosu/core/extensions/models.dart';
-import 'package:flosu/logic/providers/storage.dart';
+import 'package:flosu/logic/providers/settings.dart';
 import 'package:flosu/models/inputs/inputs.dart';
 import 'package:flosu/ui/widgets/background/parallax_background.dart';
 import 'package:flosu/ui/widgets/overlay/volume_bar.dart';
@@ -89,15 +89,17 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
 
       //If CTRL+F11 pressed and keys state changed, toggle fps monitor
       if (keys.changedAndPressed(LogicalKeyboardKey.f11, _lastKeys)) {
-        final showFpsMonitor = ref.read(storageProvider).showFpsMonitor;
-        ref.read(storageProvider.notifier).setShowFpsMonitor(!showFpsMonitor);
+        ref
+            .read(settingsProvider.notifier)
+            .setShowFpsMonitor(!ref.read(settingsProvider).fpsMonitorEnabled);
         handled = true;
       }
 
       //If CTRL+F9 pressed and keys state changed, toggle logs
       if (keys.changedAndPressed(LogicalKeyboardKey.f9, _lastKeys)) {
-        final showLogs = ref.read(storageProvider).showLogs;
-        ref.read(storageProvider.notifier).setShowLogs(!showLogs);
+        ref
+            .read(settingsProvider.notifier)
+            .setShowLogs(!ref.read(settingsProvider).logsEnabled);
         handled = true;
       }
 
@@ -141,10 +143,10 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
     //If ALT pressed and is scrolling, adjust volume using acceleration
     if (altPressed) {
       if (_scroll != 0) {
-        final volume = ref.read(storageProvider).globalVolume;
+        final volume = ref.read(settingsProvider).globalVolume;
         final clampedVol = (volume + _scroll).clamp(0.0, 1.0);
 
-        ref.read(storageProvider.notifier).setGlobalVolume(clampedVol);
+        ref.read(settingsProvider.notifier).setGlobalVolume(clampedVol);
         ref.read(sampleService).play(AppSamples.uiCursorTap);
       }
     }

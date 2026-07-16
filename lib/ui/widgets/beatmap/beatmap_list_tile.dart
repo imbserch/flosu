@@ -1,5 +1,5 @@
 import 'package:flosu/logic/providers/audio.dart';
-import 'package:flosu/models/storage/beatmap_metadata.dart';
+import 'package:flosu/models/generated/beatmap_metadata.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -37,8 +37,10 @@ class _BeatmapListTileState extends ConsumerState<BeatmapListTile> {
 
   double get _height => widget.setSelected ? 1 : 0;
 
-  BorderRadius get _borderRadius =>
-      const BorderRadius.only(topLeft: Radius.circular(4), bottomLeft: Radius.circular(4));
+  BorderRadius get _borderRadius => const BorderRadius.only(
+    topLeft: Radius.circular(4),
+    bottomLeft: Radius.circular(4),
+  );
 
   @override
   Widget build(BuildContext context) {

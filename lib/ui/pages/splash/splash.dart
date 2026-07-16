@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flosu/core/assets.dart';
-import 'package:flosu/logic/providers/library.dart';
+import 'package:flosu/logic/providers/beatmap.dart';
 import 'package:flosu/logic/services/sample.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -37,7 +37,7 @@ class _SplashPageState extends ConsumerState<SplashPage> {
   // This is posible because of local database
   void _init() async {
     // Load library until database is loaded
-    ref.read(libraryProvider);
+    ref.read(beatmapProvider);
 
     const welcomeSample = AppSamples.introWelcome;
 
@@ -55,7 +55,7 @@ class _SplashPageState extends ConsumerState<SplashPage> {
       welcomeSample,
     ]);
 
-    final random = ref.read(libraryProvider.notifier).getRandom();
+    final random = ref.read(beatmapProvider.notifier).getRandom();
     if (random != null) await audio.load(random);
 
     if (mounted) setState(() => _ready = true);

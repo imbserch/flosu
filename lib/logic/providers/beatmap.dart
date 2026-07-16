@@ -4,42 +4,42 @@ import 'dart:math';
 
 import 'package:collection/collection.dart';
 import 'package:flosu/logic/providers/router.dart';
-import 'package:flosu/logic/providers/storage.dart';
-import 'package:flosu/logic/services/database.dart';
+import 'package:flosu/logic/providers/settings.dart';
 import 'package:flosu/logic/services/file_parser.dart';
 import 'package:flosu/logic/services/logger.dart';
-import 'package:flosu/models/storage/beatmap_metadata.dart';
+import 'package:flosu/models/generated/beatmap_metadata.dart';
+import 'package:flosu/repositories/beatmap.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:isar_community/isar.dart';
 
-/// Riverpod notifier that maintains the in-memory beatmap library.
 ///
-/// [LibraryProvider] watches the configured beatmaps directory from
-/// [StorageProvider] and parses every `.osu` file it finds via
-/// [FileParserService]. Parsed [Beatmap]s are grouped by title and artist
-/// into [BeatmapSet]s, which are the items shown in the song selection list.
-///
-/// Parsing is performed asynchronously — the state grows incrementally as
-/// files are parsed, so the UI can display results immediately without waiting
-/// for the entire library to load.
-class LibraryProvider extends Notifier<List<BeatmapMetadata>> {
+class BeatmapProvider extends Notifier<List<BeatmapMetadata>> {
+  late final BeatmapRepository _repository = ref.read(
+    beatmapRepositoryProvider,
+  );
+  late final FileParserService _parserService = ref.read(fileParserService);
+
+  final ScopedLogger _logger = Logger.requestLogger("BeatmapProvider");
+
   @override
   List<BeatmapMetadata> build() {
     Future.microtask(() async {
       // Subscribe to the file parser's result stream.
-      final StreamSubscription<ParseResult> parserSubs = _parserService
-          .resultStream
+      final parserSubs = _parserService.resultStream
           .where((r) => r is ParseResult<BeatmapMetadata>)
           .listen(_handleParserResult);
 
+      // Subscribe to the repository stream.
+      final beatmapSubs = _repository.stream.listen(_handleRepositoryUpdate);
+
       // Trigger a reload whenever the beatmaps directory path changes.
       ref.listen<String?>(
-        storageProvider.select((it) => it.beatmapsPath),
+        settingsProvider.select((it) => it.beatmapsPath),
         _listenStoragePathChanges,
         fireImmediately: true,
       );
 
       ref.onDispose(() {
+        beatmapSubs.cancel();
         parserSubs.cancel();
         _logger.dispose();
       });
@@ -48,23 +48,18 @@ class LibraryProvider extends Notifier<List<BeatmapMetadata>> {
     return [];
   }
 
-  final ScopedLogger _logger = Logger.requestLogger("LibraryProvider");
-  late final FileParserService _parserService = ref.read(fileParserService);
-  late final Isar _db = ref.read(databaseService.select((it) => it.db));
-
   /// Reacts to a change in the configured beatmaps directory path.
   ///
   /// Clears the current library and queues all `.osu` files in the new
   /// directory for parsing. If [path] is null or the directory does not exist,
   /// the library is cleared and no parsing is started.
   void _listenStoragePathChanges(String? old, String? path) async {
-    if (path == null || path.isEmpty) return _clearBeatmapsDB();
+    if (path == null || path.isEmpty) return _clearRepository();
 
     final dir = Directory(path);
-    if (!dir.existsSync()) return _clearBeatmapsDB();
+    if (!dir.existsSync()) return _clearRepository();
 
-    final storedBeatmaps = await _db.beatmapMetadatas.where().findAll();
-    _addAndSort(storedBeatmaps);
+    final storedBeatmaps = _repository.cache;
 
     // Collect all .osu files recursively.
     final matchingPaths = dir
@@ -99,40 +94,30 @@ class LibraryProvider extends Notifier<List<BeatmapMetadata>> {
       "Beatmap parsed: ${beatmap.info.title} (${beatmap.info.version})",
     );
 
-    _addBeatmapToDB(beatmap);
+    // Add beatmap to DB and update state
+    _repository.insert([beatmap]);
   }
 
-  void _addAndSort(List<BeatmapMetadata> metadatas) {
-    final newState = [...state, ...metadatas];
+  void _handleRepositoryUpdate(List<BeatmapMetadata> metadatas) =>
+      state = sort(metadatas);
 
-    newState.sort((a, b) {
-      final compareSetId = (a.general.beatmapSetId ?? -1).compareTo(
-        b.general.beatmapSetId ?? -1,
-      );
-      if (compareSetId != 0) return compareSetId;
+  void _clearRepository() => _repository.clear();
 
-      final compareTitle = a.info.title.compareTo(b.info.title);
-      if (compareTitle != 0) return compareTitle;
+  List<BeatmapMetadata> sort(List<BeatmapMetadata> beatmaps) =>
+      beatmaps..sort((a, b) {
+        final titleCompare = a.info.title.compareTo(b.info.title);
+        if (titleCompare != 0) return titleCompare;
 
-      final compareArtist = a.info.artist.compareTo(b.info.artist);
-      if (compareArtist != 0) return compareArtist;
+        final artistCompare = a.info.artist.compareTo(b.info.artist);
+        if (artistCompare != 0) return artistCompare;
 
-      // Compare version
-      return a.info.version.compareTo(b.info.version);
-    });
+        final setIdCompare = (a.general.beatmapSetId ?? 0).compareTo(
+          b.general.beatmapSetId ?? 0,
+        );
+        if (setIdCompare != 0) return setIdCompare;
 
-    state = newState;
-  }
-
-  void _addBeatmapToDB(BeatmapMetadata metadata) {
-    _db.writeTxn(() => _db.beatmapMetadatas.put(metadata));
-    _addAndSort([metadata]);
-  }
-
-  void _clearBeatmapsDB() {
-    _db.writeTxn(() => _db.beatmapMetadatas.where().deleteAll());
-    state = [];
-  }
+        return a.info.version.compareTo(b.info.version);
+      });
 
   /// Returns a randomly selected [Beatmap] from the entire library.
   ///
@@ -159,8 +144,8 @@ class LibraryProvider extends Notifier<List<BeatmapMetadata>> {
   }
 }
 
-/// Global provider for [LibraryProvider].
-final libraryProvider =
-    NotifierProvider<LibraryProvider, List<BeatmapMetadata>>(
-      () => LibraryProvider(),
+/// Global provider for [BeatmapProvider].
+final beatmapProvider =
+    NotifierProvider<BeatmapProvider, List<BeatmapMetadata>>(
+      () => BeatmapProvider(),
     );

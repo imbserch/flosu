@@ -1,9 +1,12 @@
+import 'package:flosu/core/constants.dart';
 import 'package:flosu/core/theme/app_colors.dart';
-import 'package:flosu/logic/providers/library.dart';
+import 'package:flosu/logic/providers/beatmap.dart';
 import 'package:flosu/ui/shared/animatable_page.dart';
 import 'package:flosu/ui/widgets/common/actions_bar.dart';
+import 'package:flosu/ui/widgets/common/osu_button.dart';
 import 'package:flosu/ui/widgets/common/skewed_box.dart';
 import 'package:flosu/ui/widgets/common/top_banner.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -18,7 +21,9 @@ class ReplayPickerPage extends AnimatablePage {
 class _ReplayPickerPageState extends AnimatablePageState<ReplayPickerPage> {
   @override
   Widget buildPage(BuildContext context, double t) {
-    return ColoredBox(
+    final path = ["C:", "Users", "default", "AppData", "Local"];
+
+    return Material(
       color: Colors.black38,
       child: Stack(
         alignment: .bottomCenter,
@@ -33,61 +38,103 @@ class _ReplayPickerPageState extends AnimatablePageState<ReplayPickerPage> {
                     "and can be used to learn from other players or to just watch "
                     "fun plays.",
               ),
-              Expanded(
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: .center,
-                    crossAxisAlignment: .center,
-                    mainAxisSize: .min,
-                    spacing: 12,
-                    children: [
-                      const Text("Pick your file here"),
-                      SkewedBox(
-                        width: 112,
-                        decoration: BoxDecoration(
-                          borderRadius: .circular(4),
-                          color: AppColors.purple,
+              // Hidden until implementation
+              if (kDebugMode)
+                Expanded(
+                  child: Padding(
+                    padding: const .fromLTRB(24, 0, 24, 32),
+                    child: Column(
+                      mainAxisAlignment: .center,
+                      crossAxisAlignment: .center,
+                      mainAxisSize: .min,
+                      spacing: 4,
+                      children: [
+                        SizedBox(
+                          height: 16,
+                          child: ScrollConfiguration(
+                            behavior: defaultScrollBehavior,
+                            child: ListView.separated(
+                              itemCount: path.length,
+                              scrollDirection: .horizontal,
+                              itemBuilder: (_, idx) => OsuButton(
+                                borderRadius: .circular(2),
+                                color: AppColors.middle(
+                                  AppColors.purple,
+                                  AppColors.containerHigh,
+                                ),
+                                useMinimumSize: false,
+                                child: Text(path[idx]),
+                                onPressed: () {},
+                              ),
+                              separatorBuilder: (_, _) => Padding(
+                                padding: const .symmetric(horizontal: 4),
+                                child: OsuButton(
+                                  borderRadius: .circular(2),
+                                  color: AppColors.containerHigh,
+                                  useMinimumSize: false,
+                                  child: const Text("/"),
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
-                        useGradientBorder: true,
-                        padding: const .symmetric(vertical: 9, horizontal: 33),
-                        onTap: () {
-                          ref.read(libraryProvider.notifier).pickReplay();
-                          if (mounted) context.go("/songs");
-                        },
-                        child: const Row(
-                          spacing: 4,
-                          children: [
-                            Icon(Icons.file_open_rounded, size: 8),
-                            Text("Pick file", style: TextStyle(fontSize: 8)),
-                          ],
+
+                        Expanded(
+                          child: ScrollConfiguration(
+                            behavior: defaultScrollBehavior,
+                            child: ListView.builder(
+                              itemBuilder: (_, idx) => InkWell(
+                                onTap: () {},
+                                borderRadius: .circular(2),
+                                child: Padding(
+                                  padding: const .symmetric(
+                                    horizontal: 4,
+                                    vertical: 2,
+                                  ),
+                                  child: Row(
+                                    spacing: 4,
+                                    children: [
+                                      const Icon(Icons.image, size: 8),
+                                      Text(
+                                        "Content $idx",
+                                        style: const TextStyle(fontSize: 8),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
           ActionsBar(
             onBack: () => context.go("/songs"),
-            // This button will be enabled when internal picker is implemented
-            /* trailing: SkewedBox(
+            trailing: SkewedBox(
+              width: 112,
               decoration: BoxDecoration(
                 borderRadius: .circular(4),
                 color: AppColors.purple,
               ),
               useGradientBorder: true,
-              margin: const .fromLTRB(0, 12, 18, 12),
+              margin: const .only(right: 18, bottom: 12),
               padding: const .symmetric(vertical: 9, horizontal: 33),
-              onTap: () {},
+              onTap: () {
+                ref.read(beatmapProvider.notifier).pickReplay();
+                if (mounted) context.go("/songs");
+              },
               child: const Row(
                 spacing: 4,
                 children: [
-                  Icon(Icons.play_arrow_rounded, size: 8),
-                  Text("Select", style: TextStyle(fontSize: 8)),
+                  Icon(Icons.file_open_rounded, size: 8),
+                  Text("Pick file", style: TextStyle(fontSize: 8)),
                 ],
               ),
-            ), */
+            ),
           ),
         ],
       ),

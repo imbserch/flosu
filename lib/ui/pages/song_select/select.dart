@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flosu/logic/providers/library.dart';
+import 'package:flosu/logic/providers/beatmap.dart';
 import 'package:flosu/ui/widgets/beatmap/beatmap_list.dart';
 import 'package:flosu/ui/widgets/common/actions_bar.dart';
 import 'package:flutter/foundation.dart';
@@ -72,8 +72,8 @@ class _SongSelectPageState extends AnimatablePageState<SongSelectPage> {
   }
 
   void _playRandom() async {
-    final bm = ref.read(libraryProvider.notifier).getRandom();
-    if (bm != null) ref.read(audioProvider.notifier).play(bm);
+    final bm = ref.read(beatmapProvider.notifier).getRandom();
+    if (bm != null) ref.read(audioProvider.notifier).preview(bm);
   }
 
   @override

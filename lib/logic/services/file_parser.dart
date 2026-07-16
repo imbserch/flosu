@@ -10,7 +10,7 @@ import 'package:flosu/io/parser.dart';
 import 'package:flosu/io/replay_parser.dart';
 import 'package:flosu/models/beatmap/beatmap_content.dart';
 import 'package:flosu/models/replay/replay.dart';
-import 'package:flosu/models/storage/beatmap_metadata.dart';
+import 'package:flosu/models/generated/beatmap_metadata.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class ParseResult<T extends Object> {

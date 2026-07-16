@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flosu/logic/providers/storage.dart';
+import 'package:flosu/logic/providers/settings.dart';
 
 class VolumeBar extends ConsumerStatefulWidget {
   const VolumeBar({super.key});
@@ -14,14 +14,14 @@ class VolumeBar extends ConsumerStatefulWidget {
 class _VolumeBarState extends ConsumerState<VolumeBar> {
   late ProviderSubscription<double> _volSub;
 
-  late double _volume = ref.read(storageProvider).globalVolume;
+  late double _volume = ref.read(settingsProvider).globalVolume;
   bool _showPanels = false;
   Timer? _panelHideTimer;
 
   @override
   initState() {
     _volSub = ref.listenManual(
-      storageProvider.select((it) => it.globalVolume),
+      settingsProvider.select((it) => it.globalVolume),
       _triggerVolumeChange,
     );
     super.initState();

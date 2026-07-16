@@ -1,13 +1,12 @@
 import 'dart:async';
 
 import 'package:flosu/logic/services/logger.dart';
-import 'package:flosu/models/storage/beatmap_metadata.dart';
+import 'package:flosu/models/generated/beatmap_metadata.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_soloud/flutter_soloud.dart';
-import 'package:flosu/logic/providers/storage.dart';
+import 'package:flosu/logic/providers/settings.dart';
 import 'package:flosu/logic/services/audio.dart';
-import 'package:flosu/logic/services/storage.dart';
 
 typedef AudioTimingsCallback = void Function(Duration delay);
 
@@ -30,16 +29,16 @@ class AudioProvider extends Notifier<BeatmapMetadata?> {
 
     //Handle changes without rebuild this provider
     ref.listen(
-      storageProvider.select((it) => it.audioCompensation),
+      settingsProvider.select((it) => it.audioCompensation),
       (_, offset) => _userOffset = Duration(milliseconds: offset),
       fireImmediately: true,
     );
     ref.listen(
-      storageProvider.select((it) => it.globalVolume),
+      settingsProvider.select((it) => it.globalVolume),
       (_, volume) => _service.setGlobalVolume(volume),
       fireImmediately: true,
     );
-    ref.listen(storageProvider.select((it) => it.musicVolume), (_, volume) {
+    ref.listen(settingsProvider.select((it) => it.musicVolume), (_, volume) {
       _musicVolume = volume;
       if (_currentHandle != null) _service.setVolume(_currentHandle!, volume);
     }, fireImmediately: true);
@@ -188,12 +187,9 @@ class AudioProvider extends Notifier<BeatmapMetadata?> {
     return source;
   }
 
-  /// Plays an audio file from the beginning.
+  /// Plays an audio from beatmap from the beginning.
   ///
-  /// If another audio is currently playing, it will be stopped using
-  /// a medium duration fade-out to avoid "popping" sounds.
-  ///
-  /// [path]: The file location of the audio to be played.
+  /// If another audio is currently playing, it will be stopped.
   Future<void> play(BeatmapMetadata beatmap) async {
     final path = beatmap.general.audioPath;
 
@@ -238,12 +234,10 @@ class AudioProvider extends Notifier<BeatmapMetadata?> {
     changedSources.value = changedSources.value + 1;
   }
 
-  /// Previews an audio file with a volume fade-in effect.
+  /// Previews an audio from beatmap with a volume fade-in effect.
   ///
   /// Useful for gallery or selection screens. It starts the audio at volume 0
   /// and fades it in, while simultaneously fading out and stopping the previous audio.
-  ///
-  /// [path]: The file location of the audio to preview.
   Future<void> preview(BeatmapMetadata beatmap, [bool force = false]) async {
     final path = beatmap.general.audioPath;
 

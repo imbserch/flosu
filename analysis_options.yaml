@@ -11,3 +11,4 @@ linter:
     prefer_const_declarations: true
     sort_constructors_first: true
     unnecessary_const: true
+    avoid_unused_constructor_parameters: true

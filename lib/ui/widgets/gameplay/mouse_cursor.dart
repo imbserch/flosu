@@ -11,7 +11,7 @@ import 'package:flutter/services.dart' hide PointerEvent;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:flosu/logic/providers/input.dart';
-import 'package:flosu/logic/providers/storage.dart';
+import 'package:flosu/logic/providers/settings.dart';
 import 'package:flosu/models/inputs/inputs.dart';
 import 'package:flosu/logic/providers/router.dart';
 import 'package:flosu/ui/painters/gameplay.dart';
@@ -123,12 +123,15 @@ class _MouseCursorState extends ConsumerState<MouseCursor> {
 
   @override
   Widget build(BuildContext context) {
-    final showTrail = ref.watch(storageProvider).showCursorTrail;
+    final cursorTrailEnabled = ref.watch(
+      settingsProvider.select((it) => it.cursorTrailEnabled),
+    );
+
     return IgnorePointer(
       child: CustomPaint(
         painter: MousePainter(
           events: _eventsNotifier,
-          showTrail: showTrail,
+          showTrail: cursorTrailEnabled,
           cursorImage: _mouseImage,
         ),
       ),

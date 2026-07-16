@@ -1,9 +1,8 @@
-import 'dart:ui';
-
+import 'package:flosu/core/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flosu/core/theme/app_colors.dart';
-import 'package:flosu/logic/providers/storage.dart';
+import 'package:flosu/logic/providers/settings.dart';
 //import 'package:flosu/providers/tooltip_service.dart';
 import 'package:flosu/ui/widgets/common/osu_button.dart';
 import 'package:flosu/ui/widgets/common/osu_checkbox.dart';
@@ -17,8 +16,8 @@ class SettingsDrawer extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final storage = ref.read(storageProvider.notifier);
-    final config = ref.watch(storageProvider);
+    final storage = ref.read(settingsProvider.notifier);
+    final config = ref.watch(settingsProvider);
 
     //final tooltipManager = ref.read(tooltipService.notifier);
 
@@ -44,10 +43,7 @@ class SettingsDrawer extends ConsumerWidget {
           ),
           Expanded(
             child: ScrollConfiguration(
-              behavior: const MaterialScrollBehavior().copyWith(
-                dragDevices: PointerDeviceKind.values.toSet(),
-                physics: const BouncingScrollPhysics(),
-              ),
+              behavior: defaultScrollBehavior,
               child: CustomScrollView(
                 slivers: [
                   SliverList.list(
@@ -61,13 +57,13 @@ class SettingsDrawer extends ConsumerWidget {
                               SettingsItem(
                                 label: "Key 1",
                                 control: OsuConfigurableKey(
-                                  keyId: config.osuK1,
+                                  keyId: config.osuKeys[0],
                                 ),
                               ),
                               SettingsItem(
                                 label: "Key 2",
                                 control: OsuConfigurableKey(
-                                  keyId: config.osuK2,
+                                  keyId: config.osuKeys[1],
                                 ),
                               ),
                             ],
@@ -84,7 +80,7 @@ class SettingsDrawer extends ConsumerWidget {
                               SettingsItem(
                                 label: "Parallax",
                                 control: OsuCheckbox(
-                                  value: config.parallax,
+                                  value: config.parallaxEnabled,
                                   onChange: storage.setParallax,
                                 ),
                               ),
@@ -127,14 +123,14 @@ class SettingsDrawer extends ConsumerWidget {
                               SettingsItem(
                                 label: "Snaking Sliders",
                                 control: OsuCheckbox(
-                                  value: config.snakingSliders,
+                                  value: config.snakingSlidersEnabled,
                                   onChange: storage.setSnakingSliders,
                                 ),
                               ),
                               SettingsItem(
                                 label: "Cursor Trail",
                                 control: OsuCheckbox(
-                                  value: config.showCursorTrail,
+                                  value: config.cursorTrailEnabled,
                                   onChange: storage.setCursorTrail,
                                 ),
                               ),
@@ -207,14 +203,14 @@ class SettingsDrawer extends ConsumerWidget {
                               SettingsItem(
                                 label: "Show logs",
                                 control: OsuCheckbox(
-                                  value: config.showLogs,
+                                  value: config.logsEnabled,
                                   onChange: storage.setShowLogs,
                                 ),
                               ),
                               SettingsItem(
                                 label: "Show FPS monitor",
                                 control: OsuCheckbox(
-                                  value: config.showFpsMonitor,
+                                  value: config.fpsMonitorEnabled,
                                   onChange: storage.setShowFpsMonitor,
                                 ),
                               ),

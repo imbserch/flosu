@@ -1,5 +1,4 @@
-import 'dart:ui';
-
+import 'package:flosu/core/constants.dart';
 import 'package:flosu/logic/providers/gameplay_data.dart';
 import 'package:flosu/ui/widgets/common/actions_bar.dart';
 import 'package:flosu/ui/widgets/common/top_banner.dart';
@@ -48,12 +47,7 @@ class _ModsPageState extends AnimatablePageState<ModsPage> {
                     constraints: const BoxConstraints(maxHeight: 256),
                     child: SkewedBox.container(
                       child: ScrollConfiguration(
-                        behavior: const MaterialScrollBehavior().copyWith(
-                          scrollbars: false,
-                          overscroll: false,
-                          dragDevices: PointerDeviceKind.values.toSet(),
-                          physics: const BouncingScrollPhysics(),
-                        ),
+                        behavior: defaultScrollBehavior,
                         child: ListView.separated(
                           shrinkWrap: true,
                           clipBehavior: .none,

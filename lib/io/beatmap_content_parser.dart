@@ -6,7 +6,7 @@ import 'package:flosu/models/beatmap/beatmap_content.dart';
 import 'package:flosu/models/beatmap/hit_objects.dart';
 import 'package:flosu/models/beatmap/colors.dart';
 import 'package:flosu/models/beatmap/timing_points.dart';
-import 'package:flosu/models/storage/beatmap_metadata.dart';
+import 'package:flosu/models/generated/beatmap_metadata.dart';
 
 class BeatmapContentParser extends Parser<BeatmapContent> {
   BeatmapContentParser(super.file, this.metadata);
@@ -25,7 +25,6 @@ class BeatmapContentParser extends Parser<BeatmapContent> {
       }
       return false;
     } catch (_) {
-      //TODO: ADD THROW
       return false;
     }
   }

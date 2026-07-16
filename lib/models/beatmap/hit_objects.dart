@@ -10,7 +10,7 @@ import 'package:flosu/core/math/path_approximator.dart';
 import 'package:flosu/core/enums.dart';
 import 'package:flosu/core/math/geometry.dart';
 import 'package:flosu/models/beatmap/timing_points.dart';
-import 'package:flosu/models/storage/beatmap_metadata.dart';
+import 'package:flosu/models/generated/beatmap_metadata.dart';
 
 /// Base class for all playable hit objects in an osu! standard beatmap.
 ///

@@ -2,7 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:flosu/logic/providers/audio.dart';
 import 'package:flosu/logic/providers/gameplay_data.dart';
 import 'package:flosu/logic/providers/router.dart';
-import 'package:flosu/logic/providers/storage.dart';
+import 'package:flosu/logic/providers/settings.dart';
 import 'package:flosu/logic/services/game_loop.dart';
 import 'package:flosu/models/beatmap/hit_objects.dart';
 import 'package:flosu/models/gameplay/gameplay_info.dart';
@@ -37,7 +37,7 @@ class _PlayfieldState extends ConsumerState<Playfield> {
   @override
   void initState() {
     ref.listenManual(
-      storageProvider.select((it) => it.snakingSliders),
+      settingsProvider.select((it) => it.snakingSlidersEnabled),
       _updateSliderSnake,
       fireImmediately: true,
     );
@@ -123,7 +123,7 @@ class _PlayfieldState extends ConsumerState<Playfield> {
   @override
   Widget build(BuildContext context) {
     /* final snakingSliders = ref.watch(
-      storageProvider.select((it) => it.snakingSliders),
+      settingsProvider.select((it) => it.snakingSliders),
     );
     final mods = ref.read(gameplayDataProvider.select((it) => it.mods)); */
 

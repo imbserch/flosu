@@ -8,7 +8,7 @@ import 'package:permission_handler/permission_handler.dart';
 /// Handles Android storage permissions at startup and exposes
 /// [getBeatmapFromFile] for single-file parsing with timeout and error recovery.
 ///
-/// The actual library scanning loop lives in [LibraryProvider]; this service
+/// The actual library scanning loop lives in [beatmapProvider]; this service
 /// only handles the low-level file I/O.
 class LibraryService {
   LibraryService._();

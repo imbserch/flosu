@@ -5,7 +5,7 @@ import 'package:flosu/core/enums.dart';
 import 'package:flosu/logic/providers/gameplay_data.dart';
 import 'package:flosu/logic/providers/audio.dart';
 import 'package:flosu/logic/providers/router.dart';
-import 'package:flosu/logic/providers/storage.dart';
+import 'package:flosu/logic/providers/settings.dart';
 import 'package:flosu/logic/services/game_loop.dart';
 import 'package:flosu/logic/services/logger.dart';
 import 'package:flosu/ui/painters/gameplay.dart';
@@ -75,8 +75,8 @@ class _ReplayMouseCursorState extends ConsumerState<ReplayMouseCursor> {
 
   @override
   Widget build(BuildContext context) {
-    final showTrail = ref.watch(
-      storageProvider.select((it) => it.showCursorTrail),
+    final cursorTrailEnabled = ref.watch(
+      settingsProvider.select((it) => it.cursorTrailEnabled),
     );
 
     return CustomPaint(
@@ -84,7 +84,7 @@ class _ReplayMouseCursorState extends ConsumerState<ReplayMouseCursor> {
         framePos: _framePos,
         frameTimes: _frameTimes,
         position: _position,
-        showTrail: showTrail,
+        showTrail: cursorTrailEnabled,
         cursorImage: _mouseImage,
       ),
     );

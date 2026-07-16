@@ -39,7 +39,6 @@ class ReplayParser extends Parser<Replay> {
       }
       return false;
     } catch (_) {
-      // TODO: ADD THROW
       return false;
     }
   }

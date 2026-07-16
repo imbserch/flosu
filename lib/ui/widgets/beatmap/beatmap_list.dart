@@ -1,8 +1,7 @@
-import 'dart:ui';
-
+import 'package:flosu/core/constants.dart';
 import 'package:flosu/core/extensions/ui.dart';
 import 'package:flosu/logic/providers/audio.dart';
-import 'package:flosu/logic/providers/library.dart';
+import 'package:flosu/logic/providers/beatmap.dart';
 import 'package:flosu/ui/widgets/beatmap/beatmap_list_tile.dart';
 import 'package:flosu/ui/widgets/beatmap/beatmap_set_list_tile.dart';
 import 'package:flutter/material.dart';
@@ -18,7 +17,7 @@ class BeatmapList extends ConsumerStatefulWidget {
 class _BeatmapListState extends ConsumerState<BeatmapList> {
   @override
   Widget build(BuildContext context) {
-    final beatmaps = ref.watch(libraryProvider);
+    final beatmaps = ref.watch(beatmapProvider);
 
     final currentBeatmap = ref.watch(audioProvider);
     final currentSetId = currentBeatmap?.general.beatmapSetId;
@@ -80,11 +79,7 @@ class _BeatmapListState extends ConsumerState<BeatmapList> {
     }
 
     return ScrollConfiguration(
-      behavior: const MaterialScrollBehavior().copyWith(
-        scrollbars: false,
-        dragDevices: PointerDeviceKind.values.toSet(),
-        physics: const BouncingScrollPhysics(),
-      ),
+      behavior: defaultScrollBehavior,
       child: CustomScrollView(
         slivers: [
           SliverPadding(

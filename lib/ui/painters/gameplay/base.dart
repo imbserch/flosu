@@ -1,6 +1,6 @@
 import 'package:flosu/models/beatmap/hit_objects.dart';
 import 'package:flosu/models/mods/base.dart';
-import 'package:flosu/models/storage/beatmap_metadata.dart';
+import 'package:flosu/models/generated/beatmap_metadata.dart';
 import 'package:flutter/material.dart' hide Slider;
 
 part 'hit_objects/base.dart';

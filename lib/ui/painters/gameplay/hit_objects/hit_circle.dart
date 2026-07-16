@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:flosu/core/extensions/models.dart';
 import 'package:flosu/models/beatmap/hit_objects.dart';
 import 'package:flosu/models/mods/base.dart';
-import 'package:flosu/models/storage/beatmap_metadata.dart';
+import 'package:flosu/models/generated/beatmap_metadata.dart';
 import 'package:flosu/ui/painters/gameplay/base.dart';
 import 'package:flutter/material.dart' show Colors;
 import 'package:flutter/painting.dart';
