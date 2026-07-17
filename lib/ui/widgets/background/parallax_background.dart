@@ -18,7 +18,7 @@ class ParallaxBackground extends ConsumerStatefulWidget {
 
 class _ParallaxBackgroundState extends ConsumerState<ParallaxBackground> {
   final GlobalKey _imageKey = GlobalKey();
-  final ValueNotifier<Offset> _offsetNotifier = ValueNotifier(Offset.zero);
+  Offset _offset = Offset.zero;
 
   @override
   initState() {
@@ -29,7 +29,6 @@ class _ParallaxBackgroundState extends ConsumerState<ParallaxBackground> {
   @override
   dispose() {
     ref.read(inputProvider.notifier).removeDelayedHandler(_onInput);
-    _offsetNotifier.dispose();
     super.dispose();
   }
 
@@ -40,13 +39,15 @@ class _ParallaxBackgroundState extends ConsumerState<ParallaxBackground> {
 
     final currentPos = event.pointer.last.position;
 
-    final targetOffset = Offset(
-      ((-currentPos.dx / context.screenScaled.width) / 10) + .05,
-      ((-currentPos.dy / context.screenScaled.height) / 10) + .05,
-    );
+    final targetOffset =
+        const Offset(-0.025, -0.025) +
+        Offset(
+          (currentPos.dx / context.screenScaled.width) / 20,
+          (currentPos.dy / context.screenScaled.height) / 20,
+        );
 
-    if (targetOffset != _offsetNotifier.value) {
-      _offsetNotifier.value = targetOffset;
+    if (targetOffset != _offset) {
+      if (mounted) setState(() => _offset = targetOffset);
     }
   }
 
@@ -58,12 +59,13 @@ class _ParallaxBackgroundState extends ConsumerState<ParallaxBackground> {
       settingsProvider.select((it) => it.parallaxEnabled),
     );
 
+    if (dim == 1) return const SizedBox();
+
     final imageFile = ref.watch(
       audioProvider.select((it) => it?.general.backgroundPath),
     );
 
     final width = context.screenScaled.width;
-    final scale = parallaxEnabled ? 1.0 : 0.0;
 
     ImageProvider? getProvider() {
       if (imageFile == null || dim == 1) return null;
@@ -88,8 +90,6 @@ class _ParallaxBackgroundState extends ConsumerState<ParallaxBackground> {
       return ResizeImage(baseProvider, width: targetWidth);
     }
 
-    if (dim == 1) return const SizedBox();
-
     Widget image = ImageFade(
       key: _imageKey,
       image: getProvider(),
@@ -101,40 +101,21 @@ class _ParallaxBackgroundState extends ConsumerState<ParallaxBackground> {
       errorBuilder: (_, _) => const Center(),
     );
 
-    if (blur > 0) {
-      image = ImageFiltered(
-        imageFilter: ImageFilter.blur(sigmaX: blur * 8, sigmaY: blur * 8),
-        child: image,
-      );
-    }
-
-    if (dim > 0) {
-      image = Opacity(opacity: 1 - dim, child: image);
-    }
-
-    return AnimatedBuilder(
-      animation: _offsetNotifier,
-      builder: (context, child) {
-        final currentOffset = _offsetNotifier.value;
-        final traslatedOffset = parallaxEnabled
-            ? currentOffset - const Offset(.5, .5)
-            : Offset.zero;
-
-        return Transform(
-          key: ValueKey(parallaxEnabled),
-          transform: .identity()
-            ..translateByDouble(
-              traslatedOffset.dx * 96,
-              traslatedOffset.dy * 96,
-              1,
-              1,
-            )
-            ..scaleByDouble(1 + (.15 * scale), 1 + (.15 * scale), 1, 1),
-          filterQuality: .low,
-          child: child,
-        );
-      },
-      child: image,
+    return Opacity(
+      opacity: 1 - dim,
+      child: AnimatedSlide(
+        offset: parallaxEnabled && dim != 1 ? _offset : Offset.zero,
+        duration: Durations.short1,
+        child: AnimatedScale(
+          scale: parallaxEnabled ? 1.1 : 1,
+          duration: Durations.medium1,
+          curve: Curves.fastOutSlowIn,
+          child: ImageFiltered(
+            imageFilter: ImageFilter.blur(sigmaX: blur * 8, sigmaY: blur * 8),
+            child: image,
+          ),
+        ),
+      ),
     );
   }
 }
