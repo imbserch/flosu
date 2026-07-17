@@ -1,9 +1,6 @@
-import 'dart:async';
-
 import 'package:flosu/logic/providers/beatmap.dart';
 import 'package:flosu/ui/widgets/beatmap/beatmap_list.dart';
 import 'package:flosu/ui/widgets/common/actions_bar.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide PointerEvent;
 import 'package:flutter/services.dart' hide PointerEvent;
 import 'package:go_router/go_router.dart';
@@ -11,7 +8,6 @@ import 'package:flosu/logic/providers/audio.dart';
 import 'package:flosu/core/theme/app_colors.dart';
 import 'package:flosu/core/extensions/models.dart';
 import 'package:flosu/core/extensions/ui.dart';
-import 'package:flosu/models/inputs/inputs.dart';
 import 'package:flosu/ui/shared/animatable_page.dart';
 import 'package:flosu/ui/widgets/beatmap/current_beatmap_info.dart';
 import 'package:flosu/ui/widgets/common/osu_logo.dart';
@@ -25,45 +21,37 @@ class SongSelectPage extends AnimatablePage {
 }
 
 class _SongSelectPageState extends AnimatablePageState<SongSelectPage> {
-  final _sCon = TextEditingController();
-
-  Set<LogicalKeyboardKey> _lastKeys = {};
-  Timer? _updateTimer;
   @override
-  dispose() {
-    _lastKeys.clear();
-    _updateTimer?.cancel();
-
-    //Widget is unsafe, calling from root navigator
-    _sCon.dispose();
-    super.dispose();
-  }
+  bool get keyboardOnly => true;
 
   @override
-  bool onInput(Set<LogicalKeyboardKey> keys, PointerEvent? pointer) {
-    if (setEquals(_lastKeys, keys)) return false;
-
+  bool onInput(Set<LogicalKeyboardKey> keys, _) {
     bool handled = false;
 
-    //If F1 pressed and keys changed, open mods
-    if (keys.changedAndPressed(LogicalKeyboardKey.f1, _lastKeys)) {
+    //If escape pressed, go back
+    if (keys.pressed(.escape)) {
+      if (mounted) context.go("/main");
+      handled = true;
+    }
+
+    //If F1 pressed, open mods
+    if (keys.pressed(LogicalKeyboardKey.f1)) {
       if (mounted) context.go("/songs/mods");
       handled = true;
     }
 
-    //If F2 pressed and keys changed, play random song
-    if (keys.changedAndPressed(LogicalKeyboardKey.f2, _lastKeys)) {
+    //If F2 pressed, play random song
+    if (keys.pressed(LogicalKeyboardKey.f2)) {
       _playRandom();
       handled = true;
     }
 
-    //If F3 pressed and keys changed, open replay window
-    if (keys.changedAndPressed(LogicalKeyboardKey.f3, _lastKeys)) {
+    //If F3 pressed, open replay window
+    if (keys.pressed(LogicalKeyboardKey.f3)) {
       _pickReplay();
       handled = true;
     }
 
-    _lastKeys = keys.toSet();
     return handled;
   }
 

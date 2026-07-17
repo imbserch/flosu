@@ -5,10 +5,8 @@ import 'package:flosu/core/theme/app_colors.dart';
 import 'package:flosu/logic/providers/audio.dart';
 import 'package:flosu/logic/providers/gameplay_data.dart';
 import 'package:flosu/logic/providers/router.dart';
-import 'package:flosu/models/inputs/inputs.dart';
 import 'package:flosu/ui/shared/animatable_page.dart';
 import 'package:flosu/ui/widgets/common/skewed_box.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide PointerEvent;
 import 'package:flutter/services.dart' hide PointerEvent;
 import 'package:go_router/go_router.dart';
@@ -20,24 +18,18 @@ class PausePage extends AnimatablePage {
   AnimatablePageState<PausePage> createState() => _PausePageState();
 }
 
+enum PauseExitAction { resume, reset, quit }
+
 class _PausePageState extends AnimatablePageState<PausePage> {
-  Timer? _resetHandlerTimer;
+  /// How the pause screen is exiting.
+  PauseExitAction _exitAction = PauseExitAction.resume;
 
-  // Flag to prevent multiple resume calls.
-  // Initially set to true to prevent any input from being processed at first frame
-  bool _handledResume = true;
-  bool _exitToSongs = true;
-
-  /// Tracks the set of logical keys held in the previous input event.
-  /// Used to detect key-down transitions without repeats.
-  Set<LogicalKeyboardKey> _lastKeys = {};
+  /// Tracks if the first event has been fired.
+  bool _firstEventFired = false;
 
   // Initialization
   @override
   void initState() {
-    // Enable input handling after a short delay
-    _resetHandler();
-
     // Stop music
     ref.read(audioProvider.notifier).setPlaying(false);
     super.initState();
@@ -49,81 +41,55 @@ class _PausePageState extends AnimatablePageState<PausePage> {
     final gameplay = globalRef.read(gameplayDataProvider.notifier);
     final audio = globalRef.read(audioProvider.notifier);
 
-    // Set preview if going back to song list
-    if (_exitToSongs) {
-      final beatmap = globalRef.read(audioProvider);
-      if (beatmap != null) audio.preview(beatmap, true);
-
-      Future.microtask(gameplay.clearAll);
-    } else {
-      // Resume music if resumed
-      audio.setPlaying(true);
+    switch (_exitAction) {
+      case PauseExitAction.resume:
+        audio.setPlaying(true);
+        break;
+      case PauseExitAction.quit:
+        final beatmap = globalRef.read(audioProvider);
+        if (beatmap != null) audio.preview(beatmap, true);
+        Future.microtask(gameplay.clearReplay);
+        break;
+      case PauseExitAction.reset:
+        // No-op (Replay can be replayed)
+        break;
     }
-
-    _resetHandlerTimer?.cancel();
     super.dispose();
   }
 
   @override
-  bool onInput(Set<LogicalKeyboardKey> keys, PointerEvent? pointer) {
-    // Pointer-only events can arrive with the same key set — skip them.
-    if (setEquals(_lastKeys, keys)) return false;
+  bool get keyboardOnly => true;
 
-    bool handled = false;
-
-    if (!_handledResume) {
-      if (keys.changedAndPressed(LogicalKeyboardKey.escape, _lastKeys)) {
-        handled = true;
-        _resume();
-      }
+  @override
+  bool onInput(Set<LogicalKeyboardKey> keys, _) {
+    // Wait until first event of keyboard is fired
+    // This event frecuently is the release of Escape key from the gameplay page
+    if (!_firstEventFired) {
+      _firstEventFired = true;
+      return true;
     }
 
-    _lastKeys = keys.toSet();
-    return handled;
+    // If escape pressed, resume
+    if (keys.pressed(.escape)) return _resume();
+
+    return false;
   }
 
   /// Navigates back to the gameplay page, resuming the game.
-  void _resume() {
-    _handledResume = true;
-    _exitToSongs = false;
-
-    if (mounted) {
-      setState(() {});
-      context.go("/gameplay");
-    }
-
-    // Sometimes, user pauses gameplay while this screen is leaving, so
-    // we need to reset the handler after the animation ends
-    _resetHandler();
+  bool _resume() {
+    _exitAction = PauseExitAction.resume;
+    if (mounted) context.go("/gameplay");
+    return true;
   }
 
   void _reset() {
-    _handledResume = true;
-    _exitToSongs = false;
+    _exitAction = PauseExitAction.reset;
     if (mounted) context.go("/load");
-
-    // Sometimes, gameplay will end loading before this screen is leaving, so
-    // we need to reset the handler after the animation ends
-    _resetHandler();
   }
 
   void _quit() {
-    _handledResume = true;
-    _exitToSongs = true;
+    _exitAction = PauseExitAction.quit;
     if (mounted) context.go("/songs");
-
-    // Sometimes, gameplay will end loading before this screen is leaving, so
-    // we need to reset the handler after the animation ends
-    _resetHandler();
-  }
-
-  void _resetHandler() {
-    _resetHandlerTimer?.cancel();
-    _resetHandlerTimer = Timer(Durations.extralong4, () {
-      _handledResume = false;
-      _exitToSongs = true;
-      if (mounted) setState(() {});
-    });
   }
 
   @override
@@ -147,7 +113,7 @@ class _PausePageState extends AnimatablePageState<PausePage> {
               crossAxisAlignment: .stretch,
               children: [
                 SkewedBox(
-                  onTap: _handledResume ? null : _resume,
+                  onTap: _resume,
                   decoration: const BoxDecoration(
                     color: Colors.green,
                     borderRadius: .zero,
@@ -160,7 +126,7 @@ class _PausePageState extends AnimatablePageState<PausePage> {
                   ),
                 ),
                 SkewedBox(
-                  onTap: _handledResume ? null : _reset,
+                  onTap: _reset,
                   decoration: const BoxDecoration(
                     color: Colors.amber,
                     borderRadius: .zero,
@@ -173,7 +139,7 @@ class _PausePageState extends AnimatablePageState<PausePage> {
                   ),
                 ),
                 SkewedBox(
-                  onTap: _handledResume ? null : _quit,
+                  onTap: _quit,
                   decoration: const BoxDecoration(
                     color: Colors.red,
                     borderRadius: .zero,

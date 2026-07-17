@@ -1,15 +1,15 @@
 import 'dart:async';
 
+import 'package:flosu/core/extensions/models.dart';
 import 'package:flosu/logic/providers/gameplay_data.dart';
+import 'package:flosu/logic/providers/main_layout.dart';
 import 'package:flosu/ui/widgets/gameplay/playfield.dart';
 import 'package:flosu/ui/widgets/gameplay/replay_mouse_cursor.dart';
 import 'package:flosu/ui/widgets/song_select/mod_icon.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide Slider, PointerEvent;
 import 'package:flutter/services.dart' hide PointerEvent;
 import 'package:go_router/go_router.dart';
 import 'package:flosu/logic/providers/audio.dart';
-import 'package:flosu/core/extensions/models.dart';
 import 'package:flosu/models/inputs/inputs.dart';
 import 'package:flosu/logic/providers/router.dart';
 import 'package:flosu/ui/shared/animatable_page.dart';
@@ -22,20 +22,14 @@ class GameplayPage extends AnimatablePage {
 }
 
 class _GameplayPageState extends AnimatablePageState<GameplayPage> {
-  Timer? _resetHandlerTimer;
-
-  // Flag to prevent multiple pause calls.
-  // Initially set to true to prevent any input from being processed at first frame
-  bool _handledPause = true;
-
-  /// Tracks the set of logical keys held in the previous input event.
-  /// Used to detect key-down transitions without repeats.
-  Set<LogicalKeyboardKey> _lastKeys = {};
-
   @override
   void initState() {
-    // Enable input handling after a short delay
-    _resetHandler();
+    Future.microtask(() {
+      // Lock top bar
+      final layout = ref.read(mainLayoutProvider.notifier);
+      layout.setTopBarLocked(true);
+      layout.setDrawersLocked(true);
+    });
 
     ref.read(audioProvider.notifier).endedSources.addListener(_onAudioEnded);
 
@@ -49,56 +43,50 @@ class _GameplayPageState extends AnimatablePageState<GameplayPage> {
         .endedSources
         .removeListener(_onAudioEnded);
 
-    _resetHandlerTimer?.cancel();
+    Future.microtask(() {
+      final layout = globalRef.read(mainLayoutProvider.notifier);
+      final topBarOpen = globalRef.read(mainLayoutProvider).isTopBarOpen;
 
+      layout.setTopBarLocked(false);
+      layout.setDrawersLocked(false);
+      if (!topBarOpen) layout.toggleTopBar();
+    });
     super.dispose();
   }
+
+  @override
+  bool get keyboardOnly => true;
 
   // The input handling will be managed by controller
   @override
   bool onInput(Set<LogicalKeyboardKey> keys, PointerEvent? pointer) {
-    // Pointer-only events can arrive with the same key set — skip them.
-    if (setEquals(_lastKeys, keys)) return false;
+    // If backslash key is pressed, retry
+    if (keys.pressed(.backslash)) return _retry();
 
-    bool handled = false;
+    // If escape key is pressed, pause gameplay
+    if (keys.pressed(.escape)) return _pause();
 
-    if (!_handledPause) {
-      if (keys.changedAndPressed(LogicalKeyboardKey.escape, _lastKeys)) {
-        _handledPause = true;
-        handled = true;
-        _pause();
-
-        // Sometimes, user resumes gameplay while pause menu is leaving, so
-        // we need to reset the handler after the animation ends
-        _resetHandler();
-      }
-    }
-
-    _lastKeys = keys.toSet();
-    return handled;
+    return false;
   }
 
   void _onAudioEnded() {
     if (mounted) context.go("/scoring");
   }
 
-  /// Navigates to the pause page, pausing the game.
-  void _pause() {
+  bool _pause() {
+    ref.read(audioProvider.notifier).setPlaying(false);
     if (mounted) context.go("/gameplay/pause");
+    return true;
   }
 
-  void _resetHandler() {
-    _resetHandlerTimer?.cancel();
-    _resetHandlerTimer = Timer(
-      Durations.extralong4,
-      () => _handledPause = false,
-    );
+  bool _retry() {
+    ref.read(audioProvider.notifier).setPlaying(true);
+    if (mounted) context.go("/load");
+    return true;
   }
 
   @override
   Widget buildPage(BuildContext context, double animProgress) {
-    // final controller = ref.watch(gameplayControllerProvider);
-    // final audio = ref.read(audioProvider.notifier);
     final details = ref.watch(gameplayDataProvider);
 
     return Stack(

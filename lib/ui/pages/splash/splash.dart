@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:flosu/core/assets.dart';
 import 'package:flosu/logic/providers/beatmap.dart';
+import 'package:flosu/logic/providers/main_layout.dart';
 import 'package:flosu/logic/services/sample.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -36,6 +37,8 @@ class _SplashPageState extends ConsumerState<SplashPage> {
   // Updated flow of loading
   // This is posible because of local database
   void _init() async {
+    final layout = ref.read(mainLayoutProvider.notifier);
+
     // Load library until database is loaded
     ref.read(beatmapProvider);
 
@@ -44,7 +47,11 @@ class _SplashPageState extends ConsumerState<SplashPage> {
     final audio = ref.read(audioProvider.notifier);
     final samples = ref.read(sampleService);
 
-    Future.microtask(audio.stop);
+    // Await for audio and layout
+    await Future.microtask(() {
+      audio.stop();
+      layout.setTopBarLocked(true);
+    });
 
     await samples.loadMultipleFromAsset([
       AppSamples.songselectConfirmSelection,
@@ -62,7 +69,15 @@ class _SplashPageState extends ConsumerState<SplashPage> {
     samples.play(welcomeSample);
 
     Future.delayed(const Duration(seconds: 2), () {
+      // Set Top Bar unlocked
+      final topBarOpen = ref.read(mainLayoutProvider).isTopBarOpen;
+      layout.setTopBarLocked(false);
+      if (!topBarOpen) layout.toggleTopBar();
+
+      // Start playing random song
       if (random != null) audio.preview(random);
+
+      // Go to main
       if (mounted) context.go("/main");
     });
   }

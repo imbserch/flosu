@@ -26,8 +26,10 @@ typedef InputTimingsCallback = void Function(InputTimings timings);
 /// [InputProvider] offers two subscription models:
 ///
 /// **Immediate** (`addInmediateHandler`): The callback is invoked on every
-/// hardware event with the current pressed-key set and the latest pointer
+/// hardware event with the current pressed-key set and the most recent pointer
 /// position. Use for latency-sensitive gameplay code such as hit detection.
+/// By default, this callback will receive events for both pointer and keyboard
+/// events. Use `keyboardOnly: true` to only receive keyboard events.
 ///
 /// **Delayed** (`addDelayedHandler`): Events are accumulated until the next
 /// frame tick, then delivered in bulk as an [InputEvents] batch. Use for
@@ -61,30 +63,25 @@ class InputProvider extends Notifier<void> {
   final List<PointerEvent> _storedPointerEvents = [];
   final List<KeyboardEvent> _storedKeyboardEvents = [];
 
-  // Current pressed-key state for immediate handlers.
-  final Set<LogicalKeyboardKey> _pressedKeys = {};
-  PointerEvent? _lastPointerEvent;
-
-  final List<ImmediateInputsCallback> _inmediateHandlers = [];
-  final List<DelayedInputsCallback> _delayedHandlers = [];
-
-  final List<InputTimingsCallback> _timingHandlers = [];
-
-  // ---------------------------------------------------------------------------
-  // Subscription management
-  // ---------------------------------------------------------------------------
-
   /// Registers [callback] to be called on every hardware event.
   ///
   /// The callback receives the full set of currently pressed keys and the
   /// most recent pointer position.
-  void addInmediateHandler(ImmediateInputsCallback callback) {
-    _inmediateHandlers.insert(0, callback);
+  void addInmediateHandler(
+    ImmediateInputsCallback callback, {
+    bool keyboardOnly = false,
+  }) {
+    if (keyboardOnly) {
+      _inmediateKeyboardHandlers.insert(0, callback);
+    } else {
+      _inmediateHandlers.insert(0, callback);
+    }
   }
 
   /// Removes a previously registered immediate handler.
   void removeInmediateHandler(ImmediateInputsCallback callback) {
     _inmediateHandlers.remove(callback);
+    _inmediateKeyboardHandlers.remove(callback);
   }
 
   /// Registers [callback] to receive batched events once per frame.
@@ -107,8 +104,20 @@ class InputProvider extends Notifier<void> {
     _timingHandlers.remove(callback);
   }
 
+  // Current pressed-key state for immediate handlers.
+  final Set<LogicalKeyboardKey> _pressedKeys = {};
+  PointerEvent? _lastPointerEvent;
+
+  final List<ImmediateInputsCallback> _inmediateHandlers = [];
+  final List<ImmediateInputsCallback> _inmediateKeyboardHandlers = [];
+  final List<DelayedInputsCallback> _delayedHandlers = [];
+
+  final List<InputTimingsCallback> _timingHandlers = [];
+
   /// Processes an incoming [HardwareEvent] from [InputService].
   void _onEvent(HardwareEvent event) {
+    bool isKeyboard = false;
+
     // Update live key and pointer state for immediate handlers.
     if (event is PointerEvent) {
       _lastPointerEvent = event;
@@ -117,6 +126,7 @@ class InputProvider extends Notifier<void> {
       }
     }
     if (event is KeyboardEvent) {
+      isKeyboard = true;
       if (event.pressed) {
         _pressedKeys.add(event.key);
       } else {
@@ -127,12 +137,23 @@ class InputProvider extends Notifier<void> {
       }
     }
 
-    _callImmediateHandlers();
+    _callImmediateHandlers(isKeyboard: isKeyboard);
   }
 
   /// Notifies all immediate handlers with the current input state.
-  void _callImmediateHandlers() {
+  void _callImmediateHandlers({required bool isKeyboard}) {
     final sw = Stopwatch()..start();
+
+    if (isKeyboard) {
+      for (final handler in _inmediateKeyboardHandlers) {
+        final handled = handler(_pressedKeys, _lastPointerEvent);
+        if (handled) {
+          sw.stop();
+          _immediateEventsDurations.add(sw.elapsed);
+          return;
+        }
+      }
+    }
 
     for (final handler in _inmediateHandlers) {
       final handled = handler(_pressedKeys, _lastPointerEvent);

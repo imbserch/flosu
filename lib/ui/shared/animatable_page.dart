@@ -21,9 +21,15 @@ abstract class AnimatablePage extends ConsumerStatefulWidget {
 /// Drives the route animations and wraps the built page in standard visibility helpers.
 abstract class AnimatablePageState<T extends AnimatablePage>
     extends ConsumerState<T> {
+  /// If this page should only listen to keyboard inputs.
+  /// Defaults to false.
+  bool get keyboardOnly => false;
+
   @override
   void initState() {
-    ref.read(inputProvider.notifier).addInmediateHandler(onInput);
+    ref
+        .read(inputProvider.notifier)
+        .addInmediateHandler(onInput, keyboardOnly: keyboardOnly);
     super.initState();
   }
 

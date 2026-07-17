@@ -77,6 +77,9 @@ class _GameplayLoaderPageState extends ConsumerState<GameplayLoaderPage> {
     final audio = ref.read(audioProvider.notifier);
     final beatmap = ref.read(audioProvider)!;
 
+    // 5 seconds
+    await Future.delayed(Durations.extralong4 * 5);
+
     await audio.play(beatmap);
     if (mounted) context.go("/gameplay");
   }

@@ -1,6 +1,8 @@
+import 'package:flosu/core/extensions/models.dart';
 import 'package:flosu/logic/providers/gameplay_data.dart';
 import 'package:flosu/ui/widgets/common/actions_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flosu/core/theme/app_colors.dart';
@@ -29,10 +31,6 @@ class _ResultsPageState extends AnimatablePageState<ResultsPage> {
   //This is meant for prevent losing replay data while going to gameplay page
   bool _reuseReplay = false;
 
-  void _showGrade() {
-    if (mounted) setState(() => _enableGrade = true);
-  }
-
   @override
   dispose() {
     if (!_reuseReplay) {
@@ -42,6 +40,34 @@ class _ResultsPageState extends AnimatablePageState<ResultsPage> {
     }
 
     super.dispose();
+  }
+
+  @override
+  bool get keyboardOnly => true;
+
+  @override
+  bool onInput(Set<LogicalKeyboardKey> keys, _) {
+    // If escape key is pressed, go back to songs page
+    if (keys.pressed(.escape)) {
+      context.go("/songs");
+      return true;
+    }
+
+    // If backslash key is pressed, replay
+    if (keys.pressed(.backslash)) return _replay();
+
+    return false;
+  }
+
+  void _showGrade() {
+    if (mounted) setState(() => _enableGrade = true);
+  }
+
+  bool _replay() {
+    _reuseReplay = true;
+    context.go("/load");
+
+    return true;
   }
 
   @override

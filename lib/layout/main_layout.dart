@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flosu/core/assets.dart';
 import 'package:flosu/logic/providers/input.dart';
+import 'package:flosu/logic/providers/main_layout.dart';
 import 'package:flosu/logic/providers/router.dart';
 import 'package:flosu/logic/services/sample.dart';
 import 'package:flosu/ui/widgets/navigation/notifications_drawer.dart';
@@ -43,8 +44,6 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
   double _scroll = 0;
   int _accScroll = 1;
 
-  bool _topBarOpen = true;
-
   Set<LogicalKeyboardKey> _lastKeys = {};
 
   ScaffoldState? get scaffold => _scaffoldKey.currentState;
@@ -55,6 +54,21 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
   void initState() {
     super.initState();
     ref.read(inputProvider.notifier).addInmediateHandler(_onInput);
+
+    ref.listenManual(
+      mainLayoutProvider,
+      _handleLayoutChange,
+      fireImmediately: true,
+    );
+  }
+
+  void _handleLayoutChange(_, MainLayoutState state) {
+    if (state.isDrawersLocked) {
+      scaffold?.closeDrawer();
+      scaffold?.closeEndDrawer();
+    }
+
+    if (mounted) setState(() {});
   }
 
   @override
@@ -77,7 +91,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
     if (keys.isCtrlPressed) {
       //If CTRL+T pressed and keys state changed, toggle top bar
       if (keys.changedAndPressed(LogicalKeyboardKey.keyT, _lastKeys)) {
-        _toggleTopBar();
+        ref.read(mainLayoutProvider.notifier).toggleTopBar();
         handled = true;
       }
 
@@ -152,10 +166,6 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
     }
   }
 
-  void _toggleTopBar() {
-    if (mounted) setState(() => _topBarOpen = !_topBarOpen);
-  }
-
   void _handleDrawerChange(bool isOpen) {
     ref
         .read(sampleService)
@@ -164,18 +174,36 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
     if (mounted) setState(() {});
   }
 
+  int get translateSign {
+    final state = ref.read(mainLayoutProvider);
+
+    if (state.isDrawersLocked) return 0;
+
+    if (isSettingsOpen) return 1;
+    if (isNotificationsOpen) return -1;
+
+    return 0;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(mainLayoutProvider);
+
     return Scaffold(
       key: _scaffoldKey,
       onDrawerChanged: _handleDrawerChange,
       onEndDrawerChanged: _handleDrawerChange,
-      drawer: SettingsDrawer(
-        onClose: () => isSettingsOpen ? scaffold?.closeDrawer() : null,
-      ),
-      endDrawer: NotificationsDrawer(
-        onClose: () => isNotificationsOpen ? scaffold?.closeEndDrawer() : null,
-      ),
+      drawer: state.isDrawersLocked
+          ? null
+          : SettingsDrawer(
+              onClose: () => isSettingsOpen ? scaffold?.closeDrawer() : null,
+            ),
+      endDrawer: state.isDrawersLocked
+          ? null
+          : NotificationsDrawer(
+              onClose: () =>
+                  isNotificationsOpen ? scaffold?.closeEndDrawer() : null,
+            ),
       body: SafeArea(
         left: false,
         right: false,
@@ -188,13 +216,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
             TweenAnimationBuilder(
               duration: Durations.medium1,
               curve: Curves.easeOut,
-              tween: Tween(
-                end: isSettingsOpen
-                    ? 32.0
-                    : isNotificationsOpen
-                    ? -32.0
-                    : 0.0,
-              ),
+              tween: Tween(end: 32.0 * translateSign),
               builder: (_, t, child) =>
                   Transform.translate(offset: Offset(t, 0), child: child),
               child: Column(
@@ -204,9 +226,9 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
                       duration: Durations.medium1,
                       curve: Curves.easeOut,
                       tween: Tween(
-                        end: _topBarOpen && !widget.forceTopBarClosed
-                            ? 0.0
-                            : 1.0,
+                        end: state.isTopBarLocked || !state.isTopBarOpen
+                            ? 1.0
+                            : 0.0,
                       ),
                       builder: (_, t, child) => ClipRect(
                         child: Align(
