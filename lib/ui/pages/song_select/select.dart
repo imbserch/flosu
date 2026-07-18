@@ -1,12 +1,12 @@
+import 'package:flosu/core/mixins.dart';
 import 'package:flosu/logic/providers/beatmap.dart';
+import 'package:flosu/models/inputs/inputs.dart';
 import 'package:flosu/ui/widgets/beatmap/beatmap_list.dart';
 import 'package:flosu/ui/widgets/common/actions_bar.dart';
 import 'package:flutter/material.dart' hide PointerEvent;
-import 'package:flutter/services.dart' hide PointerEvent;
 import 'package:go_router/go_router.dart';
 import 'package:flosu/logic/providers/audio.dart';
 import 'package:flosu/core/theme/app_colors.dart';
-import 'package:flosu/core/extensions/models.dart';
 import 'package:flosu/core/extensions/ui.dart';
 import 'package:flosu/ui/shared/animatable_page.dart';
 import 'package:flosu/ui/widgets/beatmap/current_beatmap_info.dart';
@@ -20,39 +20,26 @@ class SongSelectPage extends AnimatablePage {
   AnimatablePageState<SongSelectPage> createState() => _SongSelectPageState();
 }
 
-class _SongSelectPageState extends AnimatablePageState<SongSelectPage> {
+class _SongSelectPageState extends AnimatablePageState<SongSelectPage>
+    with KeyboardEventHandler {
   @override
-  bool get keyboardOnly => true;
+  Map<KeysState, VoidCallback> get keyHandlers => {
+    // If escape key pressed, go back
+    KeysState({.escape}): _goBack,
+    // If F1 key pressed, open mods
+    KeysState({.f1}): _openMods,
+    // If F2 key pressed, play random song
+    KeysState({.f2}): _playRandom,
+    // If F3 key pressed, open replay window
+    KeysState({.f3}): _pickReplay,
+  };
 
-  @override
-  bool onInput(Set<LogicalKeyboardKey> keys, _) {
-    bool handled = false;
+  void _goBack() {
+    if (mounted) context.go("/main");
+  }
 
-    //If escape pressed, go back
-    if (keys.pressed(.escape)) {
-      if (mounted) context.go("/main");
-      handled = true;
-    }
-
-    //If F1 pressed, open mods
-    if (keys.pressed(LogicalKeyboardKey.f1)) {
-      if (mounted) context.go("/songs/mods");
-      handled = true;
-    }
-
-    //If F2 pressed, play random song
-    if (keys.pressed(LogicalKeyboardKey.f2)) {
-      _playRandom();
-      handled = true;
-    }
-
-    //If F3 pressed, open replay window
-    if (keys.pressed(LogicalKeyboardKey.f3)) {
-      _pickReplay();
-      handled = true;
-    }
-
-    return handled;
+  void _openMods() {
+    if (mounted) context.go("/songs/mods");
   }
 
   void _pickReplay() {

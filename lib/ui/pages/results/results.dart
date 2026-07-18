@@ -1,8 +1,8 @@
-import 'package:flosu/core/extensions/models.dart';
+import 'package:flosu/core/mixins.dart';
 import 'package:flosu/logic/providers/gameplay_data.dart';
+import 'package:flosu/models/inputs/inputs.dart';
 import 'package:flosu/ui/widgets/common/actions_bar.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flosu/core/theme/app_colors.dart';
@@ -25,7 +25,8 @@ class ResultsPage extends AnimatablePage {
   ConsumerState<ResultsPage> createState() => _ResultsPageState();
 }
 
-class _ResultsPageState extends AnimatablePageState<ResultsPage> {
+class _ResultsPageState extends AnimatablePageState<ResultsPage>
+    with KeyboardEventHandler {
   bool _enableGrade = false;
 
   //This is meant for prevent losing replay data while going to gameplay page
@@ -43,31 +44,24 @@ class _ResultsPageState extends AnimatablePageState<ResultsPage> {
   }
 
   @override
-  bool get keyboardOnly => true;
-
-  @override
-  bool onInput(Set<LogicalKeyboardKey> keys, _) {
+  Map<KeysState, VoidCallback> get keyHandlers => {
     // If escape key is pressed, go back to songs page
-    if (keys.pressed(.escape)) {
-      context.go("/songs");
-      return true;
-    }
-
+    KeysState({.escape}): _goBack,
     // If backslash key is pressed, replay
-    if (keys.pressed(.backslash)) return _replay();
-
-    return false;
-  }
+    KeysState({.backslash}): _replay,
+  };
 
   void _showGrade() {
     if (mounted) setState(() => _enableGrade = true);
   }
 
-  bool _replay() {
+  void _goBack() {
+    if (mounted) context.go("/songs");
+  }
+
+  void _replay() {
     _reuseReplay = true;
     context.go("/load");
-
-    return true;
   }
 
   @override

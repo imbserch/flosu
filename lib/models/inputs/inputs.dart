@@ -51,3 +51,19 @@ class KeyboardEvent extends HardwareEvent {
   /// `true` if the key was pressed, `false` if it was released.
   final bool pressed;
 }
+
+class KeysState {
+  KeysState(
+    this.keys, {
+    this.control = false,
+    this.alt = false,
+    this.shift = false,
+  });
+
+  KeysState.empty() : this(const {});
+
+  final Set<LogicalKeyboardKey> keys;
+  final bool control;
+  final bool alt;
+  final bool shift;
+}

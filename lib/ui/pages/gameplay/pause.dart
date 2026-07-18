@@ -1,14 +1,14 @@
 import 'dart:async';
 
-import 'package:flosu/core/extensions/models.dart';
+import 'package:flosu/core/mixins.dart';
 import 'package:flosu/core/theme/app_colors.dart';
 import 'package:flosu/logic/providers/audio.dart';
 import 'package:flosu/logic/providers/gameplay_data.dart';
 import 'package:flosu/logic/providers/router.dart';
+import 'package:flosu/models/inputs/inputs.dart';
 import 'package:flosu/ui/shared/animatable_page.dart';
 import 'package:flosu/ui/widgets/common/skewed_box.dart';
 import 'package:flutter/material.dart' hide PointerEvent;
-import 'package:flutter/services.dart' hide PointerEvent;
 import 'package:go_router/go_router.dart';
 
 class PausePage extends AnimatablePage {
@@ -20,12 +20,10 @@ class PausePage extends AnimatablePage {
 
 enum PauseExitAction { resume, reset, quit }
 
-class _PausePageState extends AnimatablePageState<PausePage> {
+class _PausePageState extends AnimatablePageState<PausePage>
+    with KeyboardEventHandler {
   /// How the pause screen is exiting.
   PauseExitAction _exitAction = PauseExitAction.resume;
-
-  /// Tracks if the first event has been fired.
-  bool _firstEventFired = false;
 
   // Initialization
   @override
@@ -58,28 +56,17 @@ class _PausePageState extends AnimatablePageState<PausePage> {
   }
 
   @override
-  bool get keyboardOnly => true;
-
-  @override
-  bool onInput(Set<LogicalKeyboardKey> keys, _) {
-    // Wait until first event of keyboard is fired
-    // This event frecuently is the release of Escape key from the gameplay page
-    if (!_firstEventFired) {
-      _firstEventFired = true;
-      return true;
-    }
-
-    // If escape pressed, resume
-    if (keys.pressed(.escape)) return _resume();
-
-    return false;
-  }
+  Map<KeysState, VoidCallback> get keyHandlers => {
+    // If escape key pressed, resume
+    KeysState({.escape}): _resume,
+    // If backslash key pressed, reset
+    KeysState({.backslash}): _reset,
+  };
 
   /// Navigates back to the gameplay page, resuming the game.
-  bool _resume() {
+  void _resume() {
     _exitAction = PauseExitAction.resume;
     if (mounted) context.go("/gameplay");
-    return true;
   }
 
   void _reset() {

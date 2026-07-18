@@ -1,18 +1,14 @@
 import 'dart:async';
 
 import 'package:flosu/core/assets.dart';
-import 'package:flosu/logic/providers/input.dart';
+import 'package:flosu/core/mixins.dart';
 import 'package:flosu/logic/providers/main_layout.dart';
-import 'package:flosu/logic/providers/router.dart';
 import 'package:flosu/logic/services/sample.dart';
-import 'package:flosu/ui/widgets/navigation/notifications_drawer.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart' hide PointerEvent;
-import 'package:flutter/services.dart' hide PointerEvent;
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flosu/core/extensions/models.dart';
-import 'package:flosu/logic/providers/settings.dart';
 import 'package:flosu/models/inputs/inputs.dart';
+import 'package:flosu/ui/widgets/navigation/notifications_drawer.dart';
+import 'package:flutter/material.dart' hide PointerEvent;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flosu/logic/providers/settings.dart';
 import 'package:flosu/ui/widgets/background/parallax_background.dart';
 import 'package:flosu/ui/widgets/overlay/volume_bar.dart';
 import 'package:flosu/ui/widgets/navigation/settings_drawer.dart';
@@ -36,15 +32,11 @@ class MainLayout extends ConsumerStatefulWidget {
   ConsumerState<MainLayout> createState() => _MainLayoutState();
 }
 
-class _MainLayoutState extends ConsumerState<MainLayout> {
+class _MainLayoutState extends ConsumerState<MainLayout>
+    with KeyboardEventHandler {
   final _scaffoldKey = GlobalKey<ScaffoldState>(debugLabel: "Main scaffold");
 
   Timer? _scrollTimer;
-
-  double _scroll = 0;
-  int _accScroll = 1;
-
-  Set<LogicalKeyboardKey> _lastKeys = {};
 
   ScaffoldState? get scaffold => _scaffoldKey.currentState;
   bool get isSettingsOpen => scaffold?.isDrawerOpen ?? false;
@@ -53,7 +45,6 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
   @override
   void initState() {
     super.initState();
-    ref.read(inputProvider.notifier).addInmediateHandler(_onInput);
 
     ref.listenManual(
       mainLayoutProvider,
@@ -74,10 +65,57 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
   @override
   void dispose() {
     _scrollTimer?.cancel();
-    globalRef.read(inputProvider.notifier).removeInmediateHandler(_onInput);
     super.dispose();
   }
 
+  @override
+  Map<KeysState, VoidCallback> get keyHandlers => {
+    //If CTRL+T pressed, toggle top bar
+    KeysState({.keyT}, control: true): _toggleTopBar,
+    //If CTRL+O pressed, toggle drawer
+    KeysState({.keyO}, control: true): _toggleSettings,
+    //If CTRL+F11 pressed, toggle fps monitor
+    KeysState({.f11}, control: true): _toggleFpsMonitor,
+    //If CTRL+F9 pressed, toggle logs
+    KeysState({.f9}, control: true): _toggleLogs,
+    //If CTRL+N pressed, toggle notifications drawer
+    KeysState({.keyN}, control: true): _toggleNotifications,
+    //If CTRL+ALT+F4 pressed, force game reload
+    KeysState({.f4}, control: true, alt: true): _forceReload,
+  };
+
+  void _toggleTopBar() {
+    ref.read(mainLayoutProvider.notifier).toggleTopBar();
+  }
+
+  void _toggleSettings() {
+    isSettingsOpen ? scaffold?.closeDrawer() : scaffold?.openDrawer();
+  }
+
+  void _toggleFpsMonitor() {
+    ref
+        .read(settingsProvider.notifier)
+        .setShowFpsMonitor(!ref.read(settingsProvider).fpsMonitorEnabled);
+  }
+
+  void _toggleLogs() {
+    ref
+        .read(settingsProvider.notifier)
+        .setShowLogs(!ref.read(settingsProvider).logsEnabled);
+  }
+
+  void _toggleNotifications() {
+    isNotificationsOpen
+        ? scaffold?.closeEndDrawer()
+        : scaffold?.openEndDrawer();
+  }
+
+  void _forceReload() {
+    scaffold?.closeEndDrawer();
+    context.go("/splash");
+  }
+
+  /* 
   bool _onInput(Set<LogicalKeyboardKey> keys, PointerEvent? pointer) {
     //Mouse events are only intercept if scrolled
     if (pointer != null) {
@@ -89,11 +127,10 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
     bool handled = false;
 
     if (keys.isCtrlPressed) {
-      //If CTRL+T pressed and keys state changed, toggle top bar
-      if (keys.changedAndPressed(LogicalKeyboardKey.keyT, _lastKeys)) {
+      /* if (keys.changedAndPressed(LogicalKeyboardKey.keyT, _lastKeys)) {
         ref.read(mainLayoutProvider.notifier).toggleTopBar();
         handled = true;
-      }
+      } */
 
       //If CTRL+O pressed and keys state changed, toggle drawer
       if (keys.changedAndPressed(LogicalKeyboardKey.keyO, _lastKeys)) {
@@ -138,8 +175,8 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
 
     _lastKeys = keys.toSet();
     return handled;
-  }
-
+  } */
+  /* 
   void _updateVolume(bool altPressed, PointerEvent ev) {
     //Accumulate scroll delta
     if (ev.scroll.dy.sign != 0) {
@@ -165,7 +202,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
       }
     }
   }
-
+ */
   void _handleDrawerChange(bool isOpen) {
     ref
         .read(sampleService)
