@@ -116,67 +116,6 @@ class _MainLayoutState extends ConsumerState<MainLayout>
   }
 
   /* 
-  bool _onInput(Set<LogicalKeyboardKey> keys, PointerEvent? pointer) {
-    //Mouse events are only intercept if scrolled
-    if (pointer != null) {
-      _updateVolume(keys.isAltPressed, pointer);
-    }
-
-    if (setEquals(_lastKeys, keys)) return false;
-
-    bool handled = false;
-
-    if (keys.isCtrlPressed) {
-      /* if (keys.changedAndPressed(LogicalKeyboardKey.keyT, _lastKeys)) {
-        ref.read(mainLayoutProvider.notifier).toggleTopBar();
-        handled = true;
-      } */
-
-      //If CTRL+O pressed and keys state changed, toggle drawer
-      if (keys.changedAndPressed(LogicalKeyboardKey.keyO, _lastKeys)) {
-        isSettingsOpen ? scaffold?.closeDrawer() : scaffold?.openDrawer();
-        handled = true;
-      }
-
-      //If CTRL+F11 pressed and keys state changed, toggle fps monitor
-      if (keys.changedAndPressed(LogicalKeyboardKey.f11, _lastKeys)) {
-        ref
-            .read(settingsProvider.notifier)
-            .setShowFpsMonitor(!ref.read(settingsProvider).fpsMonitorEnabled);
-        handled = true;
-      }
-
-      //If CTRL+F9 pressed and keys state changed, toggle logs
-      if (keys.changedAndPressed(LogicalKeyboardKey.f9, _lastKeys)) {
-        ref
-            .read(settingsProvider.notifier)
-            .setShowLogs(!ref.read(settingsProvider).logsEnabled);
-        handled = true;
-      }
-
-      //If CTRL+N pressed and keys state changed, toggle notifications drawer
-      if (keys.changedAndPressed(LogicalKeyboardKey.keyN, _lastKeys)) {
-        isNotificationsOpen
-            ? scaffold?.closeEndDrawer()
-            : scaffold?.openEndDrawer();
-        handled = true;
-      }
-
-      //If CTRL+ALT+F4 pressed and keys state changed
-      //Force game reload
-      if (keys.isAltPressed) {
-        if (keys.changedAndPressed(LogicalKeyboardKey.f4, _lastKeys)) {
-          scaffold?.closeEndDrawer();
-          context.go("/splash");
-          handled = true;
-        }
-      }
-    }
-
-    _lastKeys = keys.toSet();
-    return handled;
-  } */
-  /* 
   void _updateVolume(bool altPressed, PointerEvent ev) {
     //Accumulate scroll delta
     if (ev.scroll.dy.sign != 0) {
