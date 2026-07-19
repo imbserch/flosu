@@ -1,6 +1,6 @@
 import 'package:flosu/logic/providers/tooltip.dart';
 import 'package:flosu/models/mods/base.dart';
-import 'package:flosu/ui/widgets/common/skewed_box.dart';
+import 'package:flosu/shared/widgets/skewed_box.dart';
 import 'package:flosu/ui/widgets/song_select/mod_icon.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

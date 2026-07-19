@@ -1,7 +1,7 @@
 import 'dart:ui';
 
 import 'package:flosu/core/enums.dart';
-import 'package:flosu/io/parser.dart';
+import 'package:flosu/shared/io/parser.dart';
 import 'package:flosu/models/beatmap/beatmap_content.dart';
 import 'package:flosu/models/beatmap/hit_objects.dart';
 import 'package:flosu/models/beatmap/colors.dart';

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flosu/core/theme/app_colors.dart';
 import 'package:flosu/core/extensions/ui.dart';
-import 'package:flosu/ui/widgets/common/skewed_box.dart';
+import 'package:flosu/shared/widgets/skewed_box.dart';
 
 class CurrentBeatmapInfo extends ConsumerWidget {
   const CurrentBeatmapInfo({super.key, required this.animProgress});

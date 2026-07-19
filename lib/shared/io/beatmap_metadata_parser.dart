@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:collection/collection.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flosu/core/enums.dart';
-import 'package:flosu/io/parser.dart';
+import 'package:flosu/shared/io/parser.dart';
 import 'package:flosu/models/generated/beatmap_metadata.dart';
 
 class BeatmapMetadataParserException implements Exception {

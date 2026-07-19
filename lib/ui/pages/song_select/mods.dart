@@ -2,15 +2,15 @@ import 'package:flosu/core/constants.dart';
 import 'package:flosu/core/mixins.dart';
 import 'package:flosu/logic/providers/gameplay_data.dart';
 import 'package:flosu/models/inputs/inputs.dart';
-import 'package:flosu/ui/widgets/common/actions_bar.dart';
-import 'package:flosu/ui/widgets/common/top_banner.dart';
+import 'package:flosu/shared/widgets/actions_bar.dart';
+import 'package:flosu/shared/widgets/top_banner.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flosu/core/theme/app_colors.dart';
 import 'package:flosu/models/mods/base.dart';
 import 'package:flosu/core/extensions/ui.dart';
 import 'package:flosu/ui/shared/animatable_page.dart';
-import 'package:flosu/ui/widgets/common/skewed_box.dart';
+import 'package:flosu/shared/widgets/skewed_box.dart';
 import 'package:flosu/ui/widgets/song_select/mod_icon.dart';
 import 'package:flosu/ui/widgets/song_select/mod_item.dart';
 

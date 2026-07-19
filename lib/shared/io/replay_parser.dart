@@ -10,7 +10,7 @@ import 'package:flosu/core/enums.dart';
 import 'package:flosu/models/replay/replay.dart';
 import 'package:flosu/models/replay/replay_frame.dart';
 import 'package:flosu/models/mods/base.dart';
-import 'package:flosu/io/parser.dart';
+import 'package:flosu/shared/io/parser.dart';
 
 /// A parser for `.osr` (osu! replay) files.
 ///

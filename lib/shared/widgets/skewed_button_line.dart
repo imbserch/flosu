@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flosu/core/theme/app_colors.dart';
-import 'package:flosu/ui/widgets/common/skewed_box.dart';
+import 'package:flosu/shared/widgets/skewed_box.dart';
 
 class SkewedButtonLine extends StatelessWidget {
   const SkewedButtonLine({

@@ -4,10 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flosu/core/theme/app_colors.dart';
 import 'package:flosu/logic/providers/settings.dart';
 //import 'package:flosu/providers/tooltip_service.dart';
-import 'package:flosu/ui/widgets/common/osu_button.dart';
-import 'package:flosu/ui/widgets/common/osu_checkbox.dart';
-import 'package:flosu/ui/widgets/common/osu_configurable_key.dart';
-import 'package:flosu/ui/widgets/common/osu_slider.dart';
+import 'package:flosu/shared/widgets/osu_button.dart';
+import 'package:flosu/shared/widgets/osu_checkbox.dart';
+import 'package:flosu/shared/widgets/osu_configurable_key.dart';
+import 'package:flosu/shared/widgets/osu_slider.dart';
 
 class SettingsDrawer extends ConsumerWidget {
   const SettingsDrawer({super.key, required this.onClose});

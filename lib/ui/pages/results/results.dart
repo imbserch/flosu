@@ -1,7 +1,7 @@
 import 'package:flosu/core/mixins.dart';
 import 'package:flosu/logic/providers/gameplay_data.dart';
 import 'package:flosu/models/inputs/inputs.dart';
-import 'package:flosu/ui/widgets/common/actions_bar.dart';
+import 'package:flosu/shared/widgets/actions_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,8 +9,8 @@ import 'package:flosu/core/theme/app_colors.dart';
 import 'package:flosu/ui/widgets/song_select/mod_icon.dart';
 import 'package:flosu/shared/navigation/router.dart';
 import 'package:flosu/ui/shared/animatable_page.dart';
-import 'package:flosu/ui/widgets/common/skewed_box.dart';
-import 'package:flosu/ui/widgets/common/skewed_button_line.dart';
+import 'package:flosu/shared/widgets/skewed_box.dart';
+import 'package:flosu/shared/widgets/skewed_button_line.dart';
 
 /// Displays the summary screen after a play session ends.
 ///

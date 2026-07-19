@@ -7,7 +7,7 @@ import 'package:flosu/logic/providers/gameplay_data.dart';
 import 'package:flosu/shared/navigation/router.dart';
 import 'package:flosu/models/inputs/inputs.dart';
 import 'package:flosu/ui/shared/animatable_page.dart';
-import 'package:flosu/ui/widgets/common/skewed_box.dart';
+import 'package:flosu/shared/widgets/skewed_box.dart';
 import 'package:flutter/material.dart' hide PointerEvent;
 import 'package:go_router/go_router.dart';
 

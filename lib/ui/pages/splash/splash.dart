@@ -9,7 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flosu/logic/providers/audio.dart';
-import 'package:flosu/ui/widgets/common/osu_cube_loader.dart';
+import 'package:flosu/shared/widgets/osu_cube_loader.dart';
 
 class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});

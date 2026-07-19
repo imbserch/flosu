@@ -2,7 +2,7 @@ import 'package:flosu/core/mixins.dart';
 import 'package:flosu/logic/providers/beatmap.dart';
 import 'package:flosu/models/inputs/inputs.dart';
 import 'package:flosu/ui/widgets/beatmap/beatmap_list.dart';
-import 'package:flosu/ui/widgets/common/actions_bar.dart';
+import 'package:flosu/shared/widgets/actions_bar.dart';
 import 'package:flutter/material.dart' hide PointerEvent;
 import 'package:go_router/go_router.dart';
 import 'package:flosu/logic/providers/audio.dart';
@@ -10,8 +10,8 @@ import 'package:flosu/core/theme/app_colors.dart';
 import 'package:flosu/core/extensions/ui.dart';
 import 'package:flosu/ui/shared/animatable_page.dart';
 import 'package:flosu/ui/widgets/beatmap/current_beatmap_info.dart';
-import 'package:flosu/ui/widgets/common/osu_logo.dart';
-import 'package:flosu/ui/widgets/common/skewed_button_line.dart';
+import 'package:flosu/shared/widgets/osu_logo.dart';
+import 'package:flosu/shared/widgets/skewed_button_line.dart';
 
 class SongSelectPage extends AnimatablePage {
   const SongSelectPage({super.key, required super.uri});

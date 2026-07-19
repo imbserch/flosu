@@ -10,8 +10,8 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flosu/core/extensions/ui.dart';
 import 'package:flosu/ui/shared/animatable_page.dart';
-import 'package:flosu/ui/widgets/common/skewed_box.dart';
-import 'package:flosu/ui/widgets/common/osu_logo.dart';
+import 'package:flosu/shared/widgets/skewed_box.dart';
+import 'package:flosu/shared/widgets/osu_logo.dart';
 
 class MainSelectPage extends AnimatablePage {
   const MainSelectPage({super.key, required super.uri});

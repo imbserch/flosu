@@ -4,10 +4,10 @@ import 'dart:isolate';
 
 //
 import 'package:file_picker/file_picker.dart';
-import 'package:flosu/io/beatmap_content_parser.dart';
-import 'package:flosu/io/beatmap_metadata_parser.dart';
-import 'package:flosu/io/parser.dart';
-import 'package:flosu/io/replay_parser.dart';
+import 'package:flosu/shared/io/beatmap_content_parser.dart';
+import 'package:flosu/shared/io/beatmap_metadata_parser.dart';
+import 'package:flosu/shared/io/parser.dart';
+import 'package:flosu/shared/io/replay_parser.dart';
 import 'package:flosu/models/beatmap/beatmap_content.dart';
 import 'package:flosu/models/replay/replay.dart';
 import 'package:flosu/models/generated/beatmap_metadata.dart';
