@@ -6,7 +6,7 @@ import 'package:flosu/core/constants.dart';
 import 'package:flosu/core/theme/app_colors.dart';
 import 'package:flosu/logic/providers/audio.dart';
 import 'package:flosu/logic/providers/input.dart';
-import 'package:flosu/logic/providers/router.dart';
+import 'package:flosu/shared/navigation/router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flosu/ui/pages/gameplay/gameplay.dart';
 import 'package:flosu/ui/pages/gameplay/loader.dart';
-import 'package:flosu/layout/main_layout.dart';
+import 'package:flosu/shared/layout/main_layout.dart';
 import 'package:flosu/ui/pages/main_menu/select.dart';
 import 'package:flosu/ui/pages/results/results.dart';
 import 'package:flosu/ui/pages/song_select/select.dart';

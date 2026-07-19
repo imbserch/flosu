@@ -4,7 +4,7 @@ import 'package:flosu/core/mixins.dart';
 import 'package:flosu/core/theme/app_colors.dart';
 import 'package:flosu/logic/providers/audio.dart';
 import 'package:flosu/logic/providers/gameplay_data.dart';
-import 'package:flosu/logic/providers/router.dart';
+import 'package:flosu/shared/navigation/router.dart';
 import 'package:flosu/models/inputs/inputs.dart';
 import 'package:flosu/ui/shared/animatable_page.dart';
 import 'package:flosu/ui/widgets/common/skewed_box.dart';

@@ -14,7 +14,7 @@ import 'package:flutter/services.dart' hide MouseCursor;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flosu/core/extensions/ui.dart';
 import 'package:flosu/logic/services/audio.dart';
-import 'package:flosu/logic/providers/router.dart';
+import 'package:flosu/shared/navigation/router.dart';
 import 'package:flosu/ui/widgets/common/reescalable.dart';
 import 'package:flosu/ui/widgets/debug/frame_stats.dart';
 import 'package:flosu/ui/widgets/debug/log_console.dart';

@@ -4,7 +4,7 @@ import 'package:flosu/core/assets.dart';
 import 'package:flosu/core/enums.dart';
 import 'package:flosu/logic/providers/gameplay_data.dart';
 import 'package:flosu/logic/providers/audio.dart';
-import 'package:flosu/logic/providers/router.dart';
+import 'package:flosu/shared/navigation/router.dart';
 import 'package:flosu/logic/providers/settings.dart';
 import 'package:flosu/logic/services/game_loop.dart';
 import 'package:flosu/logic/services/logger.dart';

@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flosu/core/theme/app_colors.dart';
 import 'package:flosu/ui/widgets/song_select/mod_icon.dart';
-import 'package:flosu/logic/providers/router.dart';
+import 'package:flosu/shared/navigation/router.dart';
 import 'package:flosu/ui/shared/animatable_page.dart';
 import 'package:flosu/ui/widgets/common/skewed_box.dart';
 import 'package:flosu/ui/widgets/common/skewed_button_line.dart';

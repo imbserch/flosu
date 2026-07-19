@@ -13,7 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flosu/logic/providers/input.dart';
 import 'package:flosu/logic/providers/settings.dart';
 import 'package:flosu/models/inputs/inputs.dart';
-import 'package:flosu/logic/providers/router.dart';
+import 'package:flosu/shared/navigation/router.dart';
 import 'package:flosu/ui/painters/gameplay.dart';
 
 class EventListNotifier extends ChangeNotifier

@@ -3,7 +3,7 @@ import 'package:flosu/models/repositories/settings.dart';
 import 'package:flosu/repositories/settings.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flosu/logic/providers/router.dart';
+import 'package:flosu/shared/navigation/router.dart';
 
 /// The SettingsNotifier manages the application's persistent settings.
 /// It also handles the navigation to the splash screen when the beatmaps path is set.

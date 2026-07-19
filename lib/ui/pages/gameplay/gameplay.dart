@@ -10,7 +10,7 @@ import 'package:flosu/ui/widgets/song_select/mod_icon.dart';
 import 'package:flutter/material.dart' hide Slider, PointerEvent;
 import 'package:go_router/go_router.dart';
 import 'package:flosu/logic/providers/audio.dart';
-import 'package:flosu/logic/providers/router.dart';
+import 'package:flosu/shared/navigation/router.dart';
 import 'package:flosu/ui/shared/animatable_page.dart';
 
 class GameplayPage extends AnimatablePage {

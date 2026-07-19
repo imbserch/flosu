@@ -3,7 +3,7 @@ import 'dart:core';
 import 'package:collection/collection.dart';
 import 'package:flosu/logic/providers/audio.dart';
 import 'package:flosu/logic/providers/beatmap.dart';
-import 'package:flosu/logic/providers/router.dart';
+import 'package:flosu/shared/navigation/router.dart';
 import 'package:flosu/logic/services/file_parser.dart';
 import 'package:flosu/logic/services/logger.dart';
 import 'package:flosu/models/beatmap/beatmap_content.dart';

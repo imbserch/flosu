@@ -1,6 +1,6 @@
 import 'dart:math';
 import 'package:flosu/core/enums.dart';
-import 'package:flosu/logic/providers/router.dart';
+import 'package:flosu/shared/navigation/router.dart';
 import 'package:flosu/logic/services/game_loop.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
