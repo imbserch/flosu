@@ -17,6 +17,8 @@ class BeatmapRepository extends CachedRepository<List<BeatmapMetadata>> {
 
   @override
   FutureOr<void> init() async {
+    super.init();
+
     final dir = await getApplicationDocumentsDirectory();
     _db = await Isar.open([BeatmapMetadataSchema], directory: dir.path);
 
@@ -29,7 +31,7 @@ class BeatmapRepository extends CachedRepository<List<BeatmapMetadata>> {
     _ensureInitialized();
 
     final beatmaps = await _db!.beatmapMetadatas.where().findAll();
-    logger.debug("Retrieved ${beatmaps.length} beatmaps from DB");
+    log("Retrieved ${beatmaps.length} beatmaps from DB");
 
     cache = List.from(beatmaps);
     notify();
@@ -51,7 +53,7 @@ class BeatmapRepository extends CachedRepository<List<BeatmapMetadata>> {
     _ensureInitialized();
 
     await _db!.writeTxn(() => _db!.beatmapMetadatas.putAll(beatmaps));
-    logger.debug("Inserted ${beatmaps.length} beatmaps into DB");
+    log("Inserted ${beatmaps.length} beatmaps into DB");
 
     cache.addAll(beatmaps);
     notify();
@@ -62,7 +64,7 @@ class BeatmapRepository extends CachedRepository<List<BeatmapMetadata>> {
     _ensureInitialized();
 
     await _db!.writeTxn(() => _db!.beatmapMetadatas.clear());
-    logger.debug("Cleared beatmaps from DB");
+    log("Cleared beatmaps from DB");
 
     cache.clear();
     notify();
@@ -74,7 +76,7 @@ class BeatmapRepository extends CachedRepository<List<BeatmapMetadata>> {
           "Repository not initialized. "
           "Call init() first.";
 
-      logger.error(message);
+      log(message, level: .error);
       throw Exception(message);
     }
   }

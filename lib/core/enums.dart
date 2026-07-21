@@ -168,7 +168,7 @@ enum Mod {
 }
 
 /// Centralized logger levels.
-enum LogLevel { debug, info, warning, error }
+enum LogLevel { success, debug, info, warning, error }
 
 /// Types of user notifications.
 enum NotificationType { info, normal, warning, error }

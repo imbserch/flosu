@@ -1,28 +1,27 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:math';
+import 'dart:math' hide log;
 
 import 'package:collection/collection.dart';
+import 'package:flosu/shared/logging.dart';
 import 'package:flosu/shared/router.dart';
 import 'package:flosu/features/settings/domain/settings.dart';
-import 'package:flosu/logic/services/logger.dart';
 import 'package:flosu/models/generated/beatmap_metadata.dart';
 import 'package:flosu/repositories/beatmap.dart';
-import 'package:flosu/shared/services/io/io_result.dart';
-import 'package:flosu/shared/services/io/io_service.dart';
+import 'package:flosu/shared/io.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 ///
-class BeatmapProvider extends Notifier<List<BeatmapMetadata>> {
+class BeatmapProvider extends Notifier<List<BeatmapMetadata>> with Logging {
   late final BeatmapRepository _repository = ref.read(
     beatmapRepositoryProvider,
   );
   late final IoService _parserService = ref.read(ioProvider);
 
-  final ScopedLogger _logger = Logger.requestLogger("BeatmapProvider");
-
   @override
   List<BeatmapMetadata> build() {
+    requestLogger();
+
     Future.microtask(() async {
       // Subscribe to the file parser's result stream.
       final parserSubs = _parserService.resultStream
@@ -42,7 +41,7 @@ class BeatmapProvider extends Notifier<List<BeatmapMetadata>> {
       ref.onDispose(() {
         beatmapSubs.cancel();
         parserSubs.cancel();
-        _logger.dispose();
+        removeLogger();
       });
     });
 
@@ -79,15 +78,18 @@ class BeatmapProvider extends Notifier<List<BeatmapMetadata>> {
 
   /// Handles a single [IoResult] emitted by the [IoService].
   void _handleResult(IoResult result) {
+    final isBeatmap = result is IoBeatmapMetadataResult;
+
     assert(
-      result is IoBeatmapMetadataResult,
+      isBeatmap,
       "Expected IoBeatmapMetadataResult. Got ${result.runtimeType}",
     );
 
-    final metadata = result.data!;
+    final metadata = result.data;
 
-    _logger.debug(
+    log(
       "Beatmap parsed: ${metadata.info.title} (${metadata.info.version})",
+      level: .debug,
     );
 
     // Add beatmap to DB and update state

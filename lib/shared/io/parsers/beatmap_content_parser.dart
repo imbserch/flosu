@@ -8,7 +8,7 @@ import 'package:flosu/models/beatmap/hit_objects.dart';
 import 'package:flosu/models/beatmap/timing_points.dart';
 import 'package:flosu/models/generated/beatmap_metadata.dart';
 import 'package:flosu/shared/io/io_exceptions.dart';
-import 'package:flosu/shared/io/io_parser.dart';
+import 'package:flosu/shared/io/parsers/io_parser.dart';
 
 // This parser needs the beatmap metadata to parse the beatmap content
 // because this parser only parses the remaining beatmap data

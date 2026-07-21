@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flosu/core/assets.dart';
 import 'package:flosu/features/gameplay/domain/gameplay_data.dart';
 import 'package:flosu/logic/services/sample.dart';
-import 'package:flosu/shared/services/io/io_service.dart';
+import 'package:flosu/shared/io.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';

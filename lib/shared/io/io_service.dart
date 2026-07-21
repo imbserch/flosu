@@ -4,9 +4,9 @@ import 'dart:isolate';
 import 'package:file_picker/file_picker.dart';
 import 'package:flosu/models/generated/beatmap_metadata.dart';
 import 'package:flosu/shared/io/io_exceptions.dart';
-import 'package:flosu/shared/services/io/io_commands.dart';
-import 'package:flosu/shared/services/io/io_result.dart';
-import 'package:flosu/shared/services/io/io_service_worker.dart';
+import 'package:flosu/shared/io/io_commands.dart';
+import 'package:flosu/shared/io/io_result.dart';
+import 'package:flosu/shared/io/io_service_worker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Converts the file path and optional data into a [IoCommand].

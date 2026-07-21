@@ -1,59 +1,11 @@
 import 'dart:async';
-
 import 'package:collection/collection.dart';
 import 'package:flosu/core/constants.dart';
 import 'package:flosu/core/enums.dart';
+import 'package:flosu/shared/logging/log.dart';
 import 'package:flutter/foundation.dart';
 
-export 'package:flosu/core/enums.dart' show LogLevel;
-
-class ScopedLogger {
-  ScopedLogger._(this.serviceName);
-  bool _isDisposed = false;
-
-  final String serviceName;
-
-  void log(String message, LogLevel level) {
-    assert(!_isDisposed, "ScopedLogger was disposed: $serviceName");
-    if (_isDisposed) return;
-
-    // Delegar la inserción al Logger central
-    Logger.instance._addLog(Log(serviceName, message, level, DateTime.now()));
-  }
-
-  void debug(String message) => log(message, LogLevel.debug);
-  void info(String message) => log(message, LogLevel.info);
-  void warn(String message) => log(message, LogLevel.warning);
-  void error(String message) => log(message, LogLevel.error);
-
-  void dispose() {
-    _isDisposed = true;
-    Logger.instance.releaseLogger(this);
-  }
-}
-
-class Log {
-  const Log(this.tag, this.message, this.level, this.timestamp);
-
-  final String tag;
-  final String message;
-  final LogLevel level;
-  final DateTime timestamp;
-
-  @override
-  String toString() {
-    final timeStr = timestamp
-        .toLocal()
-        .toString()
-        .split(' ')
-        .last
-        .substring(0, 8);
-
-    final levelStr = level.name.toUpperCase();
-
-    return "[$levelStr] [$timeStr] [$tag] -> $message";
-  }
-}
+part 'scoped_logger.dart';
 
 class Logger {
   Logger._() {
@@ -119,7 +71,17 @@ class Logger {
   }
 
   void _addLog(Log log) {
-    if (kDebugMode) print(log.toString());
+    if (kDebugMode) {
+      final style = switch (log.level) {
+        LogLevel.success => "\x1B[32m",
+        LogLevel.debug => "\x1B[34m",
+        LogLevel.info => "\x1B[90m",
+        LogLevel.warning => "\x1B[93m",
+        LogLevel.error => "\x1B[91m",
+      };
+
+      print("$style$log\x1B[0m");
+    }
 
     // Don't add debug logs in release mode
     if (!kDebugMode && log.level == LogLevel.debug) return;

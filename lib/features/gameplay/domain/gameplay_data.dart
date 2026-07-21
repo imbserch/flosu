@@ -3,18 +3,19 @@ import 'dart:core';
 import 'package:collection/collection.dart';
 import 'package:flosu/features/audio/data/audio_provider.dart';
 import 'package:flosu/logic/providers/beatmap.dart';
+import 'package:flosu/shared/logging.dart';
 import 'package:flosu/shared/router.dart';
-import 'package:flosu/logic/services/logger.dart';
 import 'package:flosu/features/gameplay/data/gameplay_info.dart';
 import 'package:flosu/models/mods/base.dart';
-import 'package:flosu/shared/services/io/io_result.dart';
-import 'package:flosu/shared/services/io/io_service.dart';
+import 'package:flosu/shared/io.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class GameplayData extends Notifier<GameplayInfo> {
+class GameplayData extends Notifier<GameplayInfo> with Logging {
   @override
   GameplayInfo build() {
+    requestLogger();
+
     final parserStream = ref.read(ioProvider).resultStream;
     final changedSources = ref.read(audioProvider.notifier).changedSources;
 
@@ -34,16 +35,15 @@ class GameplayData extends Notifier<GameplayInfo> {
     });
 
     ref.onDispose(() {
+      removeLogger();
+
       changedSources.removeListener(() => _applyMods(state.mods));
       parserSubs.cancel();
-      _logger.dispose();
     });
 
     final initialMetadata = ref.read(audioProvider);
     return GameplayInfo(metadata: initialMetadata);
   }
-
-  final ScopedLogger _logger = Logger.requestLogger("GameplayService");
 
   void _handleResult(IoResult result) async {
     switch (result) {
@@ -60,8 +60,9 @@ class GameplayData extends Notifier<GameplayInfo> {
             .firstWhereOrNull((b) => b.md5 == replay.hash);
 
         if (contentRelated == null) {
-          return _logger.error(
+          return log(
             "Beatmap not found for replay with hash ${replay.hash}",
+            level: .error,
           );
         }
 
@@ -76,11 +77,12 @@ class GameplayData extends Notifier<GameplayInfo> {
           clearContents: !hasSameContents,
         );
 
-        _logger.debug("Loaded replay with hash ${replay.hash}");
+        log("Loaded replay with hash ${replay.hash}");
         rootNavigatorKey.currentContext?.go("/scoring");
       default:
-        return _logger.error(
+        return log(
           "Received unexpected result type: ${result.runtimeType}",
+          level: .error,
         );
     }
   }

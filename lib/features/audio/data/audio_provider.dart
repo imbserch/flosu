@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:flosu/logic/services/logger.dart';
 import 'package:flosu/models/generated/beatmap_metadata.dart';
+import 'package:flosu/shared/logging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_soloud/flutter_soloud.dart';
@@ -17,9 +17,11 @@ typedef AudioTimingsCallback = void Function(Duration delay);
 /// transitions and stops.
 ///
 /// The state holds the [String] path of the currently active audio.
-class AudioProvider extends Notifier<BeatmapMetadata?> {
+class AudioProvider extends Notifier<BeatmapMetadata?> with Logging {
   @override
   build() {
+    requestLogger();
+
     //Get audio service
     _service = ref.read(audioService);
     _audioDelayTimer = Timer.periodic(
@@ -52,7 +54,7 @@ class AudioProvider extends Notifier<BeatmapMetadata?> {
         _service.setStop(_currentHandle!);
       }
       _service.dispose();
-      _logger.dispose();
+      removeLogger();
     });
 
     return null;
@@ -63,8 +65,6 @@ class AudioProvider extends Notifier<BeatmapMetadata?> {
 
   // Notifier for listening audio finalizations
   final ValueNotifier<int> endedSources = ValueNotifier<int>(-1);
-
-  final ScopedLogger _logger = Logger.requestLogger("AudioProvider");
 
   /// The underlying service responsible for low-level audio operations.
   late final AudioService _service;
@@ -134,7 +134,10 @@ class AudioProvider extends Notifier<BeatmapMetadata?> {
     if (delay.inMilliseconds > 16) {
       _audioOffset = servicePosition;
       _stopwatch.reset();
-      _logger.warn("Audio delay of ${delay.inMilliseconds} ms detected");
+      log(
+        "Audio delay of ${delay.inMilliseconds} ms detected",
+        level: .warning,
+      );
     }
 
     _previousOffset = absolutePosition;
@@ -162,28 +165,28 @@ class AudioProvider extends Notifier<BeatmapMetadata?> {
     final path = beatmap.general.audioPath;
 
     if (path == null) {
-      _logger.error("Tried to load a beatmap without audio");
+      log("Tried to load a beatmap without audio", level: .error);
       return null;
     }
 
-    _logger.debug("Loading source: $path");
+    log("Loading source: $path");
 
     // Check if the source is already cached to optimize performance
     if (_sources.containsKey(path)) {
-      _logger.debug("Source is already loaded: $path");
+      log("Source is already loaded: $path");
       return _sources[path];
     }
 
     final source = await _service.load(path);
 
     if (source == null) {
-      _logger.error("Source can't be loaded: $path");
+      log("Source can't be loaded: $path", level: .error);
       return null;
     }
 
     // Storage for future use to avoid re-decoding the same file
     _sources[path] = source;
-    _logger.debug("Source loaded: $path");
+    log("Source loaded: $path");
     return source;
   }
 
@@ -194,17 +197,18 @@ class AudioProvider extends Notifier<BeatmapMetadata?> {
     final path = beatmap.general.audioPath;
 
     if (path == null) {
-      return _logger.error("Tried to load a beatmap without audio");
+      return log("Tried to load a beatmap without audio", level: .error);
     }
 
     final source = await load(beatmap);
 
-    if (source == null) return _logger.error("Audio can't play: $path");
+    if (source == null) return log("Audio can't play: $path", level: .error);
     final handle = await _service.play(source, _musicVolume);
 
     if (handle == null) {
-      return _logger.error(
+      return log(
         "Audio can't start $path. Don't trying to stop last handle",
+        level: .error,
       );
     }
 
@@ -242,7 +246,7 @@ class AudioProvider extends Notifier<BeatmapMetadata?> {
     final path = beatmap.general.audioPath;
 
     if (path == null) {
-      return _logger.error("Tried to load a beatmap without audio");
+      return log("Tried to load a beatmap without audio", level: .error);
     }
 
     final offset = Duration(milliseconds: beatmap.general.previewTime);
@@ -256,8 +260,9 @@ class AudioProvider extends Notifier<BeatmapMetadata?> {
     final source = await load(beatmap);
 
     if (source == null) {
-      return _logger.error(
+      return log(
         "Audio can't load: $path. No fading between handles",
+        level: .error,
       );
     }
 
@@ -265,8 +270,9 @@ class AudioProvider extends Notifier<BeatmapMetadata?> {
     final handle = await _service.play(source, 0.0);
 
     if (handle == null) {
-      return _logger.error(
+      return log(
         "Audio can't preview $path. No fading between handles",
+        level: .error,
       );
     }
 
@@ -313,7 +319,7 @@ class AudioProvider extends Notifier<BeatmapMetadata?> {
   /// into [_audioOffset] before applying the new [rate] and resetting the clock.
   void setRate(double rate) {
     if (_currentHandle == null) {
-      _logger.error("No handle to set playback rate");
+      log("No handle to set playback rate", level: .error);
       return;
     }
     // Capture the exact moment before the speed change
@@ -327,7 +333,7 @@ class AudioProvider extends Notifier<BeatmapMetadata?> {
 
   void setPitch(double pitch) {
     if (_currentHandle == null) {
-      _logger.error("No handle to set pitch");
+      log("No handle to set pitch", level: .error);
       return;
     }
     _service.setPitch(_currentHandle!, pitch);
@@ -340,7 +346,7 @@ class AudioProvider extends Notifier<BeatmapMetadata?> {
   /// is currently active.
   void stop() {
     if (_currentHandle == null) {
-      _logger.error("No handles to stop");
+      log("No handles to stop", level: .error);
       return;
     }
 
@@ -370,7 +376,7 @@ class AudioProvider extends Notifier<BeatmapMetadata?> {
   /// [playing]: True to resume playback, false to pause.
   void setPlaying(bool playing) {
     if (_currentHandle == null) {
-      _logger.error("No handles to set play state");
+      log("No handles to set play state", level: .error);
       return;
     }
 

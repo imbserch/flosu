@@ -2,11 +2,10 @@ import 'dart:async';
 
 import 'package:flosu/features/audio_experimental/domain/active_sound.dart';
 import 'package:flosu/features/audio_experimental/domain/loaded_sound.dart';
-import 'package:flosu/logic/services/logger.dart';
+import 'package:flosu/shared/logging.dart';
 import 'package:flutter_soloud/flutter_soloud.dart';
 
-class ExperimentalAudioService {
-  final ScopedLogger _logger = Logger.requestLogger("ExperimentalAudioService");
+class ExperimentalAudioService with Logging {
   SoLoud? _soLoud;
 
   bool _initialized = false;
@@ -22,15 +21,19 @@ class ExperimentalAudioService {
     if (_initialized) return;
 
     try {
+      requestLogger();
+
       _soLoud = SoLoud.instance;
       if (!_soLoud!.isInitialized) {
         await _soLoud!.init(bufferSize: 128);
         _soLoud!.setMaxActiveVoiceCount(32);
       }
-      _logger.info("ExperimentalAudioService initialized");
+      log("ExperimentalAudioService initialized", level: .success);
       _initialized = true;
     } catch (err) {
-      _logger.error("ExperimentalAudioService init error: $err");
+      log("ExperimentalAudioService init error: $err", level: .error);
+
+      removeLogger();
     }
   }
 
@@ -42,7 +45,7 @@ class ExperimentalAudioService {
       final source = await _soLoud!.loadFile(path);
       return LoadedSound(this, source, path);
     } catch (err) {
-      _logger.error("Error loading file: $err");
+      log("Error loading file: $err", level: .error);
       return null;
     }
   }
@@ -55,7 +58,7 @@ class ExperimentalAudioService {
       final source = await _soLoud!.loadAsset(path);
       return LoadedSound(this, source, path);
     } catch (err) {
-      _logger.error("Error loading asset: $err");
+      log("Error loading asset: $err", level: .error);
       return null;
     }
   }
@@ -81,7 +84,7 @@ class ExperimentalAudioService {
 
       return activeSound;
     } catch (err) {
-      _logger.error("Error playing sound: $err");
+      log("Error playing sound: $err", level: .error);
       return null;
     }
   }
@@ -217,7 +220,7 @@ class ExperimentalAudioService {
   void dispose() {
     if (!_initialized) return;
 
-    _logger.dispose();
+    removeLogger();
 
     _soLoud!.deinit();
     _soLoud = null;
@@ -235,7 +238,7 @@ class ExperimentalAudioService {
     if (existingSubscription != null) return;
 
     final subscription = sound.source.soundEvents.listen((e) {
-      _logger.info("Audio source ${e.handle.id} event fired: ${e.event}");
+      log("Audio source ${e.handle.id} event fired: ${e.event}");
     });
 
     final entry = <AudioSource, StreamSubscription>{source: subscription};

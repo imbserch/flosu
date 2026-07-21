@@ -1,5 +1,5 @@
 import 'package:collection/collection.dart';
-import 'package:flosu/logic/services/logger.dart';
+import 'package:flosu/shared/logging.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_soloud/flutter_soloud.dart';
 
@@ -7,13 +7,12 @@ import 'package:flutter_soloud/flutter_soloud.dart';
 ///
 /// Its primary responsibility is to abstract the audio backend and provide
 /// a clean interface for loading, playing, and manipulating audio assets.
-class AudioService {
+class AudioService with Logging {
   AudioService._();
 
   static final AudioService _instance = AudioService._();
 
   static AudioService get instance => _instance;
-  final ScopedLogger _logger = Logger.requestLogger("Audio Service");
 
   /// Initializes the audio engine with a specific buffer size.
   ///
@@ -21,17 +20,22 @@ class AudioService {
   /// Any failure during initialization is logged and prevents playback.
   Future<void> init() async {
     try {
+      requestLogger();
+
       await SoLoud.instance.init(bufferSize: 128);
       _soLoud = SoLoud.instance;
 
       _soLoud!.setMaxActiveVoiceCount(32);
       _soLoud!.filters.pitchShiftFilter.activate();
 
-      _logger.info("AudioService has been initialized");
+      log("AudioService has been initialized", level: .success);
     } catch (err) {
-      _logger.error(
+      log(
         "AudioService initialization error. $err\nAudio can't be played",
+        level: .error,
       );
+
+      removeLogger();
     }
   }
 
@@ -51,7 +55,7 @@ class AudioService {
 
       return source;
     } catch (err) {
-      _logger.error("Error loading file: $err");
+      log("Error loading file: $err", level: .error);
       return null;
     }
   }
@@ -68,7 +72,7 @@ class AudioService {
       if (handle != null) _soLoud?.setProtectVoice(handle!, true);
       return handle;
     } catch (err) {
-      _logger.error("Error playing file: $err");
+      log("Error playing file: $err", level: .error);
       return null;
     }
   }
@@ -83,10 +87,10 @@ class AudioService {
     _soLoud?.setProtectVoice(handle!, false);
 
     if (duration != null) {
-      _logger.debug("Scheduling stop at $duration");
+      log("Scheduling stop at $duration");
       return _soLoud?.scheduleStop(handle, duration);
     }
-    _logger.debug("Stopping sound");
+    log("Stopping sound");
     _soLoud?.stop(handle);
   }
 
@@ -100,7 +104,7 @@ class AudioService {
     if (duration != null) {
       if (seek) _soLoud?.seek(handle, duration);
 
-      _logger.debug("Setting loop point to $duration");
+      log("Setting loop point to $duration");
       _soLoud?.setLoopPoint(handle, duration);
     }
   }
@@ -118,7 +122,7 @@ class AudioService {
     final source = _soLoud?.findAudioSourceByHandle(handle);
 
     if (source == null) {
-      _logger.error("Can't find source for handle $handle");
+      log("Can't find source for handle $handle", level: .error);
       return 1.0;
     }
 
@@ -126,12 +130,12 @@ class AudioService {
 
     if (duration != null) {
       //SoLoud doesn't support smooth transitions for now
-      _logger.debug("Setting rate to $rate");
+      log("Setting rate to $rate");
       filter.timeStretch(handle, clampedRate);
       return rate;
     }
 
-    _logger.debug("Setting rate to $rate");
+    log("Setting rate to $rate");
     filter.timeStretch(handle, clampedRate);
     return rate;
   }
@@ -140,7 +144,7 @@ class AudioService {
   ///
   /// [playing]: true to resume (unpause), false to pause.
   void setPlaying(SoundHandle handle, bool playing) {
-    _logger.debug("Playing state changed to $playing");
+    log("Playing state changed to $playing");
     _soLoud?.setPause(handle, !playing);
   }
 
@@ -153,28 +157,28 @@ class AudioService {
     final clampedVol = volume.clamp(0.0, 1.0);
 
     if (duration != null) {
-      _logger.debug("Fading volume to $clampedVol over $duration");
+      log("Fading volume to $clampedVol over $duration");
 
       _soLoud?.fadeVolume(handle, clampedVol, duration);
     } else {
-      _logger.debug("Setting volume to $clampedVol");
+      log("Setting volume to $clampedVol");
       _soLoud?.setVolume(handle, clampedVol);
     }
   }
 
   /// Updates the master volume level for all sounds managed by the engine.
   void setGlobalVolume(double volume) {
-    _logger.debug("Setting global volume to $volume");
+    log("Setting global volume to $volume");
     _soLoud?.setGlobalVolume(volume.clamp(0.0, 1.0));
   }
 
   void setPitch(SoundHandle handle, double pitch) {
-    _logger.debug("Setting pitch to $pitch");
+    log("Setting pitch to $pitch");
 
     final source = _soLoud?.findAudioSourceByHandle(handle);
 
     if (source == null) {
-      _logger.error("Can't find source for handle $handle");
+      log("Can't find source for handle $handle", level: .error);
       return;
     }
 
@@ -202,7 +206,7 @@ class AudioService {
   }
 
   void dispose() {
-    _logger.dispose();
+    removeLogger();
     _soLoud?.deinit();
   }
 }

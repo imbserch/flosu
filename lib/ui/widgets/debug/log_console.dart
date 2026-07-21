@@ -1,7 +1,9 @@
+import 'package:flosu/core/enums.dart';
 import 'package:flosu/core/extensions/ui.dart';
 import 'package:flosu/core/theme/app_colors.dart';
+import 'package:flosu/shared/logging/log.dart';
+import 'package:flosu/shared/logging/logger.dart';
 import 'package:flutter/material.dart';
-import 'package:flosu/logic/services/logger.dart';
 
 class LogConsole extends StatelessWidget {
   const LogConsole({super.key});
@@ -32,6 +34,9 @@ class LogConsole extends StatelessWidget {
                 Color levelColor = Colors.white;
 
                 switch (log.level) {
+                  case LogLevel.success:
+                    levelColor = const Color(0xFF66FF6E);
+                    break;
                   case LogLevel.debug:
                     levelColor = const Color(0xff66ccff);
                     break;

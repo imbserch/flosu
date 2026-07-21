@@ -1,4 +1,4 @@
-import 'package:flosu/logic/services/logger.dart';
+import 'package:flosu/shared/logging.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_soloud/flutter_soloud.dart';
 
@@ -7,15 +7,15 @@ import 'package:flutter_soloud/flutter_soloud.dart';
 /// It wraps the [SoLoud] audio engine to load, cache, play, pause, resume,
 /// and dispose individual sound effect files.
 //
-class SampleService {
+class SampleService with Logging {
   SampleService._();
 
   static final SampleService _instance = SampleService._();
   static SampleService get instance => _instance;
 
-  final ScopedLogger _logger = Logger.requestLogger("SampleService");
-
   Future<void> init() async {
+    requestLogger();
+
     //SoLoud has been initialized in AudioService, we just need to use the instance
     _soLoud = SoLoud.instance;
   }
@@ -31,7 +31,7 @@ class SampleService {
 
     _sources[path] = sound!;
 
-    _logger.info("Loaded sound: $path");
+    log("Loaded sound: $path");
   }
 
   Future<void> loadFromAsset(String path) async {
@@ -40,7 +40,7 @@ class SampleService {
     final sound = await _soLoud?.loadAsset(path);
     _sources[path] = sound!;
 
-    _logger.info("Loaded sound from asset: $path");
+    log("Loaded sound from asset: $path");
   }
 
   Future<void> loadMultiple(List<String> paths) async {
@@ -59,7 +59,7 @@ class SampleService {
     final sound = _sources[path];
 
     if (sound == null) {
-      _logger.error("Sound not found: $path");
+      log("Sound not found: $path", level: .error);
       return null;
     }
 
@@ -67,7 +67,7 @@ class SampleService {
 
     final handle = _soLoud!.play(sound);
 
-    _logger.debug("Playing sound: $path using handle ${handle.id}");
+    log("Playing sound: $path using handle ${handle.id}");
 
     return handle;
   }
@@ -93,7 +93,7 @@ class SampleService {
       _soLoud?.disposeSource(sound);
     }
 
-    _logger.debug("Disposed all sounds");
+    removeLogger();
   }
 }
 

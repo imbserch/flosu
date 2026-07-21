@@ -1,4 +1,4 @@
-import 'package:flosu/logic/services/logger.dart';
+import 'package:flosu/shared/logging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -10,14 +10,12 @@ import 'package:permission_handler/permission_handler.dart';
 ///
 /// The actual library scanning loop lives in [beatmapProvider]; this service
 /// only handles the low-level file I/O.
-class LibraryService {
+class LibraryService with Logging {
   LibraryService._();
 
   static final LibraryService _instance = LibraryService._();
 
   static LibraryService get instance => _instance;
-
-  final ScopedLogger _logger = Logger.requestLogger("LibraryService");
 
   /// Requests necessary storage permissions on Android.
   ///
@@ -27,10 +25,12 @@ class LibraryService {
   ///
   /// No-op on platforms other than Android.
   Future<void> init() async {
+    requestLogger();
+
     if (defaultTargetPlatform == .android) {
       bool granted = false;
 
-      _logger.debug("Android target. Requesting permissions");
+      log("Android target. Requesting permissions", level: .debug);
 
       // Legacy permission (Android 9 and below).
       if (!await Permission.storage.isGranted) {
@@ -44,19 +44,23 @@ class LibraryService {
       }
 
       if (granted) {
-        return _logger.info("Library permissions granted (Granted by user)");
+        return log(
+          "Library permissions granted (Granted by user)",
+          level: .info,
+        );
       }
 
-      return _logger.error(
+      return log(
         "Library permissions denied (Denied by user or permission revoked)",
+        level: .error,
       );
     }
 
-    _logger.warn("Library permissions granted (Not Android Platform)");
+    log("Library permissions granted (Not Android Platform)", level: .warning);
   }
 
   void dispose() {
-    _logger.dispose();
+    removeLogger();
   }
 }
 

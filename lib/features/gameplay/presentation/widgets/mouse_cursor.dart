@@ -3,8 +3,8 @@ import 'dart:ui';
 import 'package:flosu/core/assets.dart';
 import 'package:flosu/core/enums.dart';
 import 'package:flosu/logic/services/game_loop.dart';
-import 'package:flosu/logic/services/logger.dart';
 import 'package:flosu/logic/services/sample.dart';
+import 'package:flosu/shared/logging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide PointerEvent, Image;
 import 'package:flutter/services.dart' hide PointerEvent;
@@ -55,8 +55,7 @@ class MouseCursor extends ConsumerStatefulWidget {
   ConsumerState<MouseCursor> createState() => _MouseCursorState();
 }
 
-class _MouseCursorState extends ConsumerState<MouseCursor> {
-  final ScopedLogger _logger = Logger.requestLogger("MouseCursor");
+class _MouseCursorState extends ConsumerState<MouseCursor> with Logging {
   final EventListNotifier _eventsNotifier = EventListNotifier();
 
   Image? _mouseImage;
@@ -64,6 +63,7 @@ class _MouseCursorState extends ConsumerState<MouseCursor> {
 
   @override
   initState() {
+    requestLogger();
     _instantiateCursorImage();
 
     ref.read(gameLoopService).subscribe(TickerPhase.visual, _updateEvents);
@@ -80,7 +80,7 @@ class _MouseCursorState extends ConsumerState<MouseCursor> {
         .unsubscribe(TickerPhase.visual, _updateEvents);
 
     globalRef.read(inputProvider.notifier).removeDelayedHandler(_getEvents);
-    _logger.dispose();
+    removeLogger();
     super.dispose();
   }
 
@@ -94,7 +94,7 @@ class _MouseCursorState extends ConsumerState<MouseCursor> {
       _mouseImage = frame.image;
       if (mounted) setState(() {});
     } catch (err) {
-      _logger.error("Error loading mouse as a ui.Image: $err");
+      log("Error loading mouse as a ui.Image: $err", level: .error);
     }
   }
 

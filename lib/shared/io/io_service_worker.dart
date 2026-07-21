@@ -3,13 +3,13 @@ import 'dart:isolate';
 import 'package:flosu/models/beatmap/beatmap_content.dart';
 import 'package:flosu/models/generated/beatmap_metadata.dart';
 import 'package:flosu/models/replay/replay.dart';
-import 'package:flosu/shared/io/beatmap_content_parser_experimental.dart';
-import 'package:flosu/shared/io/beatmap_metadata_parser_experimental.dart';
+import 'package:flosu/shared/io/parsers/beatmap_content_parser.dart';
+import 'package:flosu/shared/io/parsers/beatmap_metadata_parser.dart';
 import 'package:flosu/shared/io/io_exceptions.dart';
-import 'package:flosu/shared/io/io_parser.dart';
-import 'package:flosu/shared/io/replay_parser_experimental.dart';
-import 'package:flosu/shared/services/io/io_commands.dart';
-import 'package:flosu/shared/services/io/io_result.dart';
+import 'package:flosu/shared/io/parsers/io_parser.dart';
+import 'package:flosu/shared/io/parsers/replay_parser.dart';
+import 'package:flosu/shared/io/io_commands.dart';
+import 'package:flosu/shared/io/io_result.dart';
 
 /// Retrieves the parser for the given command.
 ///

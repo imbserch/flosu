@@ -35,6 +35,8 @@ class SettingsRepository extends DebouncedRepository<Settings> {
 
   @override
   FutureOr<void> init() async {
+    super.init();
+
     _asyncPrefs = SharedPreferencesAsync();
 
     // Fetch settings from local storage
@@ -103,11 +105,11 @@ class SettingsRepository extends DebouncedRepository<Settings> {
 
     // If old cache is null, write all data
     if (oldCache == null) {
-      logger.debug("Writing all settings data");
+      log("Writing all settings data");
       return _writeAll(data);
     }
 
-    logger.debug("Saving settings data");
+    log("Saving settings data");
 
     // Compare properties in memory and save only what changed
     if (oldCache.beatmapsPath != data.beatmapsPath) {
@@ -192,7 +194,7 @@ class SettingsRepository extends DebouncedRepository<Settings> {
   Future<void> get() async {
     _ensureInitialized();
 
-    logger.debug("Requesting all settings from [SharedPreferencesAsync]");
+    log("Requesting all settings from [SharedPreferencesAsync]");
 
     final keys = await _asyncPrefs!.getAll();
     final rawOsuKeys = keys[SettingsKey.osuKeys.name] as List?;
@@ -222,7 +224,7 @@ class SettingsRepository extends DebouncedRepository<Settings> {
       const message =
           "SettingsRepository is not initialized. Call init() first";
 
-      logger.error(message);
+      log(message, level: .error);
       throw Exception(message);
     }
   }

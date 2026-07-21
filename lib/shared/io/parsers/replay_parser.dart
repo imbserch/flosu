@@ -10,7 +10,7 @@ import 'package:flosu/models/mods/base.dart';
 import 'package:flosu/models/replay/replay.dart';
 import 'package:flosu/models/replay/replay_frame.dart';
 import 'package:flosu/shared/io/io_exceptions.dart';
-import 'package:flosu/shared/io/io_parser.dart';
+import 'package:flosu/shared/io/parsers/io_parser.dart';
 import 'package:lzma/lzma.dart';
 
 class ReplayIncompatibleRulesetException implements Exception {

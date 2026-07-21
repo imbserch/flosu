@@ -1,11 +1,11 @@
 import 'package:collection/collection.dart';
 import 'package:flosu/features/audio/data/audio_provider.dart';
 import 'package:flosu/models/generated/beatmap_metadata.dart';
+import 'package:flosu/shared/logging.dart';
 import 'package:flutter/material.dart';
 import 'package:flosu/core/enums.dart';
 import 'package:flosu/core/assets.dart';
 import 'package:flosu/core/theme/app_colors.dart';
-import 'package:flosu/core/extensions/format.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 part "difficulty_increase.dart";
@@ -18,7 +18,7 @@ part "fun.dart";
 ///
 /// Subclasses define specific modifications to gameplay mechanics, speed, difficulty,
 /// scoring multiplier, and visual rendering.
-sealed class ConfigurableMod {
+sealed class ConfigurableMod with Logging {
   static Set<ConfigurableMod> fromLazerPayload(Map<String, dynamic> json) {
     try {
       //Assuming the lazer don't have Classic behavior enabled by default
@@ -69,7 +69,6 @@ sealed class ConfigurableMod {
 
       return finalMods;
     } catch (e) {
-      e.log();
       return {};
     }
   }
@@ -165,11 +164,13 @@ sealed class ConfigurableMod {
       difficulty;
 
   void activate(ProviderContainer ref) {
-    "Activating ${mod.name} mod".log();
+    requestLogger();
+    log("Activating ${mod.name}");
   }
 
   void deactivate(ProviderContainer ref) {
-    "Deactivating ${mod.name} mod".log();
+    log("Deactivating ${mod.name}");
+    removeLogger();
   }
 }
 

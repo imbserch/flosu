@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:isolate';
-import 'dart:math';
+import 'dart:math' hide log;
 
 import 'package:flosu/core/assets.dart';
 import 'package:flosu/features/audio/data/audio_provider.dart';
 import 'package:flosu/logic/services/sample.dart';
+import 'package:flosu/shared/input.dart';
+import 'package:flosu/shared/logging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -20,16 +22,24 @@ class MainSelectPage extends AnimatablePage {
   AnimatablePageState<MainSelectPage> createState() => _MainSelectPageState();
 }
 
-class _MainSelectPageState extends AnimatablePageState<MainSelectPage> {
+class _MainSelectPageState extends AnimatablePageState<MainSelectPage>
+    with KeyboardHandler, Logging {
   final _osuKey = GlobalKey();
 
   Timer? _exitTimer;
   bool _requestedExit = false;
 
   @override
-  dispose() {
-    super.dispose();
+  void initState() {
+    super.initState();
+    requestLogger();
+  }
+
+  @override
+  void dispose() {
     _exitTimer?.cancel();
+    removeLogger();
+    super.dispose();
   }
 
   void _exit() {
@@ -49,6 +59,15 @@ class _MainSelectPageState extends AnimatablePageState<MainSelectPage> {
       // App can't be closed in a safe way: kill process
       if (result == .cancel) Isolate.current.kill();
     });
+  }
+
+  @override
+  bool input() {
+    log(
+      "${keyboard.pressed ? "[X]" : "[ ]"} ${keyboard.key.keyLabel} ${keyboard.controlPressed} ${keyboard.altPressed}",
+    );
+
+    return false;
   }
 
   @override

@@ -1,19 +1,18 @@
 import 'dart:async';
 
-import 'package:flosu/logic/services/logger.dart';
+import 'package:flosu/shared/logging.dart';
 
 /// Base class for all repositories.
 /// Use this when you need a repository that can be initialized,
 /// fetched from an external source, updated, and checked for initialization status.
-abstract class Repository<T extends Object> {
-  /// Logger for the repository.
-  late final ScopedLogger logger = Logger.requestLogger("$runtimeType");
-
+abstract class Repository<T extends Object> with Logging {
   /// Checks if the repository is initialized.
   bool get isInitialized;
 
   /// Initializes the repository.
-  FutureOr<void> init();
+  FutureOr<void> init() {
+    requestLogger();
+  }
 
   /// Fetches the repository from an external source.
   FutureOr<void> get();
@@ -21,7 +20,9 @@ abstract class Repository<T extends Object> {
   /// Updates the repository with the given data.
   FutureOr<void> update(T data);
 
-  void dispose();
+  void dispose() {
+    removeLogger();
+  }
 }
 
 /// A [Repository] with cache.
@@ -54,6 +55,7 @@ abstract class CachedRepository<T extends Object> extends Repository<T> {
   @override
   void dispose() {
     controller.close();
+    super.dispose();
   }
 }
 

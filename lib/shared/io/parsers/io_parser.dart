@@ -1,4 +1,4 @@
-import 'io_exceptions.dart';
+import 'package:flosu/shared/io/io_exceptions.dart';
 
 abstract class IoParser<T> {
   IoParser(this.path);

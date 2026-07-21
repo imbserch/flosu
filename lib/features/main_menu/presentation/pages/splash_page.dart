@@ -5,7 +5,8 @@ import 'package:flosu/core/assets.dart';
 import 'package:flosu/logic/providers/beatmap.dart';
 import 'package:flosu/logic/providers/main_layout.dart';
 import 'package:flosu/logic/services/sample.dart';
-import 'package:flosu/shared/services/io/io_service.dart';
+import 'package:flosu/shared/input.dart';
+import 'package:flosu/shared/io.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -43,6 +44,9 @@ class _SplashPageState extends ConsumerState<SplashPage> {
 
     // Setup I/O provider
     await ref.read(ioProvider).init();
+
+    // Setup input provider
+    await ref.read(inputProvider).init();
   }
 
   // Updated flow of loading

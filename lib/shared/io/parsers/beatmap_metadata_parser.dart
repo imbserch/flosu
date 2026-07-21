@@ -6,7 +6,7 @@ import 'package:crypto/crypto.dart';
 import 'package:flosu/core/enums.dart';
 import 'package:flosu/models/generated/beatmap_metadata.dart';
 import 'package:flosu/shared/io/io_exceptions.dart';
-import 'package:flosu/shared/io/io_parser.dart';
+import 'package:flosu/shared/io/parsers/io_parser.dart';
 
 class BeatmapIncompatibleRulesetException implements Exception {
   BeatmapIncompatibleRulesetException();
