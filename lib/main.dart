@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'dart:ui';
 
-import 'package:flosu/logic/providers/settings.dart';
+import 'package:flosu/features/settings/domain/settings.dart';
 import 'package:flosu/logic/services/library.dart';
 import 'package:flosu/logic/services/sample.dart';
 import 'package:flosu/repositories/beatmap.dart';
@@ -13,12 +13,14 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart' hide MouseCursor;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flosu/core/extensions/ui.dart';
-import 'package:flosu/logic/services/audio.dart';
-import 'package:flosu/shared/navigation/router.dart';
+import 'package:flosu/features/audio/data/audio_service.dart';
+import 'package:flosu/shared/router.dart';
 import 'package:flosu/shared/widgets/reescalable.dart';
 import 'package:flosu/ui/widgets/debug/frame_stats.dart';
 import 'package:flosu/ui/widgets/debug/log_console.dart';
-import 'package:flosu/ui/widgets/gameplay/mouse_cursor.dart';
+import 'package:flosu/features/gameplay/presentation/widgets/mouse_cursor.dart';
+import 'package:logging/logging.dart' as logging;
+import 'dart:developer' as dev;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,6 +28,18 @@ void main() async {
   SchedulerBinding.instance.requestPerformanceMode(
     DartPerformanceMode.throughput,
   );
+
+  logging.Logger.root.onRecord.listen((record) {
+    dev.log(
+      record.message,
+      time: record.time,
+      level: record.level.value,
+      name: record.loggerName,
+      zone: record.zone,
+      error: record.error,
+      stackTrace: record.stackTrace,
+    );
+  });
 
   // System Configurations
   await SystemChrome.setEnabledSystemUIMode(.immersiveSticky);
@@ -51,6 +65,8 @@ void main() async {
   await AudioService.instance.init();
   await SampleService.instance.init();
   await LibraryService.instance.init();
+
+  // All delayed initialization is handled by splash page
 
   runApp(
     ProviderScope(

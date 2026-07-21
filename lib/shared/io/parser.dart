@@ -4,6 +4,7 @@ import 'dart:io';
 /// A base class for all file parsers in the application.
 ///
 /// [T] represents the type of object the parser will produce.
+@Deprecated("Will be removed in favor of [IoParser]")
 abstract class Parser<T> {
   Parser(this.file);
 

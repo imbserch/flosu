@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_fade/image_fade.dart' show ImageFade;
 import 'package:flosu/core/extensions/ui.dart';
-import 'package:flosu/logic/providers/audio.dart';
+import 'package:flosu/features/audio/data/audio_provider.dart';
 import 'package:flosu/logic/providers/input.dart';
-import 'package:flosu/logic/providers/settings.dart';
+import 'package:flosu/features/settings/domain/settings.dart';
 import 'package:flosu/models/inputs/inputs.dart';
 
 class ParallaxBackground extends ConsumerStatefulWidget {

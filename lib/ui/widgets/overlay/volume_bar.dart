@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flosu/logic/providers/settings.dart';
+import 'package:flosu/features/settings/domain/settings.dart';
 
 class VolumeBar extends ConsumerStatefulWidget {
   const VolumeBar({super.key});

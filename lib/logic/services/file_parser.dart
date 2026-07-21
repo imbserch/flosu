@@ -11,8 +11,9 @@ import 'package:flosu/shared/io/replay_parser.dart';
 import 'package:flosu/models/beatmap/beatmap_content.dart';
 import 'package:flosu/models/replay/replay.dart';
 import 'package:flosu/models/generated/beatmap_metadata.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flosu/shared/services/io/io_service.dart';
 
+@Deprecated("Use IoService instead")
 class ParseResult<T extends Object> {
   ParseResult({required this.filePath, this.data, this.error});
 
@@ -23,6 +24,7 @@ class ParseResult<T extends Object> {
   bool get hasError => error != null;
 }
 
+@Deprecated("Use IoService instead")
 class _ParseCommand<T extends Object> {
   _ParseCommand(this.filePath, this.onlyMetadata, {this.data});
 
@@ -31,6 +33,7 @@ class _ParseCommand<T extends Object> {
   final bool onlyMetadata;
 }
 
+@Deprecated("Use IoService instead")
 class FileParserService {
   Isolate? _isolate;
   SendPort? _commandsPort;
@@ -105,6 +108,7 @@ class FileParserService {
 }
 
 /// The worker that parses files in a separate isolate.
+@Deprecated("Use IoService instead")
 void _isolateWorker(SendPort mainSendPort) {
   final workerReceivePort = ReceivePort();
 
@@ -180,10 +184,4 @@ void _isolateWorker(SendPort mainSendPort) {
   });
 }
 
-final fileParserService = Provider<FileParserService>((ref) {
-  final service = FileParserService();
-  service.init();
-
-  ref.onDispose(service.dispose);
-  return service;
-});
+final fileParserService = ioProvider;

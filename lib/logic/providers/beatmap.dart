@@ -3,12 +3,14 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:collection/collection.dart';
-import 'package:flosu/shared/navigation/router.dart';
-import 'package:flosu/logic/providers/settings.dart';
+import 'package:flosu/shared/router.dart';
+import 'package:flosu/features/settings/domain/settings.dart';
 import 'package:flosu/logic/services/file_parser.dart';
 import 'package:flosu/logic/services/logger.dart';
 import 'package:flosu/models/generated/beatmap_metadata.dart';
 import 'package:flosu/repositories/beatmap.dart';
+import 'package:flosu/shared/services/io/io_result.dart';
+import 'package:flosu/shared/services/io/io_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 ///
@@ -16,7 +18,7 @@ class BeatmapProvider extends Notifier<List<BeatmapMetadata>> {
   late final BeatmapRepository _repository = ref.read(
     beatmapRepositoryProvider,
   );
-  late final FileParserService _parserService = ref.read(fileParserService);
+  late final IoService _parserService = ref.read(fileParserService);
 
   final ScopedLogger _logger = Logger.requestLogger("BeatmapProvider");
 
@@ -25,8 +27,8 @@ class BeatmapProvider extends Notifier<List<BeatmapMetadata>> {
     Future.microtask(() async {
       // Subscribe to the file parser's result stream.
       final parserSubs = _parserService.resultStream
-          .where((r) => r is ParseResult<BeatmapMetadata>)
-          .listen(_handleParserResult);
+          .where((r) => r is IoBeatmapMetadataResult)
+          .listen(_handleResult);
 
       // Subscribe to the repository stream.
       final beatmapSubs = _repository.stream.listen(_handleRepositoryUpdate);
@@ -72,30 +74,25 @@ class BeatmapProvider extends Notifier<List<BeatmapMetadata>> {
       final isNewFile = storedBeatmaps.none((it) => it.filePath == path);
       if (!isNewFile) continue;
 
-      _parserService.parseFile(path, onlyMetadata: true);
+      _parserService.parse(path);
     }
   }
 
-  /// Handles a single [ParseResult] emitted by the [FileParserService].
-  ///
-  /// If the result contains a valid [Beatmap], it is inserted into the
-  /// appropriate [BeatmapGroup] (or a new group is created if none exists).
-  void _handleParserResult(ParseResult result) {
-    if (result.hasError) {
-      return _logger.error(
-        "Failed to parse beatmap: ${result.error.toString()}",
-      );
-    }
+  /// Handles a single [IoResult] emitted by the [IoService].
+  void _handleResult(IoResult result) {
+    assert(
+      result is IoBeatmapMetadataResult,
+      "Expected IoBeatmapMetadataResult. Got ${result.runtimeType}",
+    );
 
-    final beatmap = result.data;
-    if (beatmap is! BeatmapMetadata) return;
+    final metadata = result.data!;
 
     _logger.debug(
-      "Beatmap parsed: ${beatmap.info.title} (${beatmap.info.version})",
+      "Beatmap parsed: ${metadata.info.title} (${metadata.info.version})",
     );
 
     // Add beatmap to DB and update state
-    _repository.insert([beatmap]);
+    _repository.insert([metadata]);
   }
 
   void _handleRepositoryUpdate(List<BeatmapMetadata> metadatas) =>
@@ -127,17 +124,12 @@ class BeatmapProvider extends Notifier<List<BeatmapMetadata>> {
     int selectedIndex = Random().nextInt(state.length);
 
     return state[selectedIndex];
-
-    /*  int selectedGroup = Random().nextInt(state.length);
-    final group = state[selectedGroup];
-
-    return group.beatmaps[selectedBeatmap]; */
   }
 
   void pickReplay() {
     globalRef
         .read(fileParserService)
-        .pickFile(
+        .pick(
           allowedExtensions: ["osr"],
           dialogTitle: "Select an Osu! replay file",
         );

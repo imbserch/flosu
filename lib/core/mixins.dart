@@ -1,7 +1,7 @@
 import 'package:collection/collection.dart';
 import 'package:flosu/core/extensions/models.dart';
 import 'package:flosu/logic/providers/input.dart';
-import 'package:flosu/shared/navigation/router.dart';
+import 'package:flosu/shared/router.dart';
 import 'package:flosu/models/inputs/inputs.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' hide PointerEvent;

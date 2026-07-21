@@ -2,7 +2,7 @@ import 'package:flosu/core/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flosu/core/theme/app_colors.dart';
-import 'package:flosu/logic/providers/settings.dart';
+import 'package:flosu/features/settings/domain/settings.dart';
 //import 'package:flosu/providers/tooltip_service.dart';
 import 'package:flosu/shared/widgets/osu_button.dart';
 import 'package:flosu/shared/widgets/osu_checkbox.dart';

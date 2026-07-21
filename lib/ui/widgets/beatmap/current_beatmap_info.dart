@@ -1,4 +1,4 @@
-import 'package:flosu/logic/providers/gameplay_data.dart';
+import 'package:flosu/features/gameplay/domain/gameplay_data.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flosu/core/theme/app_colors.dart';

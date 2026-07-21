@@ -1,6 +1,6 @@
 import 'package:flosu/core/constants.dart';
 import 'package:flosu/core/extensions/ui.dart';
-import 'package:flosu/logic/providers/audio.dart';
+import 'package:flosu/features/audio/data/audio_provider.dart';
 import 'package:flosu/logic/providers/beatmap.dart';
 import 'package:flosu/ui/widgets/beatmap/beatmap_list_tile.dart';
 import 'package:flosu/ui/widgets/beatmap/beatmap_set_list_tile.dart';

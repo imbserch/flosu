@@ -1,0 +1,9 @@
+import 'io_exceptions.dart';
+
+abstract class IoParser<T> {
+  IoParser(this.path);
+
+  final String path;
+
+  Future<T> parse() => throw IoParserUnimplementedException();
+}

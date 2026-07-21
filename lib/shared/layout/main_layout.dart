@@ -6,12 +6,12 @@ import 'package:flosu/logic/providers/main_layout.dart';
 import 'package:flosu/logic/services/sample.dart';
 import 'package:flosu/models/inputs/inputs.dart';
 import 'package:flosu/ui/widgets/navigation/notifications_drawer.dart';
+import 'package:flosu/ui/widgets/navigation/settings_drawer.dart';
 import 'package:flutter/material.dart' hide PointerEvent;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flosu/logic/providers/settings.dart';
+import 'package:flosu/features/settings/domain/settings.dart';
 import 'package:flosu/ui/widgets/background/parallax_background.dart';
 import 'package:flosu/ui/widgets/overlay/volume_bar.dart';
-import 'package:flosu/ui/widgets/navigation/settings_drawer.dart';
 import 'package:flosu/ui/widgets/navigation/top_bar.dart';
 import 'package:go_router/go_router.dart';
 
