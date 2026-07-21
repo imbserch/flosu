@@ -1,11 +1,10 @@
 import 'dart:async';
 
-import 'package:flosu/core/mixins.dart';
 import 'package:flosu/core/theme/app_colors.dart';
 import 'package:flosu/features/audio/data/audio_provider.dart';
 import 'package:flosu/features/gameplay/domain/gameplay_data.dart';
+import 'package:flosu/shared/input.dart';
 import 'package:flosu/shared/router.dart';
-import 'package:flosu/models/inputs/inputs.dart';
 import 'package:flosu/ui/shared/animatable_page.dart';
 import 'package:flosu/shared/widgets/skewed_box.dart';
 import 'package:flutter/material.dart' hide PointerEvent;
@@ -21,7 +20,7 @@ class PausePage extends AnimatablePage {
 enum PauseExitAction { resume, reset, quit }
 
 class _PausePageState extends AnimatablePageState<PausePage>
-    with KeyboardEventHandler {
+    with KeyboardHandler {
   /// How the pause screen is exiting.
   PauseExitAction _exitAction = PauseExitAction.resume;
 
@@ -56,12 +55,20 @@ class _PausePageState extends AnimatablePageState<PausePage>
   }
 
   @override
-  Map<KeysState, VoidCallback> get keyHandlers => {
-    // If escape key pressed, resume
-    KeysState({.escape}): _resume,
-    // If backslash key pressed, reset
-    KeysState({.backslash}): _reset,
-  };
+  bool input() {
+    if (!keyboard.pressed) return false;
+
+    switch (keyboard.key) {
+      case .escape:
+        _resume();
+        return true;
+      case .backslash:
+        _reset();
+        return true;
+      default:
+        return false;
+    }
+  }
 
   /// Navigates back to the gameplay page, resuming the game.
   void _resume() {

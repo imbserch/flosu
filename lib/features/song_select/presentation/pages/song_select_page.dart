@@ -1,6 +1,5 @@
-import 'package:flosu/core/mixins.dart';
 import 'package:flosu/logic/providers/beatmap.dart';
-import 'package:flosu/models/inputs/inputs.dart';
+import 'package:flosu/shared/input.dart';
 import 'package:flosu/ui/widgets/beatmap/beatmap_list.dart';
 import 'package:flosu/shared/widgets/actions_bar.dart';
 import 'package:flutter/material.dart' hide PointerEvent;
@@ -21,18 +20,28 @@ class SongSelectPage extends AnimatablePage {
 }
 
 class _SongSelectPageState extends AnimatablePageState<SongSelectPage>
-    with KeyboardEventHandler {
+    with KeyboardHandler {
   @override
-  Map<KeysState, VoidCallback> get keyHandlers => {
-    // If escape key pressed, go back
-    KeysState({.escape}): _goBack,
-    // If F1 key pressed, open mods
-    KeysState({.f1}): _openMods,
-    // If F2 key pressed, play random song
-    KeysState({.f2}): _playRandom,
-    // If F3 key pressed, open replay window
-    KeysState({.f3}): _pickReplay,
-  };
+  bool input() {
+    if (!keyboard.pressed) return false;
+
+    switch (keyboard.key) {
+      case .escape:
+        _goBack();
+        return true;
+      case .f1:
+        _openMods();
+        return true;
+      case .f2:
+        _playRandom();
+        return true;
+      case .f3:
+        _pickReplay();
+        return true;
+      default:
+        return false;
+    }
+  }
 
   void _goBack() {
     if (mounted) context.go("/main");

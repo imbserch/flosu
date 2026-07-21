@@ -1,8 +1,7 @@
 import 'package:flosu/core/constants.dart';
-import 'package:flosu/core/mixins.dart';
 import 'package:flosu/core/theme/app_colors.dart';
 import 'package:flosu/logic/providers/beatmap.dart';
-import 'package:flosu/models/inputs/inputs.dart';
+import 'package:flosu/shared/input.dart';
 import 'package:flosu/ui/shared/animatable_page.dart';
 import 'package:flosu/shared/widgets/actions_bar.dart';
 import 'package:flosu/shared/widgets/osu_button.dart';
@@ -21,12 +20,19 @@ class ReplayPickerPage extends AnimatablePage {
 }
 
 class _ReplayPickerPageState extends AnimatablePageState<ReplayPickerPage>
-    with KeyboardEventHandler {
+    with KeyboardHandler {
   @override
-  Map<KeysState, VoidCallback> get keyHandlers => {
-    // If escape key is pressed, go back
-    KeysState({.escape}): _goBack,
-  };
+  bool input() {
+    if (!keyboard.pressed) return false;
+
+    switch (keyboard.key) {
+      case .escape:
+        _goBack();
+        return true;
+      default:
+        return false;
+    }
+  }
 
   void _goBack() {
     if (mounted) context.go("/songs");

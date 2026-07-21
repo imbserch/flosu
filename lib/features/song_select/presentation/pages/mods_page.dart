@@ -1,7 +1,5 @@
 import 'package:flosu/core/constants.dart';
-import 'package:flosu/core/mixins.dart';
 import 'package:flosu/features/gameplay/domain/gameplay_data.dart';
-import 'package:flosu/models/inputs/inputs.dart';
 import 'package:flosu/shared/widgets/actions_bar.dart';
 import 'package:flosu/shared/widgets/top_banner.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +12,8 @@ import 'package:flosu/shared/widgets/skewed_box.dart';
 import 'package:flosu/features/song_select/presentation/widgets/mod_icon.dart';
 import 'package:flosu/features/song_select/presentation/widgets/mod_item.dart';
 
+import '../../../../shared/input.dart';
+
 class ModsPage extends AnimatablePage {
   const ModsPage({super.key, required super.uri});
 
@@ -22,15 +22,22 @@ class ModsPage extends AnimatablePage {
 }
 
 class _ModsPageState extends AnimatablePageState<ModsPage>
-    with KeyboardEventHandler {
-  @override
-  Map<KeysState, VoidCallback> get keyHandlers => {
-    // If escape key is pressed, go back
-    KeysState({.escape}): _goBack,
-  };
-
+    with KeyboardHandler {
   void _goBack() {
     if (mounted) context.go("/songs");
+  }
+
+  @override
+  bool input() {
+    if (!keyboard.pressed) return false;
+
+    switch (keyboard.key) {
+      case .escape:
+        _goBack();
+        return true;
+      default:
+        return false;
+    }
   }
 
   @override

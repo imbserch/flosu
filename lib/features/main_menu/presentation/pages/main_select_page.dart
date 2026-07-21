@@ -5,7 +5,6 @@ import 'dart:math' hide log;
 import 'package:flosu/core/assets.dart';
 import 'package:flosu/features/audio/data/audio_provider.dart';
 import 'package:flosu/logic/services/sample.dart';
-import 'package:flosu/shared/input.dart';
 import 'package:flosu/shared/logging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -23,7 +22,7 @@ class MainSelectPage extends AnimatablePage {
 }
 
 class _MainSelectPageState extends AnimatablePageState<MainSelectPage>
-    with KeyboardHandler, Logging {
+    with Logging {
   final _osuKey = GlobalKey();
 
   Timer? _exitTimer;
@@ -59,15 +58,6 @@ class _MainSelectPageState extends AnimatablePageState<MainSelectPage>
       // App can't be closed in a safe way: kill process
       if (result == .cancel) Isolate.current.kill();
     });
-  }
-
-  @override
-  bool input() {
-    log(
-      "${keyboard.pressed ? "[X]" : "[ ]"} ${keyboard.key.keyLabel} ${keyboard.controlPressed} ${keyboard.altPressed}",
-    );
-
-    return false;
   }
 
   @override

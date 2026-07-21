@@ -1,12 +1,11 @@
 import 'dart:async';
 
-import 'package:flosu/core/mixins.dart';
 import 'package:flosu/features/gameplay/domain/gameplay_data.dart';
 import 'package:flosu/logic/providers/main_layout.dart';
-import 'package:flosu/models/inputs/inputs.dart';
 import 'package:flosu/features/gameplay/presentation/widgets/playfield.dart';
 import 'package:flosu/features/gameplay/presentation/widgets/replay_mouse_cursor.dart';
 import 'package:flosu/features/song_select/presentation/widgets/mod_icon.dart';
+import 'package:flosu/shared/input.dart';
 import 'package:flutter/material.dart' hide Slider, PointerEvent;
 import 'package:go_router/go_router.dart';
 import 'package:flosu/features/audio/data/audio_provider.dart';
@@ -21,7 +20,7 @@ class GameplayPage extends AnimatablePage {
 }
 
 class _GameplayPageState extends AnimatablePageState<GameplayPage>
-    with KeyboardEventHandler {
+    with KeyboardHandler {
   @override
   void initState() {
     Future.microtask(() {
@@ -55,12 +54,20 @@ class _GameplayPageState extends AnimatablePageState<GameplayPage>
   }
 
   @override
-  Map<KeysState, VoidCallback> get keyHandlers => {
-    // If escape key pressed, pause
-    KeysState({.escape}): _pause,
-    // If backslash key pressed, retry
-    KeysState({.backslash}): _retry,
-  };
+  bool input() {
+    if (!keyboard.pressed) return false;
+
+    switch (keyboard.key) {
+      case .escape:
+        _pause();
+        return true;
+      case .backslash:
+        _retry();
+        return true;
+      default:
+        return false;
+    }
+  }
 
   void _onAudioEnded() {
     if (mounted) context.go("/scoring");

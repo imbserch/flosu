@@ -1,6 +1,4 @@
-import 'package:flosu/core/mixins.dart';
 import 'package:flosu/features/gameplay/domain/gameplay_data.dart';
-import 'package:flosu/models/inputs/inputs.dart';
 import 'package:flosu/shared/widgets/actions_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +9,8 @@ import 'package:flosu/shared/router.dart';
 import 'package:flosu/ui/shared/animatable_page.dart';
 import 'package:flosu/shared/widgets/skewed_box.dart';
 import 'package:flosu/shared/widgets/skewed_button_line.dart';
+
+import '../../../shared/input.dart';
 
 /// Displays the summary screen after a play session ends.
 ///
@@ -26,7 +26,7 @@ class ResultsPage extends AnimatablePage {
 }
 
 class _ResultsPageState extends AnimatablePageState<ResultsPage>
-    with KeyboardEventHandler {
+    with KeyboardHandler {
   bool _enableGrade = false;
 
   //This is meant for prevent losing replay data while going to gameplay page
@@ -44,12 +44,20 @@ class _ResultsPageState extends AnimatablePageState<ResultsPage>
   }
 
   @override
-  Map<KeysState, VoidCallback> get keyHandlers => {
-    // If escape key is pressed, go back to songs page
-    KeysState({.escape}): _goBack,
-    // If backslash key is pressed, replay
-    KeysState({.backslash}): _replay,
-  };
+  bool input() {
+    if (!keyboard.pressed) return false;
+
+    switch (keyboard.key) {
+      case .escape:
+        _goBack();
+        return true;
+      case .backslash:
+        _replay();
+        return true;
+      default:
+        return false;
+    }
+  }
 
   void _showGrade() {
     if (mounted) setState(() => _enableGrade = true);

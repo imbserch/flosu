@@ -1,10 +1,9 @@
 import 'dart:async';
 
 import 'package:flosu/core/assets.dart';
-import 'package:flosu/core/mixins.dart';
 import 'package:flosu/logic/providers/main_layout.dart';
 import 'package:flosu/logic/services/sample.dart';
-import 'package:flosu/models/inputs/inputs.dart';
+import 'package:flosu/shared/input.dart';
 import 'package:flosu/ui/widgets/navigation/notifications_drawer.dart';
 import 'package:flosu/ui/widgets/navigation/settings_drawer.dart';
 import 'package:flutter/material.dart' hide PointerEvent;
@@ -32,8 +31,7 @@ class MainLayout extends ConsumerStatefulWidget {
   ConsumerState<MainLayout> createState() => _MainLayoutState();
 }
 
-class _MainLayoutState extends ConsumerState<MainLayout>
-    with KeyboardEventHandler {
+class _MainLayoutState extends ConsumerState<MainLayout> with KeyboardHandler {
   final _scaffoldKey = GlobalKey<ScaffoldState>(debugLabel: "Main scaffold");
 
   Timer? _scrollTimer;
@@ -69,20 +67,37 @@ class _MainLayoutState extends ConsumerState<MainLayout>
   }
 
   @override
-  Map<KeysState, VoidCallback> get keyHandlers => {
-    //If CTRL+T pressed, toggle top bar
-    KeysState({.keyT}, control: true): _toggleTopBar,
-    //If CTRL+O pressed, toggle drawer
-    KeysState({.keyO}, control: true): _toggleSettings,
-    //If CTRL+F11 pressed, toggle fps monitor
-    KeysState({.f11}, control: true): _toggleFpsMonitor,
-    //If CTRL+F9 pressed, toggle logs
-    KeysState({.f9}, control: true): _toggleLogs,
-    //If CTRL+N pressed, toggle notifications drawer
-    KeysState({.keyN}, control: true): _toggleNotifications,
-    //If CTRL+ALT+F4 pressed, force game reload
-    KeysState({.f4}, control: true, alt: true): _forceReload,
-  };
+  bool input() {
+    if (!keyboard.pressed) return false;
+    if (!keyboard.controlPressed) return false;
+
+    if (keyboard.altPressed) {
+      if (keyboard.key == .f4) {
+        _forceReload();
+        return true;
+      }
+    }
+
+    switch (keyboard.key) {
+      case .keyT:
+        _toggleTopBar();
+        return true;
+      case .keyO:
+        _toggleSettings();
+        return true;
+      case .f11:
+        _toggleFpsMonitor();
+        return true;
+      case .f9:
+        _toggleLogs();
+        return true;
+      case .keyN:
+        _toggleNotifications();
+        return true;
+      default:
+        return false;
+    }
+  }
 
   void _toggleTopBar() {
     ref.read(mainLayoutProvider.notifier).toggleTopBar();
