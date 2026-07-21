@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flosu/core/assets.dart';
 import 'package:flosu/features/gameplay/domain/gameplay_data.dart';
-import 'package:flosu/logic/services/file_parser.dart';
 import 'package:flosu/logic/services/sample.dart';
+import 'package:flosu/shared/services/io/io_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -56,9 +56,7 @@ class _GameplayLoaderPageState extends ConsumerState<GameplayLoaderPage> {
     samples.play(songselectConfirm);
 
     if (!details.validForGameplay) {
-      ref
-          .read(fileParserService)
-          .parse(beatmap.filePath, data: details.metadata);
+      ref.read(ioProvider).parse(beatmap.filePath, data: details.metadata);
     }
 
     await audio.load(beatmap);

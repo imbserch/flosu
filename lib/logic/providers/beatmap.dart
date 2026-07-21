@@ -5,7 +5,6 @@ import 'dart:math';
 import 'package:collection/collection.dart';
 import 'package:flosu/shared/router.dart';
 import 'package:flosu/features/settings/domain/settings.dart';
-import 'package:flosu/logic/services/file_parser.dart';
 import 'package:flosu/logic/services/logger.dart';
 import 'package:flosu/models/generated/beatmap_metadata.dart';
 import 'package:flosu/repositories/beatmap.dart';
@@ -18,7 +17,7 @@ class BeatmapProvider extends Notifier<List<BeatmapMetadata>> {
   late final BeatmapRepository _repository = ref.read(
     beatmapRepositoryProvider,
   );
-  late final IoService _parserService = ref.read(fileParserService);
+  late final IoService _parserService = ref.read(ioProvider);
 
   final ScopedLogger _logger = Logger.requestLogger("BeatmapProvider");
 
@@ -128,7 +127,7 @@ class BeatmapProvider extends Notifier<List<BeatmapMetadata>> {
 
   void pickReplay() {
     globalRef
-        .read(fileParserService)
+        .read(ioProvider)
         .pick(
           allowedExtensions: ["osr"],
           dialogTitle: "Select an Osu! replay file",

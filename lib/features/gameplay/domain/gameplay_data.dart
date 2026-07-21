@@ -4,18 +4,18 @@ import 'package:collection/collection.dart';
 import 'package:flosu/features/audio/data/audio_provider.dart';
 import 'package:flosu/logic/providers/beatmap.dart';
 import 'package:flosu/shared/router.dart';
-import 'package:flosu/logic/services/file_parser.dart';
 import 'package:flosu/logic/services/logger.dart';
 import 'package:flosu/features/gameplay/data/gameplay_info.dart';
 import 'package:flosu/models/mods/base.dart';
 import 'package:flosu/shared/services/io/io_result.dart';
+import 'package:flosu/shared/services/io/io_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 class GameplayData extends Notifier<GameplayInfo> {
   @override
   GameplayInfo build() {
-    final parserStream = ref.read(fileParserService).resultStream;
+    final parserStream = ref.read(ioProvider).resultStream;
     final changedSources = ref.read(audioProvider.notifier).changedSources;
 
     changedSources.addListener(() => _applyMods(state.mods));
