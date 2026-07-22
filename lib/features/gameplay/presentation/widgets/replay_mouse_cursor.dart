@@ -1,17 +1,16 @@
 import 'dart:ui';
 
 import 'package:flosu/core/assets.dart';
-import 'package:flosu/core/enums.dart';
 import 'package:flosu/features/gameplay/domain/gameplay_data.dart';
-import 'package:flosu/features/audio/data/audio_provider.dart';
 import 'package:flosu/shared/logging.dart';
-import 'package:flosu/shared/router.dart';
 import 'package:flosu/features/settings/domain/settings.dart';
-import 'package:flosu/logic/services/game_loop.dart';
+import 'package:flosu/core/engine/game_loop.dart';
 import 'package:flosu/features/gameplay/presentation/painters/gameplay.dart';
 import 'package:flutter/material.dart' hide PointerEvent, Image;
 import 'package:flutter/services.dart' hide PointerEvent;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../audio_experimental/audio.dart';
 
 class ReplayMouseCursor extends ConsumerStatefulWidget {
   const ReplayMouseCursor({super.key});
@@ -21,8 +20,8 @@ class ReplayMouseCursor extends ConsumerStatefulWidget {
 }
 
 class _ReplayMouseCursorState extends ConsumerState<ReplayMouseCursor>
-    with Logging {
-  final _position = ValueNotifier<int>(0);
+    with Logging, GameLoopListener {
+  final _position = ValueNotifier<double>(0);
 
   late final List<Offset> _framePos;
   late final List<int> _frameTimes;
@@ -34,14 +33,11 @@ class _ReplayMouseCursorState extends ConsumerState<ReplayMouseCursor>
     requestLogger();
     _instantiateCursorImage();
     _getReplayFrames();
-
-    ref.read(gameLoopService).subscribe(TickerPhase.visual, _onTick);
     super.initState();
   }
 
   @override
   void dispose() {
-    globalRef.read(gameLoopService).unsubscribe(TickerPhase.visual, _onTick);
     removeLogger();
     super.dispose();
   }
@@ -67,8 +63,9 @@ class _ReplayMouseCursorState extends ConsumerState<ReplayMouseCursor>
     _framePos = frames.map((it) => it.pos).toList();
   }
 
-  void _onTick(_) {
-    final position = ref.read(audioProvider.notifier).positionInMs;
+  @override
+  void process(double delta) {
+    final position = ref.read(audioClockProvider);
 
     if (_position.value == position) return;
     _position.value = position;

@@ -11,10 +11,10 @@ sealed class PlayfieldDrawable {
   // Here is where you store your variables
 
   /// Checks if the object is expired and will no longer be rendered
-  bool isExpired(int position) => false;
+  bool isExpired(double position) => false;
 
   /// Renders the object on the canvas
-  void paint(Canvas c, int position) {
+  void paint(Canvas c, double position) {
     if (isExpired(position)) return;
   }
 }

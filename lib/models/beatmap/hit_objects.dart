@@ -140,7 +140,7 @@ sealed class HitObject {
 
   /// Returns `true` when this object should be rendered at the given
   /// audio [position] (in ms) and beatmap [difficulty] settings.
-  bool canShow(int position, BeatmapDifficultyMetadata difficulty);
+  bool canShow(double position, BeatmapDifficultyMetadata difficulty);
 }
 
 // =============================================================================
@@ -169,7 +169,7 @@ class HitCircle extends HitObject {
       );
 
   @override
-  bool canShow(int position, BeatmapDifficultyMetadata difficulty) =>
+  bool canShow(double position, BeatmapDifficultyMetadata difficulty) =>
       (hitTime - position) < difficulty.preempt &&
       (position - hitTime) < difficulty.hit50;
 
@@ -378,7 +378,7 @@ class Slider extends HitObject {
   }
 
   @override
-  bool canShow(int position, BeatmapDifficultyMetadata difficulty) {
+  bool canShow(double position, BeatmapDifficultyMetadata difficulty) {
     final remain = hitTime - position;
     final endSliderAt = hitTime + duration;
 
@@ -411,7 +411,7 @@ class Spinner extends HitObject {
   final int duration;
 
   @override
-  bool canShow(int position, BeatmapDifficultyMetadata difficulty) {
+  bool canShow(double position, BeatmapDifficultyMetadata difficulty) {
     final remain = hitTime - position;
     final endSpinAt = hitTime + duration;
 

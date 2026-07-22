@@ -1,5 +1,5 @@
 import 'package:collection/collection.dart';
-import 'package:flosu/features/audio/data/audio_provider.dart';
+import 'package:flosu/features/audio_experimental/audio.dart';
 import 'package:flosu/models/generated/beatmap_metadata.dart';
 import 'package:flosu/shared/logging.dart';
 import 'package:flutter/material.dart';

@@ -2,7 +2,8 @@ import 'package:flosu/core/extensions/ui.dart';
 import 'package:flosu/shared/input/input.dart';
 import 'package:flosu/shared/logging.dart';
 import 'package:flosu/shared/router.dart' show rootNavigatorKey;
-import 'package:flutter/gestures.dart' show GestureBinding, PointerEvent;
+import 'package:flutter/gestures.dart'
+    show GestureBinding, PointerEvent, PointerScrollEvent;
 import 'package:flutter/services.dart' hide PointerEvent;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -13,7 +14,15 @@ enum InputHandlerType { mouse, keyboard, all }
 InputMouseEvent _pointerToInput(PointerEvent event) {
   final position = _pointerTransformOffset(event.position);
 
-  return InputMouseEvent(position, .none, false);
+  final Offset scroll = event is PointerScrollEvent ? event.scrollDelta : .zero;
+
+  final MouseScrollDirection direction = scroll.dy == 0
+      ? .none
+      : scroll.dy >= 0
+      ? .down
+      : .up;
+
+  return InputMouseEvent(position, direction, false);
 }
 
 InputKeyEvent _keyToInput(

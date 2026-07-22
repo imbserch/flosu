@@ -1,3 +1,5 @@
+import 'package:flosu/features/audio_experimental/audio.dart'
+    hide audioProvider;
 import 'package:flosu/logic/providers/beatmap.dart';
 import 'package:flosu/shared/input.dart';
 import 'package:flosu/ui/widgets/beatmap/beatmap_list.dart';
@@ -62,6 +64,7 @@ class _SongSelectPageState extends AnimatablePageState<SongSelectPage>
 
   @override
   Widget buildPage(BuildContext context, double animProgress) {
+    final audioTime = ref.watch(audioClockProvider);
     return Stack(
       alignment: .bottomCenter,
       children: [
@@ -72,9 +75,10 @@ class _SongSelectPageState extends AnimatablePageState<SongSelectPage>
           left: context.screenScaled.width / 2,
           width: context.screenScaled.width / 2,
           height: context.screenScaled.height - 60,
-          child: const Column(
+          child: Column(
             crossAxisAlignment: .end,
             children: [
+              Text("${audioTime.round()}"),
               /*  SkewedBox(
                     constraints: const BoxConstraints(
                       minWidth: 280,
@@ -155,7 +159,7 @@ class _SongSelectPageState extends AnimatablePageState<SongSelectPage>
                   ),
                    */
               // Beatmap list
-              Expanded(child: BeatmapList()),
+              const Expanded(child: BeatmapList()),
             ],
           ),
         ),

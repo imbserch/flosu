@@ -13,6 +13,8 @@ class InputMouseEvent extends InputEvent {
 
   final Offset position;
   final MouseScrollDirection scroll;
+
+  bool get scrolling => scroll != .none;
 }
 
 class InputKeyEvent extends InputEvent {

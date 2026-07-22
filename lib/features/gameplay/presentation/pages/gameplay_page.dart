@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flosu/features/gameplay/domain/gameplay_data.dart';
 import 'package:flosu/logic/providers/main_layout.dart';
 import 'package:flosu/features/gameplay/presentation/widgets/playfield.dart';

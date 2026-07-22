@@ -1,7 +1,5 @@
 import 'dart:math';
-import 'package:flosu/core/enums.dart';
-import 'package:flosu/shared/router.dart';
-import 'package:flosu/logic/services/game_loop.dart';
+import 'package:flosu/core/engine/game_loop.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flosu/core/extensions/format.dart';
@@ -20,35 +18,22 @@ class TopBar extends ConsumerStatefulWidget {
   ConsumerState<TopBar> createState() => _TopBarState();
 }
 
-class _TopBarState extends ConsumerState<TopBar> {
+class _TopBarState extends ConsumerState<TopBar> with GameLoopListener {
   final _startTime = DateTime.now();
-  Duration _tick = .zero;
+  int _elapsed = 0;
 
   @override
-  void initState() {
-    super.initState();
-
-    ref.read(gameLoopService).subscribe(TickerPhase.visual, _updateTime);
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-
-    globalRef
-        .read(gameLoopService)
-        .unsubscribe(TickerPhase.visual, _updateTime);
-  }
-
-  void _updateTime(Duration tick) {
-    if (tick.inSeconds != _tick.inSeconds) {
-      if (mounted) setState(() => _tick = tick);
+  void process(double delta) {
+    if (time > _elapsed + 1000) {
+      if (mounted) setState(() => _elapsed = time);
     }
   }
 
+  Duration get _elapsedDuration => Duration(milliseconds: _elapsed);
+
   @override
   Widget build(BuildContext context) {
-    final now = _startTime.add(_tick);
+    final now = _startTime.add(_elapsedDuration);
 
     return ColoredBox(
       color: const Color(0xff191919),
@@ -138,7 +123,7 @@ class _TopBarState extends ConsumerState<TopBar> {
                       style: const TextStyle(fontSize: 10, height: 1),
                     ),
                     Text(
-                      "Running ${_tick.formatted}",
+                      "Running ${_elapsedDuration.formatted}",
                       style: const TextStyle(
                         color: Colors.pinkAccent,
                         fontSize: 6,

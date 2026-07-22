@@ -110,14 +110,15 @@ class DoubleTime extends ConfigurableMod {
   @override
   void activate(ProviderContainer ref) {
     // Set the initial speed to 1.5x
-    ref.read(audioProvider.notifier).setRate(1.5);
+    ref.read(trackProvider.notifier).activeSound?.setRate(1.5);
     super.activate(ref);
   }
 
   @override
   void deactivate(ProviderContainer ref) {
     // Restore the default speed to 1.0x
-    ref.read(audioProvider.notifier).setRate(1.0);
+    ref.read(trackProvider.notifier).activeSound?.setRate(1.0);
+
     super.deactivate(ref);
   }
 }
@@ -150,20 +151,16 @@ class Nightcore extends ConfigurableMod {
 
   @override
   void activate(ProviderContainer ref) {
-    ref.read(audioProvider.notifier)
-      // Set the initial speed to 1.5x
-      ..setRate(1.5)
-      // 2.5% higher pitch
-      ..setPitch(1.025);
+    // Set the initial speed to 1.5x
+    // 2.5% higher pitch
+    ref.read(trackProvider.notifier).activeSound?.setRate(1.5).setPitch(1.025);
     super.activate(ref);
   }
 
   @override
   void deactivate(ProviderContainer ref) {
     // Restore the default speed to 1.0x
-    ref.read(audioProvider.notifier)
-      ..setRate(1.0)
-      ..setPitch(1.0);
+    ref.read(trackProvider.notifier).activeSound?.setRate(1.0).setPitch(1.0);
     super.deactivate(ref);
   }
 }

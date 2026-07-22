@@ -16,6 +16,9 @@ class ExperimentalAudioService with Logging {
 
   Timer? _stopTimer;
 
+  double _lastRate = 1.0;
+  double _lastPitch = 1.0;
+
   Future<void> init() async {
     // Prevent from reinitializing the service
     if (_initialized) return;
@@ -43,6 +46,8 @@ class ExperimentalAudioService with Logging {
 
     try {
       final source = await _soLoud!.loadFile(path);
+      source.filters.pitchShiftFilter.activate();
+
       return LoadedSound(this, source, path);
     } catch (err) {
       log("Error loading file: $err", level: .error);
@@ -78,7 +83,13 @@ class ExperimentalAudioService with Logging {
         volume: initialVolume ?? 1.0,
       );
 
-      final activeSound = ActiveSound(this, handle, sound.source, sound.track);
+      // Set rate and pitch from last time
+      final activeSound = ActiveSound(
+        this,
+        handle,
+        sound.source,
+        sound.track,
+      ).setRate(_lastRate).setPitch(_lastPitch);
 
       _listenSound(activeSound);
 
@@ -89,10 +100,16 @@ class ExperimentalAudioService with Logging {
     }
   }
 
-  bool isValid(ActiveSound sound) {
+  bool isValid(SoundHandle handle) {
     _checkInitialized();
 
-    return _soLoud!.getIsValidVoiceHandle(sound.handle);
+    return _soLoud!.getIsValidVoiceHandle(handle);
+  }
+
+  double getRate(SoundHandle handle) {
+    _checkInitialized();
+
+    return _soLoud!.getRelativePlaySpeed(handle);
   }
 
   /// Protects the voice from being stopped by the voice allocator.
@@ -191,11 +208,10 @@ class ExperimentalAudioService with Logging {
     final source = _soLoud!.findAudioSourceByHandle(handle);
 
     if (source != null) {
-      if (!source.filters.pitchShiftFilter.isActive) {
-        source.filters.pitchShiftFilter.activate();
-      }
       source.filters.pitchShiftFilter.timeStretch(handle, clamped);
     }
+
+    _lastRate = clamped;
   }
 
   void setPitch(SoundHandle handle, double pitch) {
@@ -204,11 +220,10 @@ class ExperimentalAudioService with Logging {
     final source = _soLoud!.findAudioSourceByHandle(handle);
 
     if (source != null) {
-      if (!source.filters.pitchShiftFilter.isActive) {
-        source.filters.pitchShiftFilter.activate();
-      }
       source.filters.pitchShiftFilter.shift(soundHandle: handle).value = pitch;
     }
+
+    _lastPitch = pitch;
   }
 
   void disposeSound(ActiveSound source) {

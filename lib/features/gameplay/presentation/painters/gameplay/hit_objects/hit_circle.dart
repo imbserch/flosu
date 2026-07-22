@@ -28,7 +28,7 @@ class HitCircleDrawable extends HitObjectDrawable<HitCircle> {
   );
 
   @override
-  void paint(Canvas c, int position) {
+  void paint(Canvas c, double position) {
     super.paint(c, position);
 
     // Directly paint from helper function
@@ -37,7 +37,7 @@ class HitCircleDrawable extends HitObjectDrawable<HitCircle> {
 
   static void paintHitCircle(
     Canvas c,
-    int position,
+    double position,
     BeatmapDifficultyMetadata difficulty,
     HitObject hitObject,
     Set<ConfigurableMod> mods,

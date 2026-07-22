@@ -43,9 +43,11 @@ class _PausePageState extends AnimatablePageState<PausePage>
         audio.setPlaying(true);
         break;
       case PauseExitAction.quit:
-        final beatmap = globalRef.read(audioProvider);
-        if (beatmap != null) audio.preview(beatmap, true);
-        Future.microtask(gameplay.clearReplay);
+        Future.microtask(() {
+          final beatmap = globalRef.read(audioProvider);
+          if (beatmap != null) audio.preview(beatmap, true);
+          gameplay.clearReplay();
+        });
         break;
       case PauseExitAction.reset:
         // No-op (Replay can be replayed)

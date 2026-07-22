@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flosu/features/audio_experimental/audio.dart';
 import 'package:flosu/models/generated/beatmap_metadata.dart';
 import 'package:flosu/shared/logging.dart';
 import 'package:flutter/material.dart';
@@ -161,155 +162,54 @@ class AudioProvider extends Notifier<BeatmapMetadata?> with Logging {
   /// requests the [_service] to load it.
   ///
   /// Returns the [AudioSource] if successful, otherwise returns `null`.
+  ///
+  /// NOTE: This provider doesn't manage the audio sources anymore. Use
+  /// [TrackProvider] instead.
   Future<AudioSource?> load(BeatmapMetadata beatmap) async {
-    final path = beatmap.general.audioPath;
+    final audioPath = beatmap.general.audioPath;
 
-    if (path == null) {
-      log("Tried to load a beatmap without audio", level: .error);
-      return null;
-    }
+    if (audioPath == null) return null;
 
-    log("Loading source: $path");
-
-    // Check if the source is already cached to optimize performance
-    if (_sources.containsKey(path)) {
-      log("Source is already loaded: $path");
-      return _sources[path];
-    }
-
-    final source = await _service.load(path);
-
-    if (source == null) {
-      log("Source can't be loaded: $path", level: .error);
-      return null;
-    }
-
-    // Storage for future use to avoid re-decoding the same file
-    _sources[path] = source;
-    log("Source loaded: $path");
-    return source;
+    await ref.read(trackProvider.notifier).loadTrack(audioPath);
+    return null;
   }
 
   /// Plays an audio from beatmap from the beginning.
   ///
   /// If another audio is currently playing, it will be stopped.
+  ///
+  /// NOTE: This provider doesn't manage the audio sources anymore. Use
+  /// [TrackProvider] instead.
   Future<void> play(BeatmapMetadata beatmap) async {
-    final path = beatmap.general.audioPath;
+    final audioPath = beatmap.general.audioPath;
 
-    if (path == null) {
-      return log("Tried to load a beatmap without audio", level: .error);
-    }
+    if (audioPath == null) return;
 
-    final source = await load(beatmap);
-
-    if (source == null) return log("Audio can't play: $path", level: .error);
-    final handle = await _service.play(source, _musicVolume);
-
-    if (handle == null) {
-      return log(
-        "Audio can't start $path. Don't trying to stop last handle",
-        level: .error,
-      );
-    }
-
-    _audioDuration = _service.getDuration(handle);
-
-    // Set rate to match internal playbackRate
-    _service.setRate(handle, _playbackRate);
-
-    /// Disables looping and resets the offset for full track playback.
-    _service.setClip(handle, null);
-    _audioOffset = .zero;
-
-    // Reset the internal clock immediately after playback starts
-    // to minimize the delta between the engine and the CPU clock.
-    _stopwatch
-      ..start()
-      ..reset();
-
-    // Crossfade: Stop the previous audio if it exists
-    if (_currentHandle != null) _service.setStop(_currentHandle!);
-
-    _currentPath = path;
-    _currentHandle = handle;
-    _playing = true;
+    ref.read(trackProvider.notifier).playTrack(audioPath);
     state = beatmap;
-
-    changedSources.value = changedSources.value + 1;
   }
 
   /// Previews an audio from beatmap with a volume fade-in effect.
   ///
   /// Useful for gallery or selection screens. It starts the audio at volume 0
   /// and fades it in, while simultaneously fading out and stopping the previous audio.
+  ///
+  /// NOTE: This provider doesn't manage the audio sources anymore. Use
+  /// [TrackProvider] instead.
   Future<void> preview(BeatmapMetadata beatmap, [bool force = false]) async {
-    final path = beatmap.general.audioPath;
+    final audioPath = beatmap.general.audioPath;
+    final previewTime = Duration(milliseconds: beatmap.general.previewTime);
 
-    if (path == null) {
-      return log("Tried to load a beatmap without audio", level: .error);
-    }
+    if (audioPath == null) return;
 
-    final offset = Duration(milliseconds: beatmap.general.previewTime);
-
-    // Only set new beatmap and set audio clip behavior if audio is the currently playing handle
-    if (_currentPath != null && _currentPath == path && !force) {
-      state = beatmap;
-      return _service.setClip(_currentHandle!, offset, false);
-    }
-
-    final source = await load(beatmap);
-
-    if (source == null) {
-      return log(
-        "Audio can't load: $path. No fading between handles",
-        level: .error,
-      );
-    }
-
-    // Start playback at 0.0 volume to allow for a manual fade-in
-    final handle = await _service.play(source, 0.0);
-
-    if (handle == null) {
-      return log(
-        "Audio can't preview $path. No fading between handles",
-        level: .error,
-      );
-    }
-
-    _audioDuration = _service.getDuration(handle);
-
-    // Set rate to match internal playbackRate
-    _service.setRate(handle, _playbackRate);
-
-    /// Enables looping at a specific point and sets the offset for
-    /// correct position reporting.
-    _service.setClip(handle, offset);
-    _audioOffset = offset;
-
-    // Synchronize the stopwatch with the start of the preview.
-    _stopwatch
-      ..start()
-      ..reset();
-
-    // Cross-fade: Fade out the previous handle before stopping it
-    if (_currentHandle != null) {
-      _service.setVolume(_currentHandle!, 0, Durations.medium1);
-      _service.setStop(_currentHandle!, Durations.medium1);
-    }
-
-    // Fade in the new audio
-    // Using updated osu!lazer fade logic
-    Future.delayed(
-      Durations.medium1 * 0.5,
-      () => _service.setVolume(handle, _musicVolume, Durations.medium1),
-    );
-
-    _currentPath = path;
-    _currentHandle = handle;
-    _playing = true;
+    ref
+        .read(trackProvider.notifier)
+        .playLoopTrack(
+          audioPath,
+          loopPoint: previewTime,
+          seekToLoopPoint: force,
+        );
     state = beatmap;
-
-    changedSources.value = changedSources.value + 1;
   }
 
   /// Updates the playback speed and resynchronizes the timing baseline.
@@ -317,55 +217,21 @@ class AudioProvider extends Notifier<BeatmapMetadata?> with Logging {
   /// Changing the rate invalidates the current [Stopwatch] progression
   /// relative to the audio. To fix this, we capture the current position
   /// into [_audioOffset] before applying the new [rate] and resetting the clock.
-  void setRate(double rate) {
-    if (_currentHandle == null) {
-      log("No handle to set playback rate", level: .error);
-      return;
-    }
-    // Capture the exact moment before the speed change
-    _audioOffset = _service.getPosition(_currentHandle!);
+  void setRate(double rate) {}
 
-    // Apply the new rate to the engine
-    _playbackRate = _service.setRate(_currentHandle!, rate);
-
-    _stopwatch.reset();
-  }
-
-  void setPitch(double pitch) {
-    if (_currentHandle == null) {
-      log("No handle to set pitch", level: .error);
-      return;
-    }
-    _service.setPitch(_currentHandle!, pitch);
-  }
+  /// NOTE: This provider doesn't manage the audio sources anymore. Use
+  /// [TrackProvider] instead.
+  void setPitch(double pitch) {}
 
   /// Stops the current audio playback and clears the provider state.
   ///
   /// This method immediately halts the audio engine for the [_currentHandle]
   /// and resets the [state] to `null`, notifying listeners that no track
   /// is currently active.
-  void stop() {
-    if (_currentHandle == null) {
-      log("No handles to stop", level: .error);
-      return;
-    }
-
-    // Immediate stop without fade
-    _service.setStop(_currentHandle!);
-    _audioDuration = .zero;
-
-    // Clear synchronization data to prevent carry-over to the next track
-    _stopwatch
-      ..stop()
-      ..reset();
-    _audioOffset = .zero;
-
-    // Invalidate the handle and update state to notify UI listeners
-    _currentPath = null;
-    _currentHandle = null;
-    _playing = false;
-    state = null;
-  }
+  ///
+  /// NOTE: This provider doesn't manage the audio sources anymore. Use
+  /// [TrackProvider] instead.
+  void stop() {}
 
   /// Updates the playback state (play/pause) and synchronizes the timing system.
   ///
@@ -374,40 +240,18 @@ class AudioProvider extends Notifier<BeatmapMetadata?> with Logging {
   /// uses the captured offset as the new baseline.
   ///
   /// [playing]: True to resume playback, false to pause.
-  void setPlaying(bool playing) {
-    if (_currentHandle == null) {
-      log("No handles to set play state", level: .error);
-      return;
-    }
-
-    // Tell the engine to pause or resume
-    _service.setPlaying(_currentHandle!, playing);
-
-    // Resynchronize the logical offset with the actual engine position.
-    // This prevents the timing from drifting due to CPU/Audio clock mismatch.
-    _audioOffset = _service.getPosition(_currentHandle!);
-
-    // We stop and reset the stopwatch on pause because the position
-    // is now fully captured within the _audioOffset.
-    _playing = playing;
-
-    if (playing) {
-      _stopwatch.start();
-    } else {
-      _stopwatch
-        ..stop()
-        ..reset();
-    }
-  }
+  ///
+  /// NOTE: This provider doesn't manage the audio sources anymore. Use
+  /// [TrackProvider] instead.
+  void setPlaying(bool playing) {}
 
   void seek(Duration to) {
     // No-op for now
   }
 
-  Duration get duration {
-    if (_currentHandle == null) return .zero;
-    return _audioDuration;
-  }
+  /// NOTE: This provider doesn't manage the audio sources anymore. Use
+  /// [TrackProvider] instead.
+  Duration get duration => Durations.extralong4;
 
   /// Returns the current high-precision playback position,
   /// adjusted by the track's internal offset multiplied by the playback rate
@@ -415,25 +259,24 @@ class AudioProvider extends Notifier<BeatmapMetadata?> with Logging {
   ///
   /// The formula ensures that visual sync accounts for hardware latency
   /// compensation: [_audioOffset] + [_stopwatch] * [_playbackRate] + [_userOffset].
-  Duration get position {
-    if (_currentHandle == null) return .zero;
-
-    return _audioOffset + (_stopwatch.elapsed * _playbackRate) + _userOffset;
-  }
+  ///
+  /// NOTE: This provider doesn't manage the audio sources anymore. Use
+  /// [TrackProvider] instead.
+  Duration get position => .zero;
 
   /// Same as [position], in milliseconds
-  int get positionInMs => position.inMilliseconds;
+  ///
+  /// NOTE: This provider doesn't manage the audio sources anymore. Use
+  /// [TrackProvider] instead.
+  int get positionInMs => 0;
 
-  bool get playing {
-    if (_currentHandle == null) return false;
-    return _playing;
-  }
+  /// NOTE: This provider doesn't manage the audio sources anymore. Use
+  /// [TrackProvider] instead.
+  bool get playing => false;
 
-  bool get completed {
-    if (_currentHandle == null) return true;
-
-    return position >= duration;
-  }
+  /// NOTE: This provider doesn't manage the audio sources anymore. Use
+  /// [TrackProvider] instead.
+  bool get completed => false;
 }
 
 /// Global provider for [AudioProvider].

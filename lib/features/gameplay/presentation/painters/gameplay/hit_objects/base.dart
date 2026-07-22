@@ -22,10 +22,10 @@ class HitObjectDrawable<T extends HitObject> extends PlayfieldDrawable {
   late final double diameter = 2 * radius;
 
   @override
-  bool isExpired(int position) => !hitObject.canShow(position, difficulty);
+  bool isExpired(double position) => !hitObject.canShow(position, difficulty);
 
   @override
-  void paint(Canvas c, int position) {
+  void paint(Canvas c, double position) {
     //
     super.paint(c, position);
   }

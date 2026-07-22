@@ -3,23 +3,11 @@ import 'package:flosu/features/audio_experimental/domain/active_sound.dart';
 import 'package:flosu/features/audio_experimental/domain/audio_track.dart';
 import 'package:flosu/features/audio_experimental/domain/loaded_sound.dart';
 import 'package:flosu/features/audio_experimental/presentation/audio_provider.dart';
-import 'package:flutter/material.dart' show Durations;
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart' show Durations, ValueNotifier;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class TrackProvider extends Notifier<AudioTrack?> {
-  // All loaded audio sources
-  final Map<AudioTrack, LoadedSound> _loadedSounds = {};
-
-  // All active sounds
-  final Map<AudioTrack, ActiveSound> _activeSounds = {};
-
-  // The currently active sound
-  // This is null if no track has been played yet
-  ActiveSound? _currentActiveSound;
-
-  // The latest requested audio track to avoid race conditions
-  AudioTrack? _latestRequestedTrack;
-
   // The service this provider belongs to
   late final ExperimentalAudioService _service;
 
@@ -28,6 +16,20 @@ class TrackProvider extends Notifier<AudioTrack?> {
     _service = ref.read(audioProvider);
     return null;
   }
+
+  // All loaded audio sources
+  final Map<AudioTrack, LoadedSound> _loadedSounds = {};
+
+  // All active sounds
+  final Map<AudioTrack, ActiveSound> _activeSounds = {};
+
+  final ValueNotifier<ActiveSound?> _currentActiveSound = ValueNotifier(null);
+
+  // The latest requested audio track to avoid race conditions
+  AudioTrack? _latestRequestedTrack;
+
+  /// The currently playing active sound.
+  ActiveSound? get activeSound => _currentActiveSound.value;
 
   /// Loads an audio track.
   Future<void> loadTrack(AudioTrack track) async {
@@ -45,8 +47,35 @@ class TrackProvider extends Notifier<AudioTrack?> {
     _loadedSounds[track] = sound;
   }
 
+  /// Plays a track, returning the active sound instance.
+  /// If the track is already playing, it will return the existing active sound.
+  ActiveSound? playTrack(AudioTrack track) =>
+      _play(track)?.seek(.zero).setLooping();
+
+  /// Plays a track in a loop, returning the active sound instance.
+  /// If the track is already playing, it will return the existing active sound.
+  ActiveSound? playLoopTrack(
+    AudioTrack track, {
+    required Duration loopPoint,
+    bool seekToLoopPoint = true,
+  }) {
+    // Only append looping to the currently playing track,
+    // to avoid mixing different tracks in the same active sound.
+    final activeSound = _play(track, useFade: true)?.setLooping(to: loopPoint);
+
+    if (seekToLoopPoint) activeSound?.seek(loopPoint);
+
+    return activeSound;
+  }
+
+  ValueListenable<ActiveSound?> get activeSoundListenable =>
+      _currentActiveSound;
+
   /// Changes the audio track.
   ActiveSound? _play(AudioTrack track, {bool useFade = false}) {
+    // Used to get a new playable sound from the track when it's not valid.
+    ActiveSound? getPlayable(AudioTrack track) => _loadedSounds[track]?.play();
+
     final fadeDuration = useFade ? Durations.medium4 : null;
 
     if (!_service.isInitialized) {
@@ -55,13 +84,13 @@ class TrackProvider extends Notifier<AudioTrack?> {
 
     // If the currently active sound is the same as the one we want to play,
     // check if it's still valid. If it is, return it. Otherwise, resume it.
-    if (_currentActiveSound?.track == track) {
-      final current = _currentActiveSound!;
+    if (_currentActiveSound.value?.track == track) {
+      final current = _currentActiveSound.value!;
 
       return _setActiveSound(
         current.isValid
             ? current
-            : current.resume().volume(1, over: fadeDuration),
+            : getPlayable(current.track)!.volume(1, over: fadeDuration),
         useFade: useFade,
       );
     }
@@ -73,12 +102,12 @@ class TrackProvider extends Notifier<AudioTrack?> {
       return _setActiveSound(
         activeSound.isValid
             ? activeSound
-            : activeSound.resume().volume(1, over: fadeDuration),
+            : getPlayable(activeSound.track)!.volume(1, over: fadeDuration),
         useFade: useFade,
       );
     }
 
-    if (_latestRequestedTrack != track) return _currentActiveSound;
+    if (_latestRequestedTrack != track) return _currentActiveSound.value;
 
     // If the track is not playing, play it. It will come with an fade-in effect.
     final newSound = _loadedSounds[track]
@@ -102,10 +131,10 @@ class TrackProvider extends Notifier<AudioTrack?> {
   ActiveSound _setActiveSound(ActiveSound sound, {bool useFade = false}) {
     final fadeDuration = useFade ? Durations.short4 : null;
 
-    if (_currentActiveSound?.track != sound.track) {
+    if (_currentActiveSound.value?.track != sound.track) {
       // Stop the previous track, if any
-      if (_currentActiveSound?.isValid ?? false) {
-        _currentActiveSound!
+      if (_currentActiveSound.value?.isValid ?? false) {
+        _currentActiveSound.value!
             .volume(0, over: fadeDuration)
             .stop(after: fadeDuration);
       }
@@ -113,31 +142,10 @@ class TrackProvider extends Notifier<AudioTrack?> {
 
     // Set new state
     _activeSounds[sound.track] = sound;
-    _currentActiveSound = sound;
+    _currentActiveSound.value = sound;
     state = sound.track;
 
     return sound;
-  }
-
-  /// Plays a track, returning the active sound instance.
-  /// If the track is already playing, it will return the existing active sound.
-  ActiveSound? playTrack(AudioTrack track) => _play(track);
-
-  /// Plays a track in a loop, returning the active sound instance.
-  /// If the track is already playing, it will return the existing active sound.
-  ActiveSound? playLoopTrack(AudioTrack track, {required Duration loopPoint}) {
-    // Only append looping to the currently playing track,
-    // to avoid mixing different tracks in the same active sound.
-    final activeSound = _play(track, useFade: true);
-    if (activeSound == null) return null;
-
-    final loopingTrack = activeSound.setLooping(to: loopPoint);
-
-    if (loopingTrack.position < loopPoint) {
-      loopingTrack.seek(loopPoint);
-    }
-
-    return loopingTrack;
   }
 }
 

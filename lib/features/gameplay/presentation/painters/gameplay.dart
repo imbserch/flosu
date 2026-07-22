@@ -3,6 +3,8 @@ import 'dart:ui';
 
 import 'package:collection/collection.dart';
 import 'package:flosu/core/math/geometry.dart';
+import 'package:flosu/features/gameplay/presentation/widgets/mouse_cursor.dart';
+import 'package:flosu/core/engine/game_loop.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide PointerEvent, Image;
 import 'package:flosu/models/inputs/inputs.dart';
@@ -149,7 +151,7 @@ class MousePainter extends CustomPainter {
   /// Notifier containing the recent [PointerEvent] history.
   ///
   /// The painter re-renders whenever this notifier fires.
-  final ValueListenable<List<PointerEvent>> events;
+  final ValueListenable<List<CursorFrame>> events;
 
   /// When true, a fading white line is drawn connecting recent cursor positions.
   final bool showTrail;
@@ -163,23 +165,20 @@ class MousePainter extends CustomPainter {
 
     if (path.isEmpty) return;
 
-    final last = path.last.position;
+    final last = path.last.offset;
 
     // Trail: iterate backwards through events, fading older segments out.
     if (path.length > 1 && showTrail) {
-      final now = DateTime.now();
-
       for (int i = path.length - 1; i > 0; i--) {
-        final difference = now.difference(path[i].timestamp);
-        final progress =
-            1 - (difference.inMilliseconds.clamp(0.0, 200.0) / 200);
+        final difference = GameLoop.time - path[i].timestamp;
+        final progress = 1 - (difference.clamp(0.0, 200.0) / 200);
 
         // Stop drawing once the trail is essentially invisible.
         if (progress <= 0.05) break;
 
         c.drawLine(
-          path[i].position,
-          path[i - 1].position,
+          path[i].offset,
+          path[i - 1].offset,
           _line
             ..strokeWidth = 2 * progress
             ..color = Colors.white.withAlpha((255 * progress).round()),
@@ -250,7 +249,7 @@ class ReplayMousePainter extends CustomPainter {
   final List<int> frameTimes;
 
   /// Current audio position in milliseconds.
-  final ValueNotifier<int> position;
+  final ValueNotifier<double> position;
 
   /// Whether to render the fading trail.
   final bool showTrail;
@@ -258,8 +257,11 @@ class ReplayMousePainter extends CustomPainter {
   /// Pre-loaded cursor sprite. If null, only the trail is drawn.
   final Image? cursorImage;
 
-  int _indexAt(int position) {
-    final index = frameTimes.lowerBound(position, (a, b) => a.compareTo(b));
+  int _indexAt(double position) {
+    final index = frameTimes.lowerBound(
+      position.round(),
+      (a, b) => a.compareTo(b),
+    );
     return index;
   }
 

@@ -36,7 +36,7 @@ class SpinnerDrawable extends HitObjectDrawable<Spinner> {
   );
 
   @override
-  void paint(Canvas c, int position) {
+  void paint(Canvas c, double position) {
     super.paint(c, position);
 
     c

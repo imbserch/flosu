@@ -1,43 +1,47 @@
 import 'dart:ui';
 
 import 'package:flosu/core/assets.dart';
-import 'package:flosu/core/enums.dart';
-import 'package:flosu/logic/services/game_loop.dart';
-import 'package:flosu/logic/services/sample.dart';
+import 'package:flosu/core/engine/game_loop.dart';
+import 'package:flosu/shared/input.dart';
 import 'package:flosu/shared/logging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide PointerEvent, Image;
 import 'package:flutter/services.dart' hide PointerEvent;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:flosu/logic/providers/input.dart';
 import 'package:flosu/features/settings/domain/settings.dart';
-import 'package:flosu/models/inputs/inputs.dart';
-import 'package:flosu/shared/router.dart';
 import 'package:flosu/features/gameplay/presentation/painters/gameplay.dart';
 
-class EventListNotifier extends ChangeNotifier
-    implements ValueListenable<List<PointerEvent>> {
-  final List<PointerEvent> _events = [];
+class CursorFrame {
+  CursorFrame(this.timestamp, this.offset);
+
+  final int timestamp;
+  final Offset offset;
+}
+
+class CursorFramesNotifier extends ChangeNotifier
+    implements ValueListenable<List<CursorFrame>> {
+  final List<CursorFrame> _events = [];
 
   @override
-  List<PointerEvent> get value => _events;
+  List<CursorFrame> get value => _events;
 
-  void addAll(Iterable<PointerEvent> newEvents) {
-    _events.addAll(newEvents);
+  void add(CursorFrame frame) {
+    _events.add(frame);
     notifyListeners();
   }
 
-  void updateEvents(DateTime now, Duration maxAge) {
+  void updateEvents(int maxAge) {
     if (_events.isEmpty) return;
 
-    final threshold = now.subtract(maxAge);
+    final now = GameLoop.time;
+
+    final threshold = now - maxAge;
     int removeCount = 0;
 
     // Keep at least the last event so the list is never empty
     final limit = _events.length - 1;
-    while (removeCount < limit &&
-        _events[removeCount].timestamp.isBefore(threshold)) {
+    while (removeCount < limit && _events[removeCount].timestamp < threshold) {
       removeCount++;
     }
 
@@ -55,31 +59,47 @@ class MouseCursor extends ConsumerStatefulWidget {
   ConsumerState<MouseCursor> createState() => _MouseCursorState();
 }
 
-class _MouseCursorState extends ConsumerState<MouseCursor> with Logging {
-  final EventListNotifier _eventsNotifier = EventListNotifier();
+class _MouseCursorState extends ConsumerState<MouseCursor>
+    with MouseHandler, Logging, GameLoopListener {
+  final CursorFramesNotifier _cursorFramesNotifier = CursorFramesNotifier();
+
+  late int _lastTick = time;
 
   Image? _mouseImage;
-  bool _pressed = false;
 
   @override
   initState() {
     requestLogger();
     _instantiateCursorImage();
-
-    ref.read(gameLoopService).subscribe(TickerPhase.visual, _updateEvents);
-    ref.read(inputProvider.notifier).addDelayedHandler(_getEvents);
-
     super.initState();
   }
 
   @override
-  dispose() {
-    //Widget is unsafe, calling from root navigator
-    globalRef
-        .read(gameLoopService)
-        .unsubscribe(TickerPhase.visual, _updateEvents);
+  bool input() {
+    if (mouse.scrolling) return false;
 
-    globalRef.read(inputProvider.notifier).removeDelayedHandler(_getEvents);
+    final now = time;
+
+    // Skip if less than 2ms has passed since last input tick.
+    // Some mice send multiple events in a single tick.
+    //
+    // That means: The maximum polling rate allowed here is 500hz
+    if (now < _lastTick + 2) return false;
+
+    final frame = CursorFrame(now, mouse.position);
+    _cursorFramesNotifier.add(frame);
+    _lastTick = now;
+
+    return false;
+  }
+
+  @override
+  void process(double delta) {
+    _cursorFramesNotifier.updateEvents(200);
+  }
+
+  @override
+  dispose() {
     removeLogger();
     super.dispose();
   }
@@ -98,29 +118,6 @@ class _MouseCursorState extends ConsumerState<MouseCursor> with Logging {
     }
   }
 
-  void _getEvents(InputEvents events) {
-    if (events.pointer.isEmpty) return;
-
-    _eventsNotifier.addAll(events.pointer);
-
-    // Look for press events and fire click sample if necessary
-    for (final event in events.pointer) {
-      if (event.pressed != _pressed) {
-        _pressed = event.pressed;
-
-        if (event.pressed && _pressed) {
-          // Play Tap Sound
-          ref.read(sampleService).play(AppSamples.uiCursorTap);
-          break;
-        }
-      }
-    }
-  }
-
-  void _updateEvents(_) {
-    _eventsNotifier.updateEvents(DateTime.now(), Durations.short4);
-  }
-
   @override
   Widget build(BuildContext context) {
     final cursorTrailEnabled = ref.watch(
@@ -130,7 +127,7 @@ class _MouseCursorState extends ConsumerState<MouseCursor> with Logging {
     return IgnorePointer(
       child: CustomPaint(
         painter: MousePainter(
-          events: _eventsNotifier,
+          events: _cursorFramesNotifier,
           showTrail: cursorTrailEnabled,
           cursorImage: _mouseImage,
         ),

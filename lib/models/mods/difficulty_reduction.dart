@@ -95,14 +95,14 @@ class HalfTime extends ConfigurableMod {
   @override
   void activate(ProviderContainer ref) {
     // Set the initial speed to 0.75x
-    ref.read(audioProvider.notifier).setRate(0.75);
+    ref.read(trackProvider.notifier).activeSound?.setRate(0.75);
     super.activate(ref);
   }
 
   @override
   void deactivate(ProviderContainer ref) {
     // Restore the default speed to 1.0x
-    ref.read(audioProvider.notifier).setRate(1.0);
+    ref.read(trackProvider.notifier).activeSound?.setRate(1.0);
     super.deactivate(ref);
   }
 }
@@ -135,20 +135,16 @@ class Daycore extends ConfigurableMod {
 
   @override
   void activate(ProviderContainer ref) {
-    ref.read(audioProvider.notifier)
-      // Set the initial speed to 0.75x
-      ..setRate(0.75)
-      // 2.5% lower pitch
-      ..setPitch(0.975);
+    // Set the initial speed to 0.75x
+    // 2.5% lower pitch
+    ref.read(trackProvider.notifier).activeSound?.setRate(0.75).setPitch(0.975);
     super.activate(ref);
   }
 
   @override
   void deactivate(ProviderContainer ref) {
     // Restore the default speed to 1.0x
-    ref.read(audioProvider.notifier)
-      ..setRate(1.0)
-      ..setPitch(1.0);
+    ref.read(trackProvider.notifier).activeSound?.setRate(1.0).setPitch(1.0);
     super.deactivate(ref);
   }
 }

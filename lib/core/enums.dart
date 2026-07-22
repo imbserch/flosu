@@ -2,9 +2,6 @@ import 'dart:ui';
 
 import 'package:flosu/models/mods/base.dart';
 
-/// Game loop phases.
-enum TickerPhase { input, logic, visual }
-
 /// Bitmask flags for the hit-object type field in the `.osu` file format.
 ///
 /// Multiple flags can be set simultaneously (e.g. a new-combo circle has both

@@ -60,7 +60,9 @@ class ActiveSound {
     return this;
   }
 
-  bool get isValid => _service.isValid(this) && !_wasStopped;
+  bool get isValid => _service.isValid(handle) && !_wasStopped;
+
+  double get rate => _service.getRate(handle);
 
   Duration get position => _service.getPosition(handle);
 

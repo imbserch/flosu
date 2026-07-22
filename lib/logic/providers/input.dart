@@ -1,5 +1,4 @@
-import 'package:flosu/core/enums.dart';
-import 'package:flosu/logic/services/game_loop.dart';
+import 'package:flosu/core/engine/game_loop.dart';
 import 'package:flutter/services.dart' hide PointerEvent;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flosu/logic/services/input.dart';
@@ -42,17 +41,15 @@ class InputProvider extends Notifier<void> {
 
   @override
   build() {
-    final gameLoop = ref.read(gameLoopService);
-
-    gameLoop.subscribe(TickerPhase.input, _callDelayedHandlers);
-    gameLoop.subscribe(TickerPhase.logic, _onTimingTick);
+    GameLoop.subscribe(_callDelayedHandlers);
+    GameLoop.subscribe(_onTimingTick);
 
     _service = ref.read(inputService);
     _service.addHandler(_onEvent);
 
     ref.onDispose(() {
-      gameLoop.unsubscribe(TickerPhase.input, _callDelayedHandlers);
-      gameLoop.unsubscribe(TickerPhase.logic, _onTimingTick);
+      GameLoop.unsubscribe(_callDelayedHandlers);
+      GameLoop.unsubscribe(_onTimingTick);
 
       _service.removeHandler(_onEvent);
       _service.dispose();

@@ -1,9 +1,8 @@
 import 'package:collection/collection.dart';
-import 'package:flosu/features/audio/data/audio_provider.dart';
+import 'package:flosu/features/audio_experimental/audio.dart';
 import 'package:flosu/features/gameplay/domain/gameplay_data.dart';
-import 'package:flosu/shared/router.dart';
 import 'package:flosu/features/settings/domain/settings.dart';
-import 'package:flosu/logic/services/game_loop.dart';
+import 'package:flosu/core/engine/game_loop.dart';
 import 'package:flosu/models/beatmap/hit_objects.dart';
 import 'package:flosu/features/gameplay/data/gameplay_info.dart';
 import 'package:flosu/features/gameplay/presentation/painters/gameplay/base.dart';
@@ -21,14 +20,14 @@ class Playfield extends ConsumerStatefulWidget {
   ConsumerState<Playfield> createState() => _PlayfieldState();
 }
 
-class _PlayfieldState extends ConsumerState<Playfield> {
+class _PlayfieldState extends ConsumerState<Playfield> with GameLoopListener {
   late final GameplayInfo _details = ref.read(gameplayDataProvider);
 
   late final List<int> _objectHitTimes = _details.contents!.objects
       .map((o) => o.hitTime)
       .toList();
 
-  final _position = ValueNotifier<int>(0);
+  final _position = ValueNotifier<double>(0);
   late final _objects = ValueNotifier<List<PlayfieldDrawable>>([]);
 
   // Internal flag for allowing properly slider snake
@@ -41,24 +40,18 @@ class _PlayfieldState extends ConsumerState<Playfield> {
       _updateSliderSnake,
       fireImmediately: true,
     );
-    ref.read(gameLoopService).subscribe(.logic, _updatePlayfield);
     super.initState();
   }
 
   @override
-  void dispose() {
-    globalRef.read(gameLoopService).unsubscribe(.logic, _updatePlayfield);
-    super.dispose();
-  }
-
-  void _updatePlayfield(_) {
-    final position = ref.read(audioProvider.notifier).positionInMs;
+  void process(double delta) {
+    final position = ref.read(audioClockProvider);
 
     final preempt = _details.difficultyWithMods.preempt;
     final mods = _details.mods;
 
     final currentIndex = _objectHitTimes.lowerBound(
-      position,
+      position.round(),
       (a, b) => a.compareTo(b),
     );
 
@@ -109,8 +102,6 @@ class _PlayfieldState extends ConsumerState<Playfield> {
 
     _position.value = position;
     _objects.value = [...newDrawables.reversed, ...aliveDrawables];
-
-    //
   }
 
   void _updateSliderSnake(_, bool snake) {
@@ -122,11 +113,6 @@ class _PlayfieldState extends ConsumerState<Playfield> {
 
   @override
   Widget build(BuildContext context) {
-    /* final snakingSliders = ref.watch(
-      settingsProvider.select((it) => it.snakingSliders),
-    );
-    final mods = ref.read(gameplayDataProvider.select((it) => it.mods)); */
-
     return RepaintBoundary(
       child: CustomPaint(
         painter: PlayfieldPainter(position: _position, drawables: _objects),

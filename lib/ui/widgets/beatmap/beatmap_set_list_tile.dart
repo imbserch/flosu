@@ -1,6 +1,7 @@
 import 'dart:io';
 
-import 'package:flosu/features/audio_experimental/presentation/track_provider.dart';
+import 'package:flosu/features/audio/data/audio_provider.dart'
+    show audioProvider;
 import 'package:flosu/models/generated/beatmap_metadata.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -60,21 +61,15 @@ class _BeatmapSetListTileState extends ConsumerState<BeatmapSetListTile> {
             onHover: (hover) {
               if (mounted) setState(() => _hover = hover);
             },
-            onTap: /*  () =>
-                ref.read(audioProvider.notifier).preview(widget.beatmap), */
-                () async {
-                  final track = widget.beatmap.general.audioPath;
-                  final loopPoint = Duration(
-                    milliseconds: widget.beatmap.general.previewTime,
-                  );
-
-                  if (track == null) return;
-
-                  final trackPlayer = ref.read(trackProvider.notifier);
-
-                  await trackPlayer.loadTrack(track);
-                  trackPlayer.playLoopTrack(track, loopPoint: loopPoint);
-                },
+            onTap: () async {
+              final path = ref.read(audioProvider)?.general.audioPath;
+              final audio = ref.read(audioProvider.notifier);
+              await audio.load(widget.beatmap);
+              audio.preview(
+                widget.beatmap,
+                path != widget.beatmap.general.audioPath,
+              );
+            },
             mouseCursor: SystemMouseCursors.none,
             borderRadius: _borderRadius,
             child: Container(

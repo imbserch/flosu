@@ -19,11 +19,11 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
     required super.mods,
   }) {
     // Simulate slider being hold at hitTime
-    sliderHandled(hitObject.hitTime);
+    sliderHandled(hitObject.hitTime.toDouble());
   }
 
   @override
-  bool isExpired(int position) {
+  bool isExpired(double position) {
     // Ensure animations are rendered for some milliseconds after the end of the slider
     return position > hitObject.endTime + difficulty.preempt;
   }
@@ -50,16 +50,16 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
   // If the slider is not hold by user,
   // the ball disappear using a new sliderHandlePosition
   bool _sliderHandled = false;
-  int _sliderHandlePosition = 0;
+  double _sliderHandlePosition = 0;
 
   /// Called when the user presses the slider handle.
-  void sliderHandled(int position) {
+  void sliderHandled(double position) {
     _sliderHandled = true;
     _sliderHandlePosition = position;
   }
 
   /// Called when the user releases the slider handle.
-  void sliderReleased(int position) {
+  void sliderReleased(double position) {
     _sliderHandled = false;
     _sliderHandlePosition = position;
   }
@@ -79,7 +79,7 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
   /// - Before the slider starts: 0.0 (ball is at the head).
   /// - During tracking: interpolated between 0 and 1 over [object.duration].
   /// - Exactly 0.5 at the midpoint of the first slide.
-  double _ballProgress(int position) {
+  double _ballProgress(double position) {
     if (position < hitObject.hitTime) return 0.0;
 
     final elapsed = position - hitObject.hitTime;
@@ -96,7 +96,7 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
     return slideIdx.isEven ? slideProgress : 1.0 - slideProgress;
   }
 
-  int _ballDirection(int position) {
+  int _ballDirection(double position) {
     if (position < hitObject.hitTime) {
       return hitObject.slides.isEven ? 1 : -1;
     }
@@ -112,7 +112,7 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
   }
 
   // If the path needs recomputation before using it
-  int _pathNeedsUpdate(int position) {
+  int _pathNeedsUpdate(double position) {
     if (!enableSnake) return _cachedVersion;
 
     // If the slider is growing because it will appear
@@ -133,7 +133,7 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
 
   // This method should be expensive because of
   // List allocations every frame if snaking is enabled
-  List<Offset> _sliderPoints(int position) {
+  List<Offset> _sliderPoints(double position) {
     // Keep this conditional:
     // if slider cache is removed, this will keep working
     if (!enableSnake) return hitObject.points;
@@ -186,7 +186,7 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
   }
 
   @override
-  void paint(Canvas c, int position) {
+  void paint(Canvas c, double position) {
     super.paint(c, position);
 
     _paintBody(c, position);
@@ -206,7 +206,7 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
     }
   }
 
-  void _paintBody(Canvas c, int position) {
+  void _paintBody(Canvas c, double position) {
     double opacity = 1.0;
 
     // Opacity calculations
@@ -300,7 +300,7 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
       ..restore();
   }
 
-  void _paintEnds(Canvas c, int position) {
+  void _paintEnds(Canvas c, double position) {
     // Don't paint first paint because
     // hitCircle is considered an end.
     final ends = hitObject.slides - 1;
@@ -388,7 +388,7 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
 
   /// Draws the animated slider ball at the position corresponding to
   /// the current audio [position].
-  void _paintBall(Canvas c, int position) {
+  void _paintBall(Canvas c, double position) {
     // If slider has ended, set slider release
     if (position > hitObject.endTime && _sliderHandled) {
       sliderReleased(position);
