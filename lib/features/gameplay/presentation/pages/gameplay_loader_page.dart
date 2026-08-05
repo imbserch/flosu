@@ -1,13 +1,13 @@
 import 'dart:async';
 
-import 'package:flosu/core/assets.dart';
-import 'package:flosu/features/gameplay/domain/gameplay_data.dart';
-import 'package:flosu/logic/services/sample.dart';
+import 'package:flosu/shared/domain/beatmap/beatmap.dart';
+import 'package:flosu/shared/domain/beatmap/beatmap_selector.dart';
+import 'package:flosu/shared/domain/mod/mod_selector.dart';
+import 'package:flosu/shared/domain/replay/replay_selector.dart';
 import 'package:flosu/shared/io.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flosu/features/audio/data/audio_provider.dart';
 import 'package:flosu/shared/widgets/osu_cube_loader.dart';
 import 'package:flosu/shared/widgets/osu_logo.dart';
 
@@ -30,61 +30,58 @@ class GameplayLoaderPage extends ConsumerStatefulWidget {
 
 class _GameplayLoaderPageState extends ConsumerState<GameplayLoaderPage> {
   bool _showInfo = false;
-  bool _isLoaded = false, _isValid = false;
 
   @override
   initState() {
-    _load();
+    Future.microtask(_load);
     super.initState();
   }
 
   /// Runs the full asset-loading sequence and navigates to `/gameplay`.
   void _load() async {
-    ref.listenManual(gameplayDataProvider, (_, details) {
-      _isValid = details.validForGameplay;
-      _startGameplay();
-    }, fireImmediately: true);
+    Beatmap? beatmap = ref.read(beatmapSelector);
+    final replay = ref.read(replaySelector);
 
-    const songselectConfirm = AppSamples.songselectConfirmSelection;
-
-    final beatmap = ref.read(audioProvider)!;
-    final samples = ref.read(sampleService);
-    final audio = ref.read(audioProvider.notifier);
-    final details = ref.read(gameplayDataProvider);
-
-    // Ensure feedback at loading screen
-    samples.play(songselectConfirm);
-
-    if (!details.validForGameplay) {
-      ref.read(ioProvider).parse(beatmap.filePath, data: details.metadata);
+    if (beatmap == null) {
+      throw StateError(
+        "Beatmap must be selected before selecting GameplayLoaderPage",
+      );
     }
 
-    await audio.load(beatmap);
+    if (replay != null && replay.hash != beatmap.hash) {
+      throw StateError("Ensure the Replay hash matches the current Beatmap");
+    }
 
     // Pause before animation
     await Future.delayed(Durations.medium1);
     if (mounted) setState(() => _showInfo = true);
 
-    _isLoaded = true;
-    _startGameplay();
-  }
+    if (replay != null) ref.read(modSelector.notifier).setMods(replay.mods);
 
-  void _startGameplay() async {
-    if (!_isValid || !_isLoaded) return;
+    if (!beatmap.canPlay) {
+      // Beatmap is updated in-place so it can be re-used
+      final result = await ref
+          .read(ioProvider)
+          .parse(beatmap.filePath!, data: beatmap);
 
-    final audio = ref.read(audioProvider.notifier);
-    final beatmap = ref.read(audioProvider)!;
+      assert(result.data is Beatmap);
+      beatmap = result.data as Beatmap;
+    }
 
-    // 5 seconds
-    await Future.delayed(Durations.extralong4 * 5);
+    await Future.delayed(const Duration(seconds: 2));
+    ref.read(beatmapSelector.notifier).selectBeatmap(beatmap);
 
-    await audio.play(beatmap);
     if (mounted) context.go("/gameplay");
   }
 
   @override
   Widget build(BuildContext context) {
-    final details = ref.read(gameplayDataProvider);
+    final beatmap = ref.read(beatmapSelector);
+
+    assert(
+      beatmap != null,
+      'Beatmap must be selected before selecting GameplayLoaderPage',
+    );
 
     return Column(
       mainAxisAlignment: .center,
@@ -104,7 +101,7 @@ class _GameplayLoaderPageState extends ConsumerState<GameplayLoaderPage> {
             children: [
               const SizedBox(height: 12),
               Text(
-                details.metadata?.info.title ?? "Loading beatmap...",
+                beatmap!.title,
                 maxLines: 1,
                 overflow: .ellipsis,
                 style: const TextStyle(
@@ -114,7 +111,7 @@ class _GameplayLoaderPageState extends ConsumerState<GameplayLoaderPage> {
                 ),
               ),
               Text(
-                details.metadata?.info.artist ?? "",
+                beatmap.artist,
                 maxLines: 1,
                 overflow: .ellipsis,
                 style: const TextStyle(fontSize: 12, height: 1),

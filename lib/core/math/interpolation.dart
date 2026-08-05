@@ -44,4 +44,7 @@ class Interpolation {
 
     return numerator / denominator;
   }
+
+  static double inverseLerp(num a, num b, num t) =>
+      a == b ? 0.0 : (t - a) / (b - a);
 }

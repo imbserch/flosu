@@ -2,15 +2,16 @@ import 'dart:async';
 import 'dart:isolate';
 import 'dart:math' hide log;
 
-import 'package:flosu/core/assets.dart';
-import 'package:flosu/features/audio/data/audio_provider.dart';
-import 'package:flosu/logic/services/sample.dart';
+import 'package:flosu/features/audio/audio.dart';
+import 'package:flosu/features/song_select/domain/beatmap_library.dart';
+import 'package:flosu/shared/domain/beatmap/beatmap_selector.dart';
+import 'package:flosu/shared/input.dart';
 import 'package:flosu/shared/logging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flosu/core/extensions/ui.dart';
-import 'package:flosu/ui/shared/animatable_page.dart';
+import 'package:flosu/shared/layout/animatable_page.dart';
 import 'package:flosu/shared/widgets/skewed_box.dart';
 import 'package:flosu/shared/widgets/osu_logo.dart';
 
@@ -22,23 +23,95 @@ class MainSelectPage extends AnimatablePage {
 }
 
 class _MainSelectPageState extends AnimatablePageState<MainSelectPage>
-    with Logging {
+    with Logging, KeyboardHandler {
   final _osuKey = GlobalKey();
+  StreamSubscription<void>? _audioEndSubscription;
 
-  Timer? _exitTimer;
-  bool _requestedExit = false;
+  Timer? _exitTimer, _setupTimer;
+  bool _requestedExit = false, _canChangeSong = false;
 
   @override
   void initState() {
     super.initState();
     requestLogger();
+
+    // Prevent other sources from modifying the sound
+    _setTimer();
+    _setupAudio();
+  }
+
+  @override
+  bool input() {
+    if (!keyboard.pressed) return false;
+
+    switch (keyboard.key) {
+      case .f1:
+        _playPrevious();
+        return true;
+      case .f3:
+        final handle = ref.read(trackProvider);
+        if (handle == null) return false;
+
+        final playing = ref.read(audioProvider).isPlaying(handle);
+        final track = ref.read(trackProvider.notifier);
+
+        playing ? track.pause() : track.resume();
+        return true;
+      case .f5:
+        _playNext();
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  void _playPrevious() async {
+    _setTimer();
+
+    //  No-op, wait until library works fine again
+  }
+
+  void _playNext() async {
+    _setTimer();
+    //  No-op, wait until library works fine again
   }
 
   @override
   void dispose() {
     _exitTimer?.cancel();
+    _setupTimer?.cancel();
+    _audioEndSubscription?.cancel();
     removeLogger();
     super.dispose();
+  }
+
+  void _setTimer() {
+    _canChangeSong = false;
+    _setupTimer?.cancel();
+    _setupTimer = Timer(
+      const Duration(seconds: 10),
+      () => _canChangeSong = true,
+    );
+  }
+
+  void _setupAudio() {
+    final handle = ref.read(trackProvider);
+    final service = ref.read(audioProvider);
+
+    if (handle != null) service.loop(handle);
+  }
+
+  void _playRandomAudio() async {
+    if (!_canChangeSong) return;
+    _setTimer();
+
+    final random = ref.read(beatmapLibrary).random;
+
+    if (random != null) {
+      final selector = ref.read(beatmapSelector.notifier);
+      await selector.loadTrack(random);
+      selector.selectBeatmap(random);
+    }
   }
 
   void _exit() {
@@ -47,12 +120,17 @@ class _MainSelectPageState extends AnimatablePageState<MainSelectPage>
 
     if (mounted) setState(() => _requestedExit = true);
 
-    ref.read(audioProvider.notifier).stop();
+    const exitDuration = Duration(seconds: 2, milliseconds: 500);
+
+    final track = ref.read(trackProvider.notifier);
+
+    track.stop(after: exitDuration);
+    track.volume(0, over: exitDuration);
     // Sample is already loaded in splash
-    ref.read(sampleService).play(AppSamples.introSeeya);
+    // ref.read(sampleProvider).play(AppSamples.introSeeya);
 
     _exitTimer?.cancel();
-    _exitTimer = Timer(const Duration(seconds: 2, milliseconds: 500), () async {
+    _exitTimer = Timer(exitDuration, () async {
       final result = await ServicesBinding.instance.exitApplication(.required);
 
       // App can't be closed in a safe way: kill process

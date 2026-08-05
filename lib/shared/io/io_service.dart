@@ -2,11 +2,12 @@ import 'dart:async';
 import 'dart:isolate';
 
 import 'package:file_picker/file_picker.dart';
-import 'package:flosu/models/generated/beatmap_metadata.dart';
+import 'package:flosu/shared/domain/beatmap/beatmap.dart';
 import 'package:flosu/shared/io/io_exceptions.dart';
 import 'package:flosu/shared/io/io_commands.dart';
 import 'package:flosu/shared/io/io_result.dart';
 import 'package:flosu/shared/io/io_service_worker.dart';
+import 'package:flosu/shared/logging.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Converts the file path and optional data into a [IoCommand].
@@ -15,20 +16,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// For example, if [path] ends with ".osu", [data] can be a [BeatmapMetadata] to
 /// use for parsing the file.
 IoCommand _getCommandFromData(String path, {required Object? data}) {
-  final commandTimestamp = DateTime.now().microsecondsSinceEpoch;
-  final id = "$commandTimestamp";
-
   return switch (path) {
     var _ when path.endsWith(".osu") =>
-      data is BeatmapMetadata
-          ? ParseBeatmapContentCommand(id, metadata: data)
-          : ParseBeatmapMetadataCommand(id, path: path),
-    var _ when path.endsWith(".osr") => ParseReplayCommand(id, path: path),
+      data is Beatmap
+          ? ParseFullBeatmapCommand(path, beatmap: data)
+          : ParseBeatmapCommand(path, path: path),
+    var _ when path.endsWith(".osr") => ParseReplayCommand(path, path: path),
     var _ => throw IoCommandNotFoundException(path),
   };
 }
 
-class IoService {
+class IoService with Logging {
   bool _initialized = false;
 
   Isolate? _isolate;
@@ -39,10 +37,14 @@ class IoService {
   final StreamController<IoResult> _resultController =
       StreamController<IoResult>.broadcast();
 
+  final Map<String, Completer<IoResult>> _pendingRequests = {};
+
   Stream<IoResult> get resultStream => _resultController.stream;
 
   Future<void> init() async {
     if (_initialized) return;
+
+    requestLogger();
 
     _isolate = await Isolate.spawn(
       ioWorker,
@@ -58,6 +60,15 @@ class IoService {
           _initialized = true;
           break;
         case IoResult r:
+          log("Received result from isolate: ${r.data}", level: .info);
+
+          final completer = _pendingRequests.remove(r.id);
+
+          if (completer != null && !completer.isCompleted) {
+            log("Completing task for ${r.id}", level: .info);
+            completer.complete(r);
+          }
+
           _resultController.add(r);
           break;
         default:
@@ -72,7 +83,7 @@ class IoService {
   ///
   /// The current worker will try to infer the parser based on the file extension.
   /// For example, if [allowedExtensions] contains ".osr", the [ReplayParser] will be used.
-  Future<void> pick({
+  Future<String?> pick({
     List<String>? allowedExtensions,
     String? dialogTitle,
   }) async {
@@ -85,28 +96,41 @@ class IoService {
       dialogTitle: dialogTitle ?? "Select file",
     );
 
-    if (res == null) return;
-    if (res.count == 0) return;
+    if (res == null || res.count == 0) return null;
 
-    parse(res.files[0].path!);
+    // Path
+    return res.files[0].path;
   }
 
   /// Parses a file at the given [filePath].
   ///
   /// The current worker will try to infer the parser based on the file extension.
   /// For example, if [filePath] ends with ".osr", the [ReplayParser] will be used.
-  Future<void> parse(String path, {Object? data}) async {
+  Future<IoResult> parse(String path, {Object? data}) async {
     _checkInitialized();
+
+    final completer = Completer<IoResult>();
+    _pendingRequests[path] = completer;
 
     try {
       // We need to send the data to the isolate so it can be parsed there
       final command = _getCommandFromData(path, data: data);
+
+      log("Sending command to isolate: $command", level: .info);
       _commandsPort!.send(command);
+
+      return await completer.future;
     } catch (e) {
+      _pendingRequests.remove(path);
+
+      final message = "Failed to create command: $e";
+      log(message, level: .error);
+
       // Skip sending data again to isolate
-      _resultController.add(
-        IoFailedResult(id: "", error: "Failed to create command: $e"),
-      );
+      final result = IoFailedResult(id: path, error: message);
+      _resultController.add(result);
+
+      return result;
     }
   }
 

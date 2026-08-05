@@ -17,6 +17,7 @@ class SkewedBox extends StatefulWidget {
     this.margin,
     this.padding,
     this.constraints,
+    this.clipBehavior,
     this.onTap,
     this.decoration,
     this.animDuration,
@@ -37,6 +38,7 @@ class SkewedBox extends StatefulWidget {
     this.margin,
     this.padding,
     this.constraints,
+    this.clipBehavior,
     this.onTap,
     this.decoration,
     this.animDuration,
@@ -49,6 +51,7 @@ class SkewedBox extends StatefulWidget {
     super.key,
     this.inverted = false,
     this.skew = 3 / 16,
+    this.clipBehavior,
     this.offset = Offset.zero,
     this.child,
   }) : useGradientBorder = false,
@@ -65,6 +68,7 @@ class SkewedBox extends StatefulWidget {
        animDuration = null,
        ignoreParenSkew = false,
        heroTag = null;
+
   final bool inverted;
   final bool useGradientBorder;
 
@@ -81,6 +85,7 @@ class SkewedBox extends StatefulWidget {
   final EdgeInsetsGeometry? padding;
 
   final BoxConstraints? constraints;
+  final Clip? clipBehavior;
 
   final VoidCallback? onTap;
   final BoxDecoration? decoration;
@@ -178,7 +183,9 @@ class _SkewedBoxState extends State<SkewedBox> {
             curve: Curves.easeOut,
             duration: widget.animDuration ?? Durations.medium1,
             margin: widget.margin,
-            clipBehavior: widget.useGradientBorder ? .antiAlias : .none,
+            clipBehavior:
+                widget.clipBehavior ??
+                (widget.useGradientBorder ? .antiAlias : .none),
             decoration: widget.useGradientBorder
                 ? BoxDecoration(
                     border: widget.useGradientBorder

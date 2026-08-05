@@ -1,26 +1,17 @@
 import 'dart:math';
 import 'dart:ui';
 
-import 'package:flosu/features/settings/domain/settings.dart';
-import 'package:flosu/logic/services/library.dart';
-import 'package:flosu/logic/services/sample.dart';
-import 'package:flosu/repositories/beatmap.dart';
-import 'package:flosu/repositories/settings.dart';
-import 'package:flosu/ui/widgets/overlay/tooltip.dart';
+import 'package:flosu/shared/io/io_permission_handler.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide Slider, MouseCursor, Tooltip;
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart' hide MouseCursor;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flosu/core/extensions/ui.dart';
-import 'package:flosu/features/audio/data/audio_service.dart';
 import 'package:flosu/shared/router.dart';
+import 'package:flosu/shared/widgets/debug_overlay.dart';
 import 'package:flosu/shared/widgets/reescalable.dart';
-import 'package:flosu/ui/widgets/debug/frame_stats.dart';
-import 'package:flosu/ui/widgets/debug/log_console.dart';
 import 'package:flosu/features/gameplay/presentation/widgets/mouse_cursor.dart';
-import 'package:logging/logging.dart' as logging;
-import 'dart:developer' as dev;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,18 +19,6 @@ void main() async {
   SchedulerBinding.instance.requestPerformanceMode(
     DartPerformanceMode.throughput,
   );
-
-  logging.Logger.root.onRecord.listen((record) {
-    dev.log(
-      record.message,
-      time: record.time,
-      level: record.level.value,
-      name: record.loggerName,
-      zone: record.zone,
-      error: record.error,
-      stackTrace: record.stackTrace,
-    );
-  });
 
   // System Configurations
   await SystemChrome.setEnabledSystemUIMode(.immersiveSticky);
@@ -53,30 +32,11 @@ void main() async {
     ..maximumSize = 64
     ..maximumSizeBytes = pow(1024, 3).round();
 
-  // Initialize settings repository
-  final settingsRepository = SettingsRepository();
-  await settingsRepository.init();
+  await IoPermissionHandler.init();
 
-  // Initialize beatmap repository
-  final beatmapRepository = BeatmapRepository();
-  await beatmapRepository.init();
+  // All no critical initialization is handled by splash page
 
-  // Start services that needs initialization
-  await AudioService.instance.init();
-  await SampleService.instance.init();
-  await LibraryService.instance.init();
-
-  // All delayed initialization is handled by splash page
-
-  runApp(
-    ProviderScope(
-      overrides: [
-        settingsRepositoryProvider.overrideWithValue(settingsRepository),
-        beatmapRepositoryProvider.overrideWithValue(beatmapRepository),
-      ],
-      child: const MainApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: MainApp()));
 }
 
 class MainApp extends ConsumerStatefulWidget {
@@ -91,13 +51,6 @@ class _MainAppState extends ConsumerState<MainApp> {
   Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
 
-    final fpsMonitorEnabled = ref.watch(
-      settingsProvider.select((it) => it.fpsMonitorEnabled),
-    );
-    final logsEnabled = ref.watch(
-      settingsProvider.select((it) => it.logsEnabled),
-    );
-
     return MaterialApp.router(
       checkerboardOffscreenLayers: kDebugMode,
       checkerboardRasterCacheImages: kDebugMode,
@@ -109,23 +62,8 @@ class _MainAppState extends ConsumerState<MainApp> {
           fit: .expand,
           children: [
             (child ?? const SizedBox.shrink()).hiddenCursor,
+            const DebugOverlay().hiddenCursor,
             const RepaintBoundary(child: MouseCursor()),
-            const Tooltip(),
-
-            // Fps counter
-            Align(
-              alignment: Alignment.bottomRight,
-              child: RepaintBoundary(
-                child: FrameStats(compact: !fpsMonitorEnabled),
-              ),
-            ),
-
-            // Logs
-            if (logsEnabled)
-              const Align(
-                alignment: Alignment.bottomLeft,
-                child: RepaintBoundary(child: LogConsole()),
-              ),
           ],
         ),
       ),

@@ -1,16 +1,18 @@
 import 'dart:math';
 
 import 'package:flosu/core/extensions/models.dart';
-import 'package:flosu/models/beatmap/hit_objects.dart';
-import 'package:flosu/models/mods/base.dart';
-import 'package:flosu/models/generated/beatmap_metadata.dart';
+import 'package:flosu/core/math/interpolation.dart';
+import 'package:flosu/shared/domain/mod/mod.dart';
 import 'package:flosu/features/gameplay/presentation/painters/gameplay/base.dart';
+import 'package:flosu/shared/domain/beatmap/beatmap.dart';
+import 'package:flosu/shared/domain/beatmap/hit_object/hit_object.dart';
 import 'package:flutter/material.dart' show Colors;
 import 'package:flutter/painting.dart';
 
 class HitCircleDrawable extends HitObjectDrawable<HitCircle> {
   HitCircleDrawable({
     required super.hitObject,
+    required super.beatmap,
     required super.difficulty,
     required super.mods,
   });
@@ -28,105 +30,120 @@ class HitCircleDrawable extends HitObjectDrawable<HitCircle> {
   );
 
   @override
+  bool isExpired(double position) =>
+      position > hitObject.time + difficulty.preempt;
+
+  @override
   void paint(Canvas c, double position) {
     super.paint(c, position);
 
     // Directly paint from helper function
-    paintHitCircle(c, position, difficulty, hitObject, mods);
+    paintHitCircle(c, position, beatmap, hitObject, mods);
   }
 
   static void paintHitCircle(
     Canvas c,
     double position,
-    BeatmapDifficultyMetadata difficulty,
+    Beatmap beatmap,
     HitObject hitObject,
-    Set<ConfigurableMod> mods,
+    Set<Mod> mods,
   ) {
-    final Color primaryColor = hitObject.color;
+    final Color primaryColor = hitObject.color(beatmap);
     final Color secondaryColor = Color.lerp(primaryColor, Colors.black, 1 / 3)!;
     final Color tertiaryColor = Color.lerp(primaryColor, Colors.black, 2 / 3)!;
 
-    final center = hitObject is Slider ? hitObject.points.first : hitObject.pos;
-    final radius = difficulty.circleRadius;
+    final center = hitObject is Slider
+        ? hitObject.pathPoints[0]
+        : hitObject.position;
 
-    final fullSize = hitObject.hitTime - difficulty.preemptFullOp;
+    final radius = beatmap.difficulty.radius;
+
+    final fullSize = hitObject.time - beatmap.difficulty.preempt * (2 / 3);
     final isHidden = mods.containsMod(.hidden);
+    final isTraceable = mods.containsMod(.traceable);
 
     // Default values
-    double opacity = 1.0;
-    double scale = 1.0;
+    late double opacity, scale;
+
+    // Approach circle scaling calculations
+    switch (position) {
+      case _ when position < hitObject.time:
+        final expanded = hitObject.time - beatmap.difficulty.preempt;
+        final shrink = hitObject.time;
+
+        final t = Interpolation.inverseLerp(expanded, shrink, position);
+        scale = 4.0 - 3.0 * t.clamp(0.0, 1.0);
+      case _:
+        scale = 1.0;
+    }
 
     // Opacity calculations
-    if (position <= fullSize) {
-      final hidden = hitObject.hitTime - difficulty.preempt;
-      final visible = hitObject.hitTime - difficulty.preemptFullOp;
+    switch (position) {
+      // Circle is appearing
+      case _ when position <= fullSize:
+        final hidden = hitObject.time - beatmap.difficulty.preempt;
+        final visible = hitObject.time - beatmap.difficulty.preempt * (2 / 3);
 
-      // Use fade in
-      final t = ((position - hidden) / (visible - hidden));
-      opacity = t.clamp(0.0, 1.0);
-    } else {
-      if (isHidden) {
-        final visible = hitObject.hitTime - difficulty.preemptFullOp;
-        final hidden = hitObject.hitTime;
+        // Use fade in
+        final t = Interpolation.inverseLerp(hidden, visible, position);
+        opacity = t.clamp(0.0, 1.0);
+      // Circle is disappearing because the mod Hidden is active
+      case _ when isHidden:
+        final visible = hitObject.time - beatmap.difficulty.preempt * (2 / 3);
+        final hidden = hitObject.time;
 
         // Use fade out
-        final t = ((position - visible) / (hidden - visible));
+        final t = Interpolation.inverseLerp(visible, hidden, position);
         opacity = 1.0 - t.clamp(0.0, 1.0);
-      }
-      // Object is fully visible (opacity = 1.0)
+      // Circle is fully visible
+      case _:
+        opacity = 1.0;
     }
 
     // Return early if opacity is 0
     if (opacity == 0) return;
 
-    // Approach circle scaling calculations
-    if (position < hitObject.hitTime) {
-      final expanded = hitObject.hitTime - difficulty.preempt;
-      final shrink = hitObject.hitTime;
-
-      final t = ((position - expanded) / (shrink - expanded));
-      scale = 4 - 3 * t.clamp(0.0, 1.0);
+    if (!isTraceable) {
+      // Base circle
+      c
+        ..drawPoints(
+          .points,
+          [center],
+          _bodyPaint
+            ..strokeWidth = (28 / 16) * radius
+            ..color = tertiaryColor.withValues(alpha: 0.8 * opacity),
+        )
+        // Inner ring
+        ..drawArc(
+          .fromCircle(center: center, radius: (17 / 24) * radius),
+          0,
+          2 * pi,
+          false,
+          _ringPaint
+            ..strokeWidth = radius / 3
+            ..color = secondaryColor.withValues(alpha: opacity),
+        )
+        // Outer ring
+        ..drawArc(
+          .fromCircle(center: center, radius: (19 / 24) * radius),
+          0,
+          2 * pi,
+          false,
+          _ringPaint
+            ..strokeWidth = radius / 6
+            ..color = primaryColor.withValues(alpha: opacity),
+        )
+        // White border
+        ..drawArc(
+          .fromCircle(center: center, radius: radius),
+          0,
+          2 * pi,
+          false,
+          _ringPaint
+            ..strokeWidth = radius / 16
+            ..color = Colors.white.withValues(alpha: opacity),
+        );
     }
-
-    // Base circle
-    c
-      ..drawPoints(
-        .points,
-        [center],
-        _bodyPaint
-          ..strokeWidth = (28 / 16) * radius
-          ..color = tertiaryColor.withValues(alpha: 0.8 * opacity),
-      )
-      // Inner ring
-      ..drawArc(
-        .fromCircle(center: center, radius: (17 / 24) * radius),
-        0,
-        2 * pi,
-        false,
-        _ringPaint
-          ..strokeWidth = radius / 3
-          ..color = secondaryColor.withValues(alpha: opacity),
-      )
-      // Outer ring
-      ..drawArc(
-        .fromCircle(center: center, radius: (19 / 24) * radius),
-        0,
-        2 * pi,
-        false,
-        _ringPaint
-          ..strokeWidth = radius / 6
-          ..color = primaryColor.withValues(alpha: opacity),
-      )
-      // White border
-      ..drawArc(
-        .fromCircle(center: center, radius: radius),
-        0,
-        2 * pi,
-        false,
-        _ringPaint
-          ..strokeWidth = radius / 16
-          ..color = Colors.white.withValues(alpha: opacity),
-      );
 
     // Approach circle
     if (scale > 1 && !isHidden) {
@@ -141,20 +158,22 @@ class HitCircleDrawable extends HitObjectDrawable<HitCircle> {
       );
     }
 
-    // Combo number.
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: "${hitObject.comboIdx}",
-        style: textStyle.copyWith(
-          fontSize: radius * (2 / 3),
-          color: Colors.white.withValues(alpha: opacity),
+    if (!isTraceable) {
+      // Combo number.
+      final textPainter = TextPainter(
+        text: TextSpan(
+          text: "${hitObject.comboNumber(beatmap)}",
+          style: textStyle.copyWith(
+            fontSize: radius * (2 / 3),
+            color: Colors.white.withValues(alpha: opacity),
+          ),
         ),
-      ),
-      textDirection: .ltr,
-    )..layout();
+        textDirection: .ltr,
+      )..layout();
 
-    final textOffset = Offset(textPainter.width / 2, textPainter.height / 2);
+      final textOffset = Offset(textPainter.width / 2, textPainter.height / 2);
 
-    textPainter.paint(c, center - textOffset);
+      textPainter.paint(c, center - textOffset);
+    }
   }
 }

@@ -2,9 +2,10 @@ import 'dart:math';
 
 import 'package:flosu/core/constants.dart';
 import 'package:flosu/core/extensions/models.dart';
-import 'package:flosu/models/beatmap/hit_objects.dart';
+import 'package:flosu/core/math/interpolation.dart';
 import 'package:flosu/features/gameplay/presentation/painters/gameplay/base.dart';
 import 'package:flosu/features/gameplay/presentation/painters/gameplay/hit_objects/hit_circle.dart';
+import 'package:flosu/shared/domain/beatmap/hit_object/hit_object.dart';
 import 'package:flutter/material.dart' show Colors, Curves;
 import 'package:flutter/painting.dart';
 
@@ -15,17 +16,18 @@ import 'package:flutter/painting.dart';
 class SliderDrawable extends HitObjectDrawable<Slider> {
   SliderDrawable({
     required super.hitObject,
+    required super.beatmap,
     required super.difficulty,
     required super.mods,
   }) {
     // Simulate slider being hold at hitTime
-    sliderHandled(hitObject.hitTime.toDouble());
+    sliderHandled(hitObject.time.toDouble());
   }
 
   @override
   bool isExpired(double position) {
     // Ensure animations are rendered for some milliseconds after the end of the slider
-    return position > hitObject.endTime + difficulty.preempt;
+    return position > hitObject.endTime + beatmap.difficulty.preempt;
   }
 
   static final Paint _bodyPaint = Paint()
@@ -64,10 +66,10 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
     _sliderHandlePosition = position;
   }
 
-  Path? _cachedPath;
+  final _cachedPath = Path();
   int _cachedVersion = 0;
 
-  late final Color borderColor = hitObject.color;
+  late final Color borderColor = hitObject.color(beatmap);
   late final Color backgroundColor = Color.lerp(
     borderColor,
     Colors.black,
@@ -80,34 +82,34 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
   /// - During tracking: interpolated between 0 and 1 over [object.duration].
   /// - Exactly 0.5 at the midpoint of the first slide.
   double _ballProgress(double position) {
-    if (position < hitObject.hitTime) return 0.0;
+    if (position < hitObject.time) return 0.0;
 
-    final elapsed = position - hitObject.hitTime;
+    final elapsed = position - hitObject.time;
 
     if (elapsed >= hitObject.duration) {
       return hitObject.slides.isEven ? 0.0 : 1.0;
     }
 
-    final slideElapsed = elapsed % hitObject.slideDuration;
-    final slideProgress = slideElapsed / hitObject.slideDuration;
+    final slideElapsed = elapsed % hitObject.slideDuration(beatmap);
+    final slideProgress = slideElapsed / hitObject.slideDuration(beatmap);
 
     // Even slides go forward, odd slides reverse.
-    final slideIdx = elapsed ~/ hitObject.slideDuration;
+    final slideIdx = elapsed ~/ hitObject.slideDuration(beatmap);
     return slideIdx.isEven ? slideProgress : 1.0 - slideProgress;
   }
 
   int _ballDirection(double position) {
-    if (position < hitObject.hitTime) {
+    if (position < hitObject.time) {
       return hitObject.slides.isEven ? 1 : -1;
     }
 
-    final elapsed = position - hitObject.hitTime;
+    final elapsed = position - hitObject.time;
 
     if (elapsed >= hitObject.duration) {
       return hitObject.slides.isEven ? -1 : 1;
     }
     // Even slides go forward, odd slides reverse.
-    final slideIdx = elapsed ~/ hitObject.slideDuration;
+    final slideIdx = elapsed ~/ hitObject.slideDuration(beatmap);
     return slideIdx.isEven ? 1 : -1;
   }
 
@@ -117,12 +119,13 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
 
     // If the slider is growing because it will appear
     // 16 ms is the threshold for slider full render
-    if (position <= hitObject.hitTime - difficulty.preemptFullOp + 16) {
+    if (position <= hitObject.time - beatmap.difficulty.preempt / 6) {
       return _cachedVersion + 1;
     }
 
     final lastSlideStartTime =
-        hitObject.hitTime + (hitObject.slides - 1) * hitObject.slideDuration;
+        hitObject.time +
+        (hitObject.slides - 1) * hitObject.slideDuration(beatmap);
 
     if (position > lastSlideStartTime) {
       return _cachedVersion + 1;
@@ -136,53 +139,9 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
   List<Offset> _sliderPoints(double position) {
     // Keep this conditional:
     // if slider cache is removed, this will keep working
-    if (!enableSnake) return hitObject.points;
+    if (!enableSnake) return hitObject.pathPoints;
 
-    // If the slider is growing because it will appear
-    // at any moment
-    if (position < hitObject.hitTime) {
-      final shrink = hitObject.hitTime - difficulty.preempt;
-      final expanded = hitObject.hitTime - difficulty.preemptFullOp;
-
-      final progress = (position - shrink) / (expanded - shrink);
-      final index = hitObject.indexAt(progress);
-      final offset = hitObject.pointAt(progress);
-
-      final points = hitObject.points.sublist(0, max(0, index));
-      return [...points, offset];
-    }
-
-    final lastSlideStartTime =
-        hitObject.hitTime + (hitObject.slides - 1) * hitObject.slideDuration;
-
-    // If the slider is shrinking
-    // from full length because it's the last slide
-    if (position > lastSlideStartTime) {
-      final isForward = (hitObject.slides - 1).isEven;
-      final expanded = lastSlideStartTime;
-
-      // If is forward, progress goes from 0 to 1
-      // If is backward, progress goes from 1 to 0
-      final progress = isForward
-          ? (position - expanded) / hitObject.slideDuration
-          : 1.0 - (position - expanded) / hitObject.slideDuration;
-
-      final index = hitObject.indexAt(progress);
-      final offset = hitObject.pointAt(progress);
-
-      // If is forward: slider is drawing from index to end (0 to n)
-      // If is backward: slider is drawing from 0 to index
-      final points = isForward
-          ? hitObject.points.sublist(index)
-          : hitObject.points.sublist(0, index);
-
-      // If is forward, add interpolated offset at the beggining
-      // If is backward, add interpolated offset at the end
-      final output = [if (isForward) offset, ...points, if (!isForward) offset];
-      return output;
-    }
-
-    return hitObject.points;
+    return hitObject.pathPoints;
   }
 
   @override
@@ -192,74 +151,74 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
     _paintBody(c, position);
     _paintEnds(c, position);
 
-    if (position >= hitObject.hitTime) _paintBall(c, position);
+    // if (position >= hitObject.time) _paintBall(c, position);
 
     // Paint using hit circle
-    if (position < hitObject.hitTime) {
-      HitCircleDrawable.paintHitCircle(
-        c,
-        position,
-        difficulty,
-        hitObject,
-        mods,
-      );
+    if (position < hitObject.time) {
+      HitCircleDrawable.paintHitCircle(c, position, beatmap, hitObject, mods);
     }
   }
 
   void _paintBody(Canvas c, double position) {
-    double opacity = 1.0;
+    final isHidden = mods.containsMod(.hidden);
+    final isTraceable = mods.containsMod(.traceable);
 
-    // Opacity calculations
-    if (position <= hitObject.hitTime) {
-      final hidden = hitObject.hitTime - difficulty.preempt;
-      final visible = hitObject.hitTime - difficulty.preemptFullOp;
+    late double opacity;
 
-      // Use fade in before hitTime
-      opacity = ((position - hidden) / (visible - hidden)).clamp(0.0, 1.0);
-    } else {
-      final hiddenEnabled = mods.containsMod(.hidden);
+    switch (position) {
+      // Slider is fading in
+      case _ when position <= hitObject.time:
+        final hidden = hitObject.time - beatmap.difficulty.preempt;
+        final visible = hitObject.time - beatmap.difficulty.preempt * (2 / 3);
 
-      if (hiddenEnabled) {
-        final visible = hitObject.hitTime;
-        final hidden = hitObject.hitTime + ((2 / 3) * hitObject.duration);
+        final t = Interpolation.inverseLerp(hidden, visible, position);
+        opacity = t.clamp(0.0, 1.0);
+      // Slider is fading out (Hidden active)
+      case _ when isHidden && position <= hitObject.endTime:
+        final visible = hitObject.time;
+        final hidden = hitObject.time + hitObject.duration;
 
-        // Use fade out before 2/3 of duration
-        final t = ((position - visible) / (hidden - visible)).clamp(0.0, 1.0);
-        opacity = 1.0 - Curves.easeOut.transform(t);
-      } else {
-        // Use fade out before endTime + preempt / 6
-        if (position >= hitObject.endTime) {
-          final visible = hitObject.endTime;
-          final hidden = hitObject.endTime + difficulty.preemptFullOp / 2;
-
-          final t = ((position - visible) / (hidden - visible)).clamp(0.0, 1.0);
-          opacity = 1.0 - t;
+        final t = Interpolation.inverseLerp(visible, hidden, position);
+        opacity = 1.0 - t.clamp(0.0, 1.0);
+      // Slider has finished
+      case _ when position > hitObject.endTime:
+        // When Hidden active, slider is no visible
+        if (isHidden) {
+          opacity = 0.0;
+          break;
         }
-      }
 
-      // Object is fully visible (opacity = 1.0)
+        // Slider fade out
+        final visible = hitObject.endTime;
+        final hidden = hitObject.endTime + beatmap.difficulty.preempt / 6;
+
+        final t = Interpolation.inverseLerp(visible, hidden, position);
+        opacity = 1.0 - t.clamp(0.0, 1.0);
+      // Fully visible (hit time <= position <= end time)
+      case _:
+        opacity = 1.0;
     }
 
     if (opacity == 0) return;
 
-    // Path calculations
-    // Only compute path when snaking is enabled
-    if (!enableSnake) {
-      _cachedPath ??= Path()..addPolygon(hitObject.points, false);
-    } else {
-      final version = _pathNeedsUpdate(position);
+    switch (enableSnake) {
+      case true:
+        final version = _pathNeedsUpdate(position);
 
-      if (version > _cachedVersion) {
-        final sliderPoints = _sliderPoints(position);
+        // Check if path need to be recomputed
+        if (version > _cachedVersion) {
+          final sliderPoints = _sliderPoints(position);
 
-        if (_cachedPath != null) {
-          (_cachedPath!..reset()).addPolygon(sliderPoints, false);
-        } else {
-          _cachedPath = Path()..addPolygon(sliderPoints, false);
+          if (_cachedVersion != 0) _cachedPath.reset();
+          _cachedPath.addPolygon(sliderPoints, false);
+
+          _cachedVersion = version;
         }
-
-        _cachedVersion = version;
-      }
+      case false:
+        // Only add points if not added yet
+        if (_cachedVersion == 0) {
+          _cachedPath.addPolygon(hitObject.pathPoints, false);
+        }
     }
 
     c
@@ -270,7 +229,7 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
       )
       // Border
       ..drawPath(
-        _cachedPath!,
+        _cachedPath,
         _bodyPaint
           ..blendMode = .srcOver
           ..style = .stroke
@@ -280,24 +239,28 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
       // Clear border-covered surface (not the surface itself)
       // used by background
       ..drawPath(
-        _cachedPath!,
+        _cachedPath,
         _bodyPaint
           ..blendMode = .clear
           ..style = .stroke
           ..color = backgroundColor
           ..strokeWidth = diameter * 0.7,
-      )
+      );
+
+    if (!isTraceable) {
       // Background
-      ..drawPath(
-        _cachedPath!,
+      c.drawPath(
+        _cachedPath,
         _bodyPaint
           ..blendMode = .srcOver
           ..style = .stroke
           ..color = backgroundColor.withValues(alpha: 0.8)
           ..strokeWidth = diameter * 0.7,
-      )
-      // Restore layer
-      ..restore();
+      );
+    }
+
+    // Restore layer
+    c.restore();
   }
 
   void _paintEnds(Canvas c, double position) {
@@ -312,17 +275,18 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
       late Offset pointA, pointB;
 
       final isForward = (i + 1).isEven;
-      final endTime = hitObject.hitTime + (i + 1) * hitObject.slideDuration;
+      final endTime =
+          hitObject.time + (i + 1) * hitObject.slideDuration(beatmap);
 
       if (position < endTime) {
-        final hidden = endTime - (difficulty.preempt / 2);
+        final hidden = endTime - (beatmap.difficulty.preempt / 6);
         final visible = endTime;
 
         final t = ((position - hidden) / (visible - hidden));
         opacity = t.clamp(0.0, 1.0);
       } else {
         final start = endTime;
-        final end = endTime + (difficulty.preempt / 4);
+        final end = endTime + (beatmap.difficulty.preempt / 12);
 
         final t = ((position - start) / (end - start));
 
@@ -334,11 +298,11 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
 
       if (isForward) {
         // Forward
-        pointA = hitObject.pointAt(0);
-        pointB = hitObject.pointAt(EPSILON);
+        pointA = hitObject.positionAt(0);
+        pointB = hitObject.positionAt(EPSILON);
       } else {
-        pointA = hitObject.pointAt(1);
-        pointB = hitObject.pointAt(1 - EPSILON);
+        pointA = hitObject.positionAt(1);
+        pointB = hitObject.positionAt(1 - EPSILON);
       }
 
       final angle = (pointB - pointA).direction + (pi / 2);
@@ -388,6 +352,7 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
 
   /// Draws the animated slider ball at the position corresponding to
   /// the current audio [position].
+  // TODO (imbserch): Fix buggy implementation
   void _paintBall(Canvas c, double position) {
     // If slider has ended, set slider release
     if (position > hitObject.endTime && _sliderHandled) {
@@ -397,8 +362,8 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
     final progress = _ballProgress(position);
     final direction = _ballDirection(position);
 
-    final current = hitObject.pointAt(min(progress, 1.0 - EPSILON));
-    final next = hitObject.pointAt(min(progress + EPSILON, 1.0));
+    final current = hitObject.positionAt(min(progress, 1.0 - EPSILON));
+    final next = hitObject.positionAt(min(progress + EPSILON, 1.0));
 
     final angle = (next - current).direction;
 
@@ -409,7 +374,7 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
 
     if (_sliderHandled) {
       final shrink = _sliderHandlePosition;
-      final full = shrink + difficulty.preemptFullOp / 2;
+      final full = shrink + beatmap.difficulty.preempt / 6;
 
       final relativeT = ((position - shrink) / (full - shrink));
       t = Curves.easeOut.transform(relativeT.clamp(0.0, 1.0));
@@ -417,7 +382,7 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
       scale = 1 + t;
     } else {
       final full = _sliderHandlePosition;
-      final overflow = full + difficulty.preemptFullOp / 2;
+      final overflow = full + beatmap.difficulty.preempt / 6;
 
       final relativeT = ((position - full) / (overflow - full));
       t = 1 - Curves.easeOut.transform(relativeT.clamp(0.0, 1.0));

@@ -6,7 +6,7 @@ class Log {
   final String tag;
   final String message;
   final LogLevel level;
-  final DateTime timestamp;
+  final int timestamp;
 
   @override
   String toString() {

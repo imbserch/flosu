@@ -1,6 +1,5 @@
-import 'package:flosu/models/beatmap/beatmap_content.dart';
-import 'package:flosu/models/generated/beatmap_metadata.dart';
-import 'package:flosu/models/replay/replay.dart';
+import 'package:flosu/shared/domain/beatmap/beatmap.dart';
+import 'package:flosu/shared/domain/replay/replay.dart';
 
 abstract class IoCommand<T> {
   IoCommand(this.id);
@@ -8,16 +7,16 @@ abstract class IoCommand<T> {
   final String id;
 }
 
-class ParseBeatmapMetadataCommand extends IoCommand<BeatmapMetadata> {
-  ParseBeatmapMetadataCommand(super.id, {required this.path});
+class ParseFullBeatmapCommand extends IoCommand<Beatmap> {
+  ParseFullBeatmapCommand(super.id, {required this.beatmap});
 
-  final String path;
+  final Beatmap beatmap;
 }
 
-class ParseBeatmapContentCommand extends IoCommand<BeatmapContent> {
-  ParseBeatmapContentCommand(super.id, {required this.metadata});
+class ParseBeatmapCommand extends IoCommand<Beatmap> {
+  ParseBeatmapCommand(super.id, {required this.path});
 
-  final BeatmapMetadata metadata;
+  final String path;
 }
 
 class ParseReplayCommand extends IoCommand<Replay> {

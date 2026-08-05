@@ -100,18 +100,15 @@ class PathApproximator {
   }
 
   static List<Offset> catmullToPiecewiseLinear(List<Offset> controlPoints) {
-    List<Offset> output = List.filled(
-      (controlPoints.length - 1) * CATMULL_DETAIL * 2,
-      .zero,
-    );
+    final List<Offset> output = [];
 
     for (int i = 0; i < controlPoints.length; ++i) {
-      var v1 = i > 0 ? controlPoints[i - 1] : controlPoints[i];
-      var v2 = controlPoints[i];
-      var v3 = i < controlPoints.length - 1
+      final v1 = i > 0 ? controlPoints[i - 1] : controlPoints[i];
+      final v2 = controlPoints[i];
+      final v3 = i < controlPoints.length - 1
           ? controlPoints[i + 1]
           : v2 + v2 - v1;
-      var v4 = i < controlPoints.length - 1
+      final v4 = i < controlPoints.length - 1
           ? controlPoints[i + 2]
           : v3 + v3 - v2;
 

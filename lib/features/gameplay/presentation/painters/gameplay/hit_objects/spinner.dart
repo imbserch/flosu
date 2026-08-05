@@ -1,15 +1,16 @@
 import 'dart:math';
 
 import 'package:flosu/core/constants.dart';
-import 'package:flosu/models/beatmap/hit_objects.dart';
 import 'package:flosu/features/gameplay/presentation/painters/gameplay/base.dart';
 import 'package:flosu/features/gameplay/presentation/painters/gameplay/hit_objects/hit_circle.dart';
+import 'package:flosu/shared/domain/beatmap/hit_object/hit_object.dart';
 import 'package:flutter/material.dart' show Colors;
 import 'package:flutter/painting.dart';
 
 class SpinnerDrawable extends HitObjectDrawable<Spinner> {
   SpinnerDrawable({
     required super.hitObject,
+    required super.beatmap,
     required super.difficulty,
     required super.mods,
   });
@@ -34,6 +35,9 @@ class SpinnerDrawable extends HitObjectDrawable<Spinner> {
   late final _spmCountStyle = HitCircleDrawable.textStyle.copyWith(
     fontSize: 22,
   );
+
+  @override
+  bool isExpired(double position) => position > hitObject.endTime;
 
   @override
   void paint(Canvas c, double position) {

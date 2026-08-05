@@ -1,13 +1,15 @@
 import 'package:flosu/core/constants.dart';
-import 'package:flosu/features/gameplay/domain/gameplay_data.dart';
+import 'package:flosu/core/extensions/models.dart';
+import 'package:flosu/features/song_select/domain/mod_group.dart';
+import 'package:flosu/shared/domain/beatmap/beatmap_selector.dart';
+import 'package:flosu/shared/domain/mod/mod_selector.dart';
 import 'package:flosu/shared/widgets/actions_bar.dart';
 import 'package:flosu/shared/widgets/top_banner.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flosu/core/theme/app_colors.dart';
-import 'package:flosu/models/mods/base.dart';
 import 'package:flosu/core/extensions/ui.dart';
-import 'package:flosu/ui/shared/animatable_page.dart';
+import 'package:flosu/shared/layout/animatable_page.dart';
 import 'package:flosu/shared/widgets/skewed_box.dart';
 import 'package:flosu/features/song_select/presentation/widgets/mod_icon.dart';
 import 'package:flosu/features/song_select/presentation/widgets/mod_item.dart';
@@ -42,8 +44,12 @@ class _ModsPageState extends AnimatablePageState<ModsPage>
 
   @override
   Widget buildPage(BuildContext context, double animProgress) {
-    final details = ref.watch(gameplayDataProvider);
-    final detailsManager = ref.read(gameplayDataProvider.notifier);
+    final modsManager = ref.read(modSelector.notifier);
+
+    final mods = ref.watch(modSelector);
+    final isRanked = ref.watch(modsRankedProvider);
+    final modMultiplier = ref.watch(scoreMultiplierProvider);
+    // final difficulty = ref.watch(difficultyProvider);
 
     return ColoredBox(
       color: Colors.black38,
@@ -73,17 +79,12 @@ class _ModsPageState extends AnimatablePageState<ModsPage>
                           clipBehavior: .none,
                           padding: const .symmetric(horizontal: 96),
                           scrollDirection: .horizontal,
-                          itemCount: ConfigurableMod.diffSections.length,
+                          itemCount: ModGroups.all.length,
                           //Mods section container
                           itemBuilder: (_, i) {
                             final direction = i.isEven ? 1 : -1;
 
-                            final sectionName = ConfigurableMod
-                                .diffSections
-                                .keys
-                                .elementAt(i);
-                            final mods = ConfigurableMod.diffSections.values
-                                .elementAt(i);
+                            final modGroup = ModGroups.all[i];
 
                             return Transform.translate(
                               offset: Offset(
@@ -97,7 +98,7 @@ class _ModsPageState extends AnimatablePageState<ModsPage>
                                 isAntiAlias: true,
                                 decoration: BoxDecoration(
                                   borderRadius: .circular(6),
-                                  color: mods.first.color,
+                                  color: modGroup.color,
                                 ),
                                 child: Column(
                                   crossAxisAlignment: .stretch,
@@ -108,7 +109,7 @@ class _ModsPageState extends AnimatablePageState<ModsPage>
                                         vertical: 8,
                                       ),
                                       child: Text(
-                                        sectionName,
+                                        modGroup.type,
                                         style: const TextStyle(
                                           fontSize: 8,
                                           fontWeight: .bold,
@@ -139,18 +140,18 @@ class _ModsPageState extends AnimatablePageState<ModsPage>
                                                     parent:
                                                         BouncingScrollPhysics(),
                                                   ),
-                                              itemCount: mods.length,
+                                              itemCount: modGroup.mods.length,
                                               shrinkWrap: true,
                                               padding: const .all(4),
                                               itemBuilder: (_, j) {
-                                                final mod = mods.elementAt(j);
+                                                final mod = modGroup.mods[j];
 
                                                 return ModItem(
                                                   mod: mod,
-                                                  selected: details.mods.any(
-                                                    ((m) => m.mod == mod.mod),
+                                                  selected: mods.containsMod(
+                                                    mod.info,
                                                   ),
-                                                  onTap: () => detailsManager
+                                                  onTap: () => modsManager
                                                       .toggleMod(mod),
                                                 );
                                               },
@@ -191,26 +192,28 @@ class _ModsPageState extends AnimatablePageState<ModsPage>
                 child: Row(
                   mainAxisAlignment: .center,
                   children: [
-                    if (details.mods.isNotEmpty) ...[
-                      for (final mod in details.mods) ModIcon.display(mod: mod),
+                    if (mods.isNotEmpty) ...[
+                      for (final mod in mods) ModIcon.display(mod: mod),
                       const SizedBox(width: 8),
                     ],
 
                     Text(
-                      details.mods.isEmpty ? "No mods" : details.modsName,
+                      mods.isEmpty
+                          ? "No mods"
+                          : mods.map((e) => e.info.acronym).join(),
                       style: const TextStyle(fontSize: 8, height: 1),
                     ),
                     const SizedBox(width: 9),
                     //Deselect mods
                     SkewedBox(
-                      opacity: details.mods.isNotEmpty ? 1 : 0,
+                      opacity: mods.isNotEmpty ? 1 : 0,
                       decoration: BoxDecoration(
                         borderRadius: .circular(4),
                         color: AppColors.container,
                       ),
                       useGradientBorder: true,
                       padding: const .all(9),
-                      onTap: detailsManager.clearMods,
+                      onTap: modsManager.clearMods,
                       child: const Text(
                         "Deselect all",
                         style: TextStyle(fontSize: 8),
@@ -264,28 +267,26 @@ class _ModsPageState extends AnimatablePageState<ModsPage>
                     SkewedBox(
                       decoration: BoxDecoration(
                         borderRadius: .circular(4),
-                        color: details.isRanked
+                        color: isRanked
                             ? AppColors.container
                             : AppColors.yellow,
                       ),
-                      useGradientBorder: details.isRanked,
+                      useGradientBorder: isRanked,
                       padding: const .all(9),
                       child: Text(
-                        details.isRanked ? "Ranked" : "Unranked",
+                        isRanked ? "Ranked" : "Unranked",
                         style: TextStyle(
                           fontSize: 8,
-                          color: details.isRanked
-                              ? Colors.white
-                              : AppColors.background,
-                          fontWeight: details.isRanked ? .normal : .bold,
+                          color: isRanked ? Colors.white : AppColors.background,
+                          fontWeight: isRanked ? .normal : .bold,
                         ),
                       ),
                     ),
 
                     TweenAnimationBuilder(
-                      tween: Tween(end: details.modMultiplier),
+                      tween: Tween(end: modMultiplier),
                       duration: Durations.short4,
-                      curve: Curves.easeOut,
+                      curve: Curves.fastOutSlowIn,
                       builder: (_, t, _) => Text(
                         "${t.toStringAsFixed(2)}x",
                         style: TextStyle(

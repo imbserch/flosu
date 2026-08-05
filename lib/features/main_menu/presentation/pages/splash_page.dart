@@ -1,18 +1,18 @@
 import 'dart:async';
 import 'dart:math';
 
-import 'package:flosu/core/assets.dart';
-import 'package:flosu/logic/providers/beatmap.dart';
-import 'package:flosu/logic/providers/main_layout.dart';
-import 'package:flosu/logic/services/sample.dart';
+import 'package:flosu/features/settings/data/repositories/settings_repository.dart';
+import 'package:flosu/features/song_select/data/repositories/beatmap_repository.dart';
+import 'package:flosu/features/song_select/domain/beatmap_library.dart';
+import 'package:flosu/shared/domain/beatmap/beatmap_selector.dart';
+import 'package:flosu/shared/layout/main_layout_provider.dart';
 import 'package:flosu/shared/input.dart';
 import 'package:flosu/shared/io.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flosu/features/audio/data/audio_provider.dart' as legacy_audio;
 import 'package:flosu/shared/widgets/osu_cube_loader.dart';
-import 'package:flosu/features/audio_experimental/audio.dart';
+import 'package:flosu/features/audio/audio.dart';
 
 class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
@@ -39,14 +39,22 @@ class _SplashPageState extends ConsumerState<SplashPage> {
 
   // Setups services that need async initialization
   Future<void> _setup(WidgetRef ref) async {
-    // Setup audio provider
-    await ref.read(audioProvider).init();
+    // Setup repositories
+    await ref.read(settingsRepository).init();
+    await ref.read(beatmapRepository).init();
 
     // Setup I/O provider
     await ref.read(ioProvider).init();
 
+    // Setup audio provider
+    await ref.read(audioProvider).init();
+
     // Setup input provider
     await ref.read(inputProvider).init();
+
+    // Load library until database is loaded
+    ref.read(beatmapLibrary);
+    await Future.delayed(Durations.medium1);
   }
 
   // Updated flow of loading
@@ -56,21 +64,16 @@ class _SplashPageState extends ConsumerState<SplashPage> {
 
     final layout = ref.read(mainLayoutProvider.notifier);
 
-    // Load library until database is loaded
-    ref.read(beatmapProvider);
-
-    const welcomeSample = AppSamples.introWelcome;
-
-    final audio = ref.read(legacy_audio.audioProvider.notifier);
-    final samples = ref.read(sampleService);
+    final selector = ref.read(beatmapSelector.notifier);
+    final track = ref.read(trackProvider.notifier);
 
     // Await for audio and layout
     await Future.microtask(() {
-      audio.stop();
+      track.stop();
       layout.setTopBarLocked(true);
     });
 
-    await samples.loadMultipleFromAsset([
+    /* await samples.loadMultipleFromAsset([
       AppSamples.songselectConfirmSelection,
       AppSamples.uiCursorTap,
       AppSamples.uiSettingsPopIn,
@@ -78,21 +81,29 @@ class _SplashPageState extends ConsumerState<SplashPage> {
       AppSamples.introSeeya,
       welcomeSample,
     ]);
+ */
+    const delay = Duration(seconds: 2);
+    final random = ref.read(beatmapLibrary).random;
 
-    final random = ref.read(beatmapProvider.notifier).getRandom();
-    if (random != null) await audio.load(random);
+    if (random != null) {
+      await selector.loadTrack(random);
+      selector.selectBeatmap(random, usePreview: false, startPaused: true);
+      track.volume(0);
+      track.resume();
+      track.volume(1, over: delay);
+    }
 
     if (mounted) setState(() => _ready = true);
-    samples.play(welcomeSample);
+    // samples.play(welcomeSample);
 
-    Future.delayed(const Duration(seconds: 2), () {
+    Future.delayed(delay, () {
       // Set Top Bar unlocked
       final topBarOpen = ref.read(mainLayoutProvider).isTopBarOpen;
       layout.setTopBarLocked(false);
       if (!topBarOpen) layout.toggleTopBar();
 
       // Start playing random song
-      if (random != null) audio.preview(random);
+      // The main menu will handle shuffle mode like osu!lazer main menu
 
       // Go to main
       if (mounted) context.go("/main");

@@ -9,7 +9,7 @@ import 'package:flutter/material.dart' hide PointerEvent, Image;
 import 'package:flutter/services.dart' hide PointerEvent;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:flosu/features/settings/domain/settings.dart';
+import 'package:flosu/features/settings/domain/settings_provider.dart';
 import 'package:flosu/features/gameplay/presentation/painters/gameplay.dart';
 
 class CursorFrame {

@@ -1,4 +1,4 @@
-import 'package:flosu/models/mods/base.dart';
+import 'package:flosu/shared/domain/mod/mod.dart';
 import 'package:flutter/material.dart';
 
 class ModIcon extends StatelessWidget {
@@ -13,7 +13,7 @@ class ModIcon extends StatelessWidget {
     : selected = true,
       isDisplay = true;
 
-  final ConfigurableMod mod;
+  final Mod mod;
   final bool selected;
   final double size;
 

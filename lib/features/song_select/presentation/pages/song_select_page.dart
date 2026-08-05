@@ -1,16 +1,16 @@
-import 'package:flosu/features/audio_experimental/audio.dart'
-    hide audioProvider;
-import 'package:flosu/logic/providers/beatmap.dart';
+import 'package:flosu/features/audio/audio.dart';
+import 'package:flosu/features/song_select/domain/beatmap_library.dart';
+import 'package:flosu/shared/domain/beatmap/beatmap_selector.dart';
+import 'package:flosu/features/song_select/presentation/widgets/beatmap_info.dart';
+import 'package:flosu/shared/domain/beatmap/beatmap.dart';
 import 'package:flosu/shared/input.dart';
-import 'package:flosu/ui/widgets/beatmap/beatmap_list.dart';
+import 'package:flosu/features/song_select/presentation/widgets/beatmap_list.dart';
 import 'package:flosu/shared/widgets/actions_bar.dart';
 import 'package:flutter/material.dart' hide PointerEvent;
 import 'package:go_router/go_router.dart';
-import 'package:flosu/features/audio/data/audio_provider.dart';
 import 'package:flosu/core/theme/app_colors.dart';
 import 'package:flosu/core/extensions/ui.dart';
-import 'package:flosu/ui/shared/animatable_page.dart';
-import 'package:flosu/ui/widgets/beatmap/current_beatmap_info.dart';
+import 'package:flosu/shared/layout/animatable_page.dart';
 import 'package:flosu/shared/widgets/osu_logo.dart';
 import 'package:flosu/shared/widgets/skewed_button_line.dart';
 
@@ -23,6 +23,20 @@ class SongSelectPage extends AnimatablePage {
 
 class _SongSelectPageState extends AnimatablePageState<SongSelectPage>
     with KeyboardHandler {
+  @override
+  void initState() {
+    _setupAudio();
+    super.initState();
+  }
+
+  void _setupAudio() {
+    final beatmap = ref.read(beatmapSelector);
+    final handle = ref.read(trackProvider);
+    final service = ref.read(audioProvider);
+
+    service.loop(handle!, to: beatmap?.previewTime);
+  }
+
   @override
   bool input() {
     if (!keyboard.pressed) return false;
@@ -58,27 +72,45 @@ class _SongSelectPageState extends AnimatablePageState<SongSelectPage>
   }
 
   void _playRandom() async {
-    final bm = ref.read(beatmapProvider.notifier).getRandom();
-    if (bm != null) ref.read(audioProvider.notifier).preview(bm);
+    final bm = ref.read(beatmapLibrary).random;
+    final selector = ref.read(beatmapSelector.notifier);
+
+    if (bm == null) return;
+
+    await selector.loadTrack(bm);
+    selector.selectBeatmap(bm, usePreview: true);
   }
 
   @override
   Widget buildPage(BuildContext context, double animProgress) {
-    final audioTime = ref.watch(audioClockProvider);
+    final beatmap = ref.watch(beatmapSelector);
+    final beatmapDifficulty = beatmap?.difficulty;
+
+    final difficulty = beatmapDifficulty ?? Difficulty();
+
     return Stack(
       alignment: .bottomCenter,
       children: [
-        CurrentBeatmapInfo(animProgress: animProgress),
+        if (beatmap != null)
+          Positioned(
+            top: 0,
+            left: 0,
+            width: context.screenScaled.width / 2,
+            bottom: 32,
+            child: Column(
+              crossAxisAlignment: .stretch,
+              children: [BeatmapInfo(beatmap: beatmap, difficulty: difficulty)],
+            ),
+          ),
 
         Positioned(
           top: 0,
           left: context.screenScaled.width / 2,
           width: context.screenScaled.width / 2,
-          height: context.screenScaled.height - 60,
-          child: Column(
+          bottom: 32,
+          child: const Column(
             crossAxisAlignment: .end,
             children: [
-              Text("${audioTime.round()}"),
               /*  SkewedBox(
                     constraints: const BoxConstraints(
                       minWidth: 280,
@@ -159,7 +191,7 @@ class _SongSelectPageState extends AnimatablePageState<SongSelectPage>
                   ),
                    */
               // Beatmap list
-              const Expanded(child: BeatmapList()),
+              Expanded(child: BeatmapList()),
             ],
           ),
         ),

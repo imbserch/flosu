@@ -1,17 +1,15 @@
 import 'dart:async';
 
-import 'package:flosu/core/assets.dart';
-import 'package:flosu/logic/providers/main_layout.dart';
-import 'package:flosu/logic/services/sample.dart';
+import 'package:flosu/shared/layout/main_layout_provider.dart';
 import 'package:flosu/shared/input.dart';
-import 'package:flosu/ui/widgets/navigation/notifications_drawer.dart';
-import 'package:flosu/ui/widgets/navigation/settings_drawer.dart';
+import 'package:flosu/shared/layout/notifications_drawer.dart';
+import 'package:flosu/shared/layout/settings_drawer.dart';
 import 'package:flutter/material.dart' hide PointerEvent;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flosu/features/settings/domain/settings.dart';
-import 'package:flosu/ui/widgets/background/parallax_background.dart';
-import 'package:flosu/ui/widgets/overlay/volume_bar.dart';
-import 'package:flosu/ui/widgets/navigation/top_bar.dart';
+import 'package:flosu/features/settings/domain/settings_provider.dart';
+import 'package:flosu/shared/layout/parallax_background.dart';
+import 'package:flosu/shared/layout/volume_bar.dart';
+import 'package:flosu/shared/layout/top_bar.dart';
 import 'package:go_router/go_router.dart';
 
 /// The shell layout widget that envelopes the application pages.
@@ -158,9 +156,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> with KeyboardHandler {
   }
  */
   void _handleDrawerChange(bool isOpen) {
-    ref
-        .read(sampleService)
-        .play(isOpen ? AppSamples.uiSettingsPopIn : AppSamples.uiMenuClose);
+    //
 
     if (mounted) setState(() {});
   }

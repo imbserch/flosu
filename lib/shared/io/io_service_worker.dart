@@ -1,11 +1,9 @@
 import 'dart:isolate';
 
-import 'package:flosu/models/beatmap/beatmap_content.dart';
-import 'package:flosu/models/generated/beatmap_metadata.dart';
-import 'package:flosu/models/replay/replay.dart';
-import 'package:flosu/shared/io/parsers/beatmap_content_parser.dart';
-import 'package:flosu/shared/io/parsers/beatmap_metadata_parser.dart';
+import 'package:flosu/shared/domain/beatmap/beatmap.dart';
+import 'package:flosu/shared/domain/replay/replay.dart';
 import 'package:flosu/shared/io/io_exceptions.dart';
+import 'package:flosu/shared/io/parsers/beatmap_parser.dart';
 import 'package:flosu/shared/io/parsers/io_parser.dart';
 import 'package:flosu/shared/io/parsers/replay_parser.dart';
 import 'package:flosu/shared/io/io_commands.dart';
@@ -16,8 +14,8 @@ import 'package:flosu/shared/io/io_result.dart';
 /// [T] is the expected return type of the parser.
 IoParser _getParserForCommand<T>(IoCommand<T> command) {
   return switch (command) {
-    ParseBeatmapContentCommand bc => BeatmapContentParser(bc.metadata),
-    ParseBeatmapMetadataCommand bm => BeatmapMetadataParser(bm.path),
+    ParseBeatmapCommand b => BeatmapParser(b.path),
+    ParseFullBeatmapCommand fb => BeatmapParser.fromBeatmap(fb.beatmap),
     ParseReplayCommand r => ReplayParser(r.path),
     _ => throw IoParserNotFoundException<T>(),
   };
@@ -25,8 +23,7 @@ IoParser _getParserForCommand<T>(IoCommand<T> command) {
 
 IoResult _getResultFromParser<T>(String id, T result) {
   return switch (result) {
-    BeatmapContent c => IoBeatmapContentResult(id: id, data: c),
-    BeatmapMetadata b => IoBeatmapMetadataResult(id: id, data: b),
+    Beatmap b => IoBeatmapResult(id: id, data: b),
     Replay r => IoReplayResult(id: id, data: r),
     _ => throw IoUnsupportedOutputException<T>(),
   };

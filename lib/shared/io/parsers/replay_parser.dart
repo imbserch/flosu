@@ -5,10 +5,9 @@ import 'dart:ui' show Offset;
 
 import 'package:collection/collection.dart';
 import 'package:flosu/core/constants.dart';
-import 'package:flosu/core/enums.dart';
-import 'package:flosu/models/mods/base.dart';
-import 'package:flosu/models/replay/replay.dart';
-import 'package:flosu/models/replay/replay_frame.dart';
+import 'package:flosu/shared/domain/mod/mod_converter.dart';
+import 'package:flosu/shared/domain/replay/replay.dart';
+import 'package:flosu/shared/domain/replay/replay_frame.dart';
 import 'package:flosu/shared/io/io_exceptions.dart';
 import 'package:flosu/shared/io/parsers/io_parser.dart';
 import 'package:lzma/lzma.dart';
@@ -28,6 +27,8 @@ class ReplayParser extends IoParser<Replay> {
 
   @override
   Future<Replay> parse() async {
+    final replay = Replay();
+
     final file = File(path);
 
     if (!(await file.exists())) {
@@ -49,29 +50,33 @@ class ReplayParser extends IoParser<Replay> {
     // Other modes like Taiko (1), Catch (2), and Mania (3) are not supported.
     if (mode != 0) throw ReplayIncompatibleRulesetException();
 
-    final version = _readInt();
-    final beatmapMd5 = _readString();
-    final playerName = _readString();
+    replay
+      ..version = _readInt()
+      ..hash = _readString()
+      ..playerName = _readString();
 
     _readString(); // replay md5
 
     final greats = _readShort();
     final oks = _readShort();
     final mehs = _readShort();
-
-    final gekis = _readShort();
-    final katus = _readShort();
-
+    /* final gekis =  */
+    _readShort();
+    /* final katus =  */
+    _readShort();
     final misses = _readShort();
     final score = _readInt();
-
     final maxCombo = _readShort();
-    final perfect = _readByte() == 1;
+    /* final perfect =  */
+    _readByte() /*  == 1 */;
+
+    final maxStableStats = greats + oks + mehs + misses;
 
     final bitMods = _readInt();
 
-    final lifeGraph = _readString(); // life graph
-    final timestamp = _readLong(); // timestamp
+    _readString(); // life graph
+
+    replay.timestamp = _readLong(); // timestamp
 
     final length = _readInt();
     // Extract the LZMA compressed replay data block.
@@ -89,7 +94,6 @@ class ReplayParser extends IoParser<Replay> {
         .map((e) => e.split('|'))
         .toList();
 
-    List<ReplayFrame> frames = [];
     int time = 0;
 
     for (final f in rawFrames) {
@@ -98,22 +102,22 @@ class ReplayParser extends IoParser<Replay> {
       // Skip seed used in Random mod
       if (delta == RANDOM_SEED_DELTA) continue;
 
-      final x = double.parse(f[1]);
-      final y = double.parse(f[2]);
-      final btns = int.parse(f[3]);
-
-      final keys = OsuKey.pressed(btns);
+      final frame = ReplayFrame()
+        ..time = time
+        ..position = Offset(double.parse(f[1]), double.parse(f[2]))
+        ..pressed = f[3] != "0";
 
       time += delta;
-      frames.add(ReplayFrame(time, Offset(x, y), keys));
+      replay.frames.add(frame);
     }
 
-    // Ensure frames are sorted by time
-    frames.sortByCompare((frame) => frame.time, (a, b) => a.compareTo(b));
+    // Sort by time
+    replay.frames.sortByCompare(
+      (frame) => frame.time,
+      (a, b) => a.compareTo(b),
+    );
 
     _off += length + 8;
-
-    Set<ConfigurableMod> mods = {};
 
     // Try to parse Lazer-specific extra data (JSON) if available.
     try {
@@ -125,34 +129,45 @@ class ReplayParser extends IoParser<Replay> {
       final extrasDecompressed = lzma.decode(extrasCompressed);
 
       final extraData = String.fromCharCodes(extrasDecompressed);
-      final lazerPayload = jsonDecode(extraData) as Map<String, dynamic>;
+      final json = jsonDecode(extraData) as Map<String, dynamic>;
 
-      mods = ConfigurableMod.fromLazerPayload(lazerPayload);
+      print(json);
+
+      final lazerStats = json["statistics"];
+      final maxLazerStats = json["maximum_statistics"];
+
+      replay.mods = ModConverter.fromJson(json);
+
+      print(replay.mods);
+
+      replay.stats
+        ..greats = (lazerStats["great"] as int?) ?? greats
+        ..oks = (lazerStats["ok"] as int?) ?? oks
+        ..mehs = (lazerStats["meh"] as int?) ?? mehs
+        ..misses = (lazerStats["miss"] as int?) ?? misses;
+
+      replay.maxStats.greats =
+          (maxLazerStats["great"] as int?) ?? maxStableStats;
     } catch (e) {
+      print(e);
+
       // Replay file is from osu!stable
-      mods = ConfigurableMod.fromStableBit(bitMods);
+      replay.mods = ModConverter.fromBitFlag(bitMods);
+
+      replay.stats
+        ..greats = greats
+        ..oks = oks
+        ..mehs = mehs
+        ..misses = misses;
+
+      replay.maxStats.greats = maxStableStats;
     }
 
-    return Replay(
-      version,
-      beatmapMd5,
-      playerName,
-      ReplayHitStats(
-        greats,
-        oks,
-        mehs,
-        gekis,
-        katus,
-        misses,
-        score,
-        maxCombo,
-        perfect,
-      ),
-      mods,
-      lifeGraph,
-      timestamp,
-      frames,
-    );
+    replay
+      ..maxCombo = maxCombo
+      ..score = score;
+
+    return replay;
   }
 
   /// Reads a single byte (8-bit) from the current offset.

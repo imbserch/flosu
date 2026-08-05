@@ -23,13 +23,18 @@ const Offset STACK_OFFSET = Offset(4.0, 4.0);
 const Offset SPINNER_CENTRE = Offset(256, 192);
 
 // From Logger
-const int MAX_LOG_TIME = 20;
+const int MAX_LOG_TIME = 20000;
 
 // From Osu Logo
 const double LOGO_SIZE = 512.0;
 
 // From Frame Stats
 const int TIMINGS_SIZE = 100;
+
+// From Audio Service
+const int AUDIO_SAMPLE_RATE = 96000;
+const int AUDIO_BUFFER_SIZE = 2048;
+const double AUDIO_BASE_COMPENSATION = -200.0;
 
 // From Scroll config
 // Isn't a constant, but it's used in multiple places

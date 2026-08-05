@@ -11,7 +11,7 @@ class ScopedLogger {
     if (_isDisposed) return;
 
     // Delegar la inserción al Logger central
-    Logger.instance._addLog(Log(serviceName, message, level, DateTime.now()));
+    Logger.instance._addLog(Log(serviceName, message, level, GameLoop.time));
   }
 
   void debug(String message) => log(message, LogLevel.debug);

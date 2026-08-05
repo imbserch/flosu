@@ -1,11 +1,10 @@
 import 'dart:async';
 
 import 'package:flosu/core/theme/app_colors.dart';
-import 'package:flosu/features/audio/data/audio_provider.dart';
-import 'package:flosu/features/gameplay/domain/gameplay_data.dart';
+import 'package:flosu/shared/layout/main_layout_provider.dart';
 import 'package:flosu/shared/input.dart';
 import 'package:flosu/shared/router.dart';
-import 'package:flosu/ui/shared/animatable_page.dart';
+import 'package:flosu/shared/layout/animatable_page.dart';
 import 'package:flosu/shared/widgets/skewed_box.dart';
 import 'package:flutter/material.dart' hide PointerEvent;
 import 'package:go_router/go_router.dart';
@@ -24,30 +23,40 @@ class _PausePageState extends AnimatablePageState<PausePage>
   /// How the pause screen is exiting.
   PauseExitAction _exitAction = PauseExitAction.resume;
 
-  // Initialization
   @override
   void initState() {
-    // Stop music
-    ref.read(audioProvider.notifier).setPlaying(false);
+    Future.microtask(() {
+      // Unlock drawers
+      final layout = ref.read(mainLayoutProvider.notifier);
+      layout.setDrawersLocked(false);
+    });
     super.initState();
   }
 
   // Clean up
   @override
   void dispose() {
-    final gameplay = globalRef.read(gameplayDataProvider.notifier);
-    final audio = globalRef.read(audioProvider.notifier);
+    final layout = globalRef.read(mainLayoutProvider.notifier);
+
+    // final metadata = globalRef.read(gameplayDataProvider).metadata;
 
     switch (_exitAction) {
       case PauseExitAction.resume:
-        audio.setPlaying(true);
+        Future.microtask(() {
+          // Lock drawers
+          layout.setDrawersLocked(true);
+        });
         break;
       case PauseExitAction.quit:
-        Future.microtask(() {
-          final beatmap = globalRef.read(audioProvider);
-          if (beatmap != null) audio.preview(beatmap, true);
+        /* Future.microtask(() {
+          // Track already loaded
+          tracks.playLoopTrack(
+            metadata!.general.audioPath!,
+            loopPoint: metadata.general.previewTime,
+            force: true,
+          );
           gameplay.clearReplay();
-        });
+        }); */
         break;
       case PauseExitAction.reset:
         // No-op (Replay can be replayed)

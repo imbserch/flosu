@@ -1,6 +1,7 @@
 import 'dart:ui';
 
-import 'package:flosu/models/mods/base.dart';
+import 'package:flosu/core/theme/app_colors.dart';
+import 'package:flutter/material.dart' show Colors;
 
 /// Bitmask flags for the hit-object type field in the `.osu` file format.
 ///
@@ -20,18 +21,10 @@ enum HitObjectType {
   /// The bitmask value for this type.
   final int v;
 
-  /// Extracts the primary hit-object type from a raw bitmask value.
-  ///
-  /// Checks spinner → slider → circle in order, matching osu! stable behaviour.
-  ///
-  /// Example:
-  /// ```dart
-  /// HitObjectType.circle.getBaseType(10); // Returns HitObjectType.slider
-  /// ```
-  HitObjectType getBaseType(int bit) {
-    if ((bit & 8) != 0) return HitObjectType.spinner;
-    if ((bit & 2) != 0) return HitObjectType.slider;
-    if ((bit & 1) != 0) return HitObjectType.circle;
+  static HitObjectType getBaseType(int bit) {
+    if ((bit & HitObjectType.spinner.v) != 0) return HitObjectType.spinner;
+    if ((bit & HitObjectType.slider.v) != 0) return HitObjectType.slider;
+    if ((bit & HitObjectType.circle.v) != 0) return HitObjectType.circle;
 
     throw StateError("Type not recognized");
   }
@@ -122,7 +115,7 @@ enum SettingsKey {
 /// Bitmask values for gameplay modifiers (mods) as encoded in osu! stable files.
 ///
 /// Used when parsing `.osr` replay files via [ConfigurableMod.fromStableBit].
-enum Mod {
+enum ModInfo {
   noFail(1, 'NF', "No Fail"),
   easy(2, 'EZ', "Easy"),
   touch(4, 'TD', "Touch Device"),
@@ -141,6 +134,7 @@ enum Mod {
   cinema(4194304, 'CN', "Cinema"), // Originally named "LastMod"
   // osu!lazer mods (not recognized in osu!stable)
   daycore(null, 'DC', "Daycore"),
+  traceable(null, 'TC', "Traceable"),
   blinds(null, 'BL', "Blinds"),
   strictTracking(null, 'ST', "Strict Tracking"),
   accuracyChallenge(null, 'AC', "Accuracy Challenge"),
@@ -151,11 +145,11 @@ enum Mod {
   // Used when a mod is not recognized.
   unimplemented(null, '??', 'Unimplemented');
 
-  const Mod(this.v, this.acronym, this.name);
+  const ModInfo(this.value, this.acronym, this.name);
 
   /// The bitmask value for this mod.
   /// This value is null for osu!lazer mods.
-  final int? v;
+  final int? value;
 
   /// The acronym for this mod, used in file names and short-form display.
   final String acronym;
@@ -165,7 +159,17 @@ enum Mod {
 }
 
 /// Centralized logger levels.
-enum LogLevel { success, debug, info, warning, error }
+enum LogLevel {
+  success(AppColors.green),
+  debug(AppColors.lightBlue),
+  info(Colors.grey),
+  warning(Colors.orange),
+  error(AppColors.red);
+
+  const LogLevel(this.color);
+
+  final Color color;
+}
 
 /// Types of user notifications.
 enum NotificationType { info, normal, warning, error }

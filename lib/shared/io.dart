@@ -1,5 +1,3 @@
-export "io/parsers/beatmap_content_parser.dart";
-export "io/parsers/beatmap_metadata_parser.dart";
 export "io/parsers/replay_parser.dart";
 export "io/parsers/io_parser.dart";
 

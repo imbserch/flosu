@@ -1,6 +1,6 @@
 import 'package:flosu/core/enums.dart';
+import 'package:flosu/shared/domain/mod/mod.dart';
 import 'package:flutter/services.dart';
-import 'package:flosu/models/mods/base.dart';
 
 /// Extension on a [Set<LogicalKeyboardKey>] for concise key-state queries.
 extension KeysExtension on Set<LogicalKeyboardKey> {
@@ -36,8 +36,8 @@ extension OffsetExtension on Offset {
   Offset abs() => Offset(dx.abs(), dy.abs());
 }
 
-/// Extension on [Iterable<ConfigurableMod>] for mod-set queries.
-extension ConfigurableModFinder on Iterable<ConfigurableMod> {
+/// Extension on [Iterable<Mod>] for mod-set queries.
+extension ConfigurableModFinder on Iterable<Mod> {
   /// Returns `true` if a mod with the same data as [mod] is present.
-  bool containsMod(Mod mod) => any((m) => m.mod == mod);
+  bool containsMod(ModInfo mod) => any((m) => m.info.acronym == mod.acronym);
 }

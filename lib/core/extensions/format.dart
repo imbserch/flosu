@@ -12,3 +12,17 @@ extension DateTimeExtension on DateTime {
 extension DoubleExtensions on num {
   String get format => toStringAsFixed(2);
 }
+
+extension ToPrintableDuration on num {
+  String get toPrintableDuration {
+    if (this < 1000) return "0 s";
+
+    final seconds = this ~/ 1000;
+    final minutes = seconds ~/ 60;
+    final hours = minutes ~/ 60;
+
+    if (hours > 0) return "${hours}h ${minutes % 60}m ${seconds % 60}s";
+    if (minutes > 0) return "$minutes m ${seconds % 60} s";
+    return "$seconds s";
+  }
+}

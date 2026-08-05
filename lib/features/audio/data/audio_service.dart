@@ -1,215 +1,254 @@
-import 'package:collection/collection.dart';
+import 'dart:async';
+import 'dart:math' show max;
+
+import 'package:flosu/core/constants.dart';
+import 'package:flosu/features/audio/domain/audio_track.dart';
 import 'package:flosu/shared/logging.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_soloud/flutter_soloud.dart';
 
-/// [AudioService] acts as a low-level wrapper for the `flutter_soloud` engine.
-///
-/// Its primary responsibility is to abstract the audio backend and provide
-/// a clean interface for loading, playing, and manipulating audio assets.
+class AudioTrackException implements Exception {
+  AudioTrackException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
 class AudioService with Logging {
-  AudioService._();
+  SoLoud? _soLoud;
+  bool _initialized = false;
 
-  static final AudioService _instance = AudioService._();
+  final Map<String, AudioTrack> _tracks = {};
+  final Map<String, Completer<bool>> _completers = {};
 
-  static AudioService get instance => _instance;
+  int get tracks => _tracks.entries.where((e) => e.value.source != null).length;
+  int get loadingTracks =>
+      _completers.entries.where((e) => !e.value.isCompleted).length;
 
-  /// Initializes the audio engine with a specific buffer size.
-  ///
-  /// The [bufferSize] is set to 128 to balance latency and performance.
-  /// Any failure during initialization is logged and prevents playback.
   Future<void> init() async {
+    // Prevent from reinitializing the service
+    if (_initialized) return;
+
     try {
       requestLogger();
 
-      await SoLoud.instance.init(bufferSize: 128);
       _soLoud = SoLoud.instance;
 
-      _soLoud!.setMaxActiveVoiceCount(32);
-      _soLoud!.filters.pitchShiftFilter.activate();
+      if (!_soLoud!.isInitialized) {
+        log("Initializing service (SoLoud)...");
+        await _soLoud!.init(
+          sampleRate: AUDIO_SAMPLE_RATE,
+          bufferSize: AUDIO_BUFFER_SIZE,
+        );
+        _soLoud!.setMaxActiveVoiceCount(256);
+      }
 
-      log("AudioService has been initialized", level: .success);
+      log("Service (SoLoud) initialized", level: .success);
+      _initialized = true;
     } catch (err) {
-      log(
-        "AudioService initialization error. $err\nAudio can't be played",
-        level: .error,
-      );
+      log("Service (SoLoud) init error: $err", level: .error);
 
       removeLogger();
     }
   }
 
-  /// Reference to the internal SoLoud engine instance.
-  SoLoud? _soLoud;
+  void dispose() {
+    if (!_initialized) return;
 
-  /// Loads an audio file into memory as an [AudioSource].
-  ///
-  /// [path] can be a local asset or file path. Returns `null` if the
-  /// engine is not ready or the file fails to load.
-  Future<AudioSource?> load(String path) async {
-    try {
-      final source = await _soLoud?.loadFile(path);
+    removeLogger();
 
-      // Ensure pitch shift filter is active for this source
-      source?.filters.pitchShiftFilter.activate();
+    _completers.forEach((_, comp) => comp.complete(false));
 
-      return source;
-    } catch (err) {
-      log("Error loading file: $err", level: .error);
-      return null;
-    }
+    _soLoud!.deinit();
+    _soLoud = null;
+
+    _initialized = false;
   }
 
-  /// Triggers the playback of a previously loaded [AudioSource].
-  ///
-  /// Returns a [SoundHandle], which is a unique identifier for this
-  /// specific playback instance, allowing for real-time manipulation.
-  Future<SoundHandle?> play(AudioSource source, [double volume = 1.0]) async {
-    try {
-      final handle = _soLoud?.play(source, volume: volume);
+  bool isLoaded(String path) => _completers[path]?.isCompleted ?? false;
 
-      // Protection is vital for background music or active gameplay tracks
-      if (handle != null) _soLoud?.setProtectVoice(handle!, true);
-      return handle;
-    } catch (err) {
-      log("Error playing file: $err", level: .error);
-      return null;
-    }
+  AudioTrack _getTrack(String path) {
+    return _tracks.putIfAbsent(path, () => AudioTrack(path: path));
   }
 
-  /// Stops a playing sound immediately or schedules it after a [duration].
-  ///
-  /// If [duration] is provided, it uses `scheduleStop` to halt the audio
-  /// at a future point in time.
-  void setStop(SoundHandle handle, [Duration? duration]) {
-    // We must unprotect the voice so the engine can fully release it
-    // and reuse the slot in the sound pool.
-    _soLoud?.setProtectVoice(handle!, false);
+  Future<void> load(String path, {loadInMemory = false}) async {
+    final name = getNameForPath(path, includeParent: true);
+    log("Loading track: $name", level: .info);
 
-    if (duration != null) {
-      log("Scheduling stop at $duration");
-      return _soLoud?.scheduleStop(handle, duration);
-    }
-    log("Stopping sound");
-    _soLoud?.stop(handle);
-  }
+    // If the track is already loaded, do nothing.
+    if (isLoaded(path)) return;
 
-  /// Configures looping behavior for a specific sound instance.
-  ///
-  /// If [duration] is provided, it enables looping and sets the point
-  /// where the audio should restart.
-  void setClip(SoundHandle handle, Duration? duration, [bool seek = true]) {
-    _soLoud?.setLooping(handle, duration != null);
+    final completer = _completers[path];
 
-    if (duration != null) {
-      if (seek) _soLoud?.seek(handle, duration);
+    if (completer != null) {
+      if (completer.isCompleted) return;
 
-      log("Setting loop point to $duration");
-      _soLoud?.setLoopPoint(handle, duration);
-    }
-  }
-
-  /// Sets the playback speed of a specific sound instance.
-  ///
-  /// [rate]: The speed multiplier. Clamped between 0.05x and 2.0x to
-  /// prevent engine instability.
-  /// [duration]: If provided, the speed will transition smoothly over
-  /// this period.
-  /// Returns the actual rate applied, or 1.0 if the engine is unavailable.
-  double setRate(SoundHandle handle, double rate, [Duration? duration]) {
-    final clampedRate = rate.clamp(0.05, 2.0);
-
-    final source = _soLoud?.findAudioSourceByHandle(handle);
-
-    if (source == null) {
-      log("Can't find source for handle $handle", level: .error);
-      return 1.0;
-    }
-
-    final filter = source.filters.pitchShiftFilter;
-
-    if (duration != null) {
-      //SoLoud doesn't support smooth transitions for now
-      log("Setting rate to $rate");
-      filter.timeStretch(handle, clampedRate);
-      return rate;
-    }
-
-    log("Setting rate to $rate");
-    filter.timeStretch(handle, clampedRate);
-    return rate;
-  }
-
-  /// Pauses or resumes a specific sound instance.
-  ///
-  /// [playing]: true to resume (unpause), false to pause.
-  void setPlaying(SoundHandle handle, bool playing) {
-    log("Playing state changed to $playing");
-    _soLoud?.setPause(handle, !playing);
-  }
-
-  /// Adjusts the volume of an active [SoundHandle].
-  ///
-  /// [volume]: Clamped between 0.0 (silent) and 1.0 (max).
-  /// [duration]: If provided, the volume will transition smoothly (fade)
-  /// over this period.
-  void setVolume(SoundHandle handle, double volume, [Duration? duration]) {
-    final clampedVol = volume.clamp(0.0, 1.0);
-
-    if (duration != null) {
-      log("Fading volume to $clampedVol over $duration");
-
-      _soLoud?.fadeVolume(handle, clampedVol, duration);
-    } else {
-      log("Setting volume to $clampedVol");
-      _soLoud?.setVolume(handle, clampedVol);
-    }
-  }
-
-  /// Updates the master volume level for all sounds managed by the engine.
-  void setGlobalVolume(double volume) {
-    log("Setting global volume to $volume");
-    _soLoud?.setGlobalVolume(volume.clamp(0.0, 1.0));
-  }
-
-  void setPitch(SoundHandle handle, double pitch) {
-    log("Setting pitch to $pitch");
-
-    final source = _soLoud?.findAudioSourceByHandle(handle);
-
-    if (source == null) {
-      log("Can't find source for handle $handle", level: .error);
+      log("Waiting track to load: $name", level: .info);
+      await completer.future;
       return;
     }
 
-    source.filters.pitchShiftFilter.shift(soundHandle: handle).value = pitch;
+    log("Loading track: $name");
+    final track = _getTrack(path);
+
+    final loadCompleter = Completer<bool>();
+    _completers[path] = loadCompleter;
+
+    try {
+      track.source = await _soLoud!.loadFile(
+        path,
+        mode: loadInMemory ? .memory : .disk,
+      );
+      track.source?.filters.pitchShiftFilter.activate();
+
+      log("Track loaded: $name", level: .success);
+
+      loadCompleter.complete(true);
+    } catch (e) {
+      // Ensure completer is not called
+      _completers.remove(path);
+      loadCompleter.complete(false);
+    }
   }
 
-  /// Returns the current playback position of a specific sound instance
-  /// directly from the audio engine.
-  ///
-  /// [handle]: The unique identifier for the active sound.
-  /// Returns [Duration.zero] if the instance is no longer valid or
-  /// the engine is not initialized.
+  SoundHandle createSoundHandle(
+    String path, {
+    bool startPaused = true,
+    double volume = 1.0,
+  }) {
+    final name = getNameForPath(path, includeParent: true);
+    final track = _tracks[path];
+
+    final isLoaded = _completers[path]?.isCompleted ?? false;
+
+    if (track == null || track.source == null || !isLoaded) {
+      throw AudioTrackException("Track not loaded: $name");
+    }
+
+    log("Playing track: $name", level: .info);
+    final handle = _soLoud!.play(track.source!, paused: true, volume: volume);
+    if (!startPaused) _soLoud!.setPause(handle, false);
+
+    _soLoud!.setInaudibleBehavior(handle, true, false);
+
+    return handle;
+  }
+
+  void setPlaying(SoundHandle handle, {bool playing = true}) {
+    _soLoud!.setPause(handle, !playing);
+  }
+
+  void setGlobalVolume(double volume, {Duration? over}) {
+    if (over != null) {
+      return _soLoud?.fadeGlobalVolume(volume, over);
+    }
+
+    _soLoud?.setGlobalVolume(volume);
+  }
+
+  void setVolume(SoundHandle handle, double volume, {Duration? over}) {
+    if (over != null) {
+      return _soLoud?.fadeVolume(handle, volume, over);
+    }
+
+    _soLoud?.setVolume(handle, volume);
+  }
+
+  void setPitch(SoundHandle handle, double pitch, {Duration? duration}) {
+    final source = _soLoud!.findAudioSourceByHandle(handle);
+
+    if (source != null) {
+      final shift = source.filters.pitchShiftFilter.shift(soundHandle: handle);
+
+      if (duration != null) {
+        return shift.fadeFilterParameter(to: pitch, time: duration);
+      }
+
+      shift.value = pitch;
+    }
+  }
+
+  void setRate(SoundHandle handle, double rate, {Duration? duration}) async {
+    final source = _soLoud!.findAudioSourceByHandle(handle);
+
+    if (source != null) {
+      final filter = source.filters.pitchShiftFilter;
+
+      if (duration != null) {
+        // ignore: constant_identifier_names
+        const SLEEP_DURATION = 50;
+
+        final currentRate = _soLoud!.getRelativePlaySpeed(handle);
+
+        final steps = duration.inMilliseconds / SLEEP_DURATION;
+        final stepRate = (rate - currentRate) / steps;
+
+        for (int i = 1; i <= steps; i++) {
+          filter.timeStretch(handle, currentRate + stepRate * i);
+          await Future.delayed(const Duration(milliseconds: SLEEP_DURATION));
+        }
+
+        return;
+      }
+
+      filter.timeStretch(handle, rate);
+    }
+  }
+
+  void seek(SoundHandle handle, int position) {
+    _soLoud!.seek(handle, Duration(milliseconds: position));
+  }
+
+  void loop(SoundHandle handle, {int? to}) {
+    _soLoud!.setLooping(handle, to != null);
+    if (to != null) {
+      _soLoud!.setLoopPoint(handle, Duration(milliseconds: to));
+    }
+  }
+
+  void stop(SoundHandle handle, {Duration? after}) {
+    if (after != null) {
+      return _soLoud!.schedulePause(handle, after);
+    }
+
+    _soLoud!.stop(handle);
+  }
+
   Duration getPosition(SoundHandle handle) {
-    return _soLoud?.getPosition(handle) ?? .zero;
+    return _soLoud!.getPosition(handle);
   }
 
-  Duration getDuration(SoundHandle handle) {
-    //Find sources in
-    final source = _soLoud?.activeSounds.firstWhereOrNull(
-      (a) => a.handles.any((h) => h == handle),
-    );
-
-    if (source == null) return Duration.zero;
-    return _soLoud?.getLength(source) ?? Duration.zero;
+  Duration getLength(SoundHandle handle) {
+    final source = _soLoud!.findAudioSourceByHandle(handle);
+    return _soLoud!.getLength(source!);
   }
 
-  void dispose() {
-    removeLogger();
-    _soLoud?.deinit();
+  bool isValid(SoundHandle handle) => _soLoud!.getIsValidVoiceHandle(handle);
+
+  bool isValidSource(String path) => _tracks[path]?.source != null
+      ? _soLoud!.getIsValidVoiceHandle(_tracks[path]!.source!.handles.last)
+      : false;
+
+  bool isPlaying(SoundHandle handle) =>
+      isValid(handle) ? !_soLoud!.getPause(handle) : false;
+
+  double getRate(SoundHandle handle) => _soLoud!.getRelativePlaySpeed(handle);
+
+  double getPitch(SoundHandle handle) {
+    final source = _soLoud!.findAudioSourceByHandle(handle);
+    return source!.filters.pitchShiftFilter.shift(soundHandle: handle).value;
+  }
+
+  List<String> _getSegments(String path) => path.split(RegExp(r'[/\\]'));
+
+  String getNameForPath(String path, {bool includeParent = true}) {
+    final segments = _getSegments(path);
+    return segments
+        .getRange(
+          max(0, segments.length - (includeParent ? 2 : 1)),
+          segments.length,
+        )
+        .join("/");
   }
 }
-
-/// Global provider to access the [AudioService] singleton throughout the app.
-final audioService = Provider<AudioService>((_) => AudioService.instance);

@@ -1,8 +1,10 @@
 import 'package:flosu/core/constants.dart';
 import 'package:flosu/core/theme/app_colors.dart';
-import 'package:flosu/logic/providers/beatmap.dart';
+import 'package:flosu/features/song_select/data/repositories/replay_repository.dart';
+import 'package:flosu/shared/domain/replay/replay_selector.dart';
 import 'package:flosu/shared/input.dart';
-import 'package:flosu/ui/shared/animatable_page.dart';
+import 'package:flosu/shared/layout/animatable_page.dart';
+import 'package:flosu/shared/router.dart';
 import 'package:flosu/shared/widgets/actions_bar.dart';
 import 'package:flosu/shared/widgets/osu_button.dart';
 import 'package:flosu/shared/widgets/skewed_box.dart';
@@ -142,9 +144,12 @@ class _ReplayPickerPageState extends AnimatablePageState<ReplayPickerPage>
               useGradientBorder: true,
               margin: const .only(right: 18, bottom: 12),
               padding: const .symmetric(vertical: 9, horizontal: 33),
-              onTap: () {
-                ref.read(beatmapProvider.notifier).pickReplay();
-                if (mounted) context.go("/songs");
+              onTap: () async {
+                final repository = ref.read(replayRepository);
+                final selector = ref.read(replaySelector.notifier);
+
+                final replay = await repository.request();
+                if (replay != null) selector.viewResults(replay);
               },
               child: const Row(
                 spacing: 4,

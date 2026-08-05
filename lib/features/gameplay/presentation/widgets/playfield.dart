@@ -1,15 +1,16 @@
 import 'package:collection/collection.dart';
-import 'package:flosu/features/audio_experimental/audio.dart';
-import 'package:flosu/features/gameplay/domain/gameplay_data.dart';
-import 'package:flosu/features/settings/domain/settings.dart';
 import 'package:flosu/core/engine/game_loop.dart';
-import 'package:flosu/models/beatmap/hit_objects.dart';
-import 'package:flosu/features/gameplay/data/gameplay_info.dart';
+import 'package:flosu/features/audio/audio.dart';
 import 'package:flosu/features/gameplay/presentation/painters/gameplay/base.dart';
 import 'package:flosu/features/gameplay/presentation/painters/gameplay/hit_objects/hit_circle.dart';
 import 'package:flosu/features/gameplay/presentation/painters/gameplay/hit_objects/slider.dart';
 import 'package:flosu/features/gameplay/presentation/painters/gameplay/hit_objects/spinner.dart';
 import 'package:flosu/features/gameplay/presentation/painters/gameplay/playfield.dart';
+import 'package:flosu/features/settings/domain/settings_provider.dart';
+import 'package:flosu/shared/domain/beatmap/beatmap_selector.dart';
+import 'package:flosu/shared/domain/beatmap/hit_object/hit_object.dart';
+import 'package:flosu/shared/domain/mod/mod_selector.dart';
+
 import 'package:flutter/material.dart' hide Slider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -21,10 +22,11 @@ class Playfield extends ConsumerStatefulWidget {
 }
 
 class _PlayfieldState extends ConsumerState<Playfield> with GameLoopListener {
-  late final GameplayInfo _details = ref.read(gameplayDataProvider);
-
-  late final List<int> _objectHitTimes = _details.contents!.objects
-      .map((o) => o.hitTime)
+  late final List<HitObject> _hitObjects = ref
+      .read(beatmapSelector)!
+      .hitObjects;
+  late final List<int> _hitObjectTimes = _hitObjects
+      .map((o) => o.time)
       .toList();
 
   final _position = ValueNotifier<double>(0);
@@ -45,12 +47,16 @@ class _PlayfieldState extends ConsumerState<Playfield> with GameLoopListener {
 
   @override
   void process(double delta) {
-    final position = ref.read(audioClockProvider);
+    // TODO (imbserch): Use beatmap for now
+    final beatmap = ref.read(beatmapSelector)!;
 
-    final preempt = _details.difficultyWithMods.preempt;
-    final mods = _details.mods;
+    final mods = ref.read(modSelector);
+    final position = ref.read(audioClock);
+    final difficulty = ref.read(difficultyProvider);
 
-    final currentIndex = _objectHitTimes.lowerBound(
+    final preempt = difficulty.preempt;
+
+    final currentIndex = _hitObjectTimes.lowerBound(
       position.round(),
       (a, b) => a.compareTo(b),
     );
@@ -59,9 +65,9 @@ class _PlayfieldState extends ConsumerState<Playfield> with GameLoopListener {
     final newDrawables = <PlayfieldDrawable>[];
     final aliveDrawables = <PlayfieldDrawable>[];
 
-    for (int i = currentIndex; i < _objectHitTimes.length; i++) {
-      final hitTime = _objectHitTimes[i];
-      final object = _details.contents!.objects[i];
+    for (int i = currentIndex; i < _hitObjectTimes.length; i++) {
+      final hitTime = _hitObjectTimes[i];
+      final object = _hitObjects[i];
 
       if (position >= hitTime - preempt) {
         final alreadyExists = currentDrawables.any(
@@ -73,18 +79,21 @@ class _PlayfieldState extends ConsumerState<Playfield> with GameLoopListener {
           final drawable = switch (object) {
             HitCircle() => HitCircleDrawable(
               hitObject: object,
-              difficulty: _details.difficultyWithMods,
+              beatmap: beatmap,
+              difficulty: difficulty,
               mods: mods,
             ),
             // Set last stored snake state
             Slider() => SliderDrawable(
               hitObject: object,
-              difficulty: _details.difficultyWithMods,
+              beatmap: beatmap,
+              difficulty: difficulty,
               mods: mods,
             )..enableSnake = _canSnake,
             Spinner() => SpinnerDrawable(
               hitObject: object,
-              difficulty: _details.difficultyWithMods,
+              beatmap: beatmap,
+              difficulty: difficulty,
               mods: mods,
             ),
           };

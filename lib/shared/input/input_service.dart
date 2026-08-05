@@ -61,8 +61,17 @@ Offset _pointerTransformOffset(Offset position) {
 class InputService with Logging {
   bool _initialized = false;
 
-  InputKeyEvent? _lastKeyEvent;
-  InputMouseEvent? _lastMouseEvent;
+  // Simulating a release Escape key
+  InputKeyEvent _lastKeyEvent = InputKeyEvent(
+    .escape,
+    false,
+    false,
+    false,
+    false,
+  );
+
+  // Simulating the mouse is on top-left screen
+  InputMouseEvent _lastMouseEvent = InputMouseEvent(.zero, .none, false);
 
   final Set<LogicalKeyboardKey> _lastPressedKeys = {};
 
@@ -109,10 +118,10 @@ class InputService with Logging {
   }
 
   /// Last keyboard event.
-  InputKeyEvent get keyboard => _lastKeyEvent!;
+  InputKeyEvent get keyboard => _lastKeyEvent;
 
   /// Last mouse event.
-  InputMouseEvent get mouse => _lastMouseEvent!;
+  InputMouseEvent get mouse => _lastMouseEvent;
 
   void _handlePointer(PointerEvent event) {
     // Set event before dispatch to all handlers.

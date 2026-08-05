@@ -1,6 +1,5 @@
-import 'package:flosu/models/beatmap/beatmap_content.dart';
-import 'package:flosu/models/generated/beatmap_metadata.dart';
-import 'package:flosu/models/replay/replay.dart';
+import 'package:flosu/shared/domain/beatmap/beatmap.dart';
+import 'package:flosu/shared/domain/replay/replay.dart';
 
 abstract class IoResult<T> {
   IoResult({required this.id, required this.data});
@@ -16,12 +15,8 @@ class IoFailedResult extends IoResult<String> {
   final String error;
 }
 
-class IoBeatmapMetadataResult extends IoResult<BeatmapMetadata> {
-  IoBeatmapMetadataResult({required super.id, required super.data});
-}
-
-class IoBeatmapContentResult extends IoResult<BeatmapContent> {
-  IoBeatmapContentResult({required super.id, required super.data});
+class IoBeatmapResult extends IoResult<Beatmap> {
+  IoBeatmapResult({required super.id, required super.data});
 }
 
 class IoReplayResult extends IoResult<Replay> {

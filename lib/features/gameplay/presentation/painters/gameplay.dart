@@ -6,8 +6,7 @@ import 'package:flosu/core/math/geometry.dart';
 import 'package:flosu/features/gameplay/presentation/widgets/mouse_cursor.dart';
 import 'package:flosu/core/engine/game_loop.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart' hide PointerEvent, Image;
-import 'package:flosu/models/inputs/inputs.dart';
+import 'package:flutter/material.dart' hide Image;
 
 /// Renders the health bar in the top-left corner of the gameplay HUD.
 ///

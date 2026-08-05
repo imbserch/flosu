@@ -1,116 +1,73 @@
-import 'package:file_picker/file_picker.dart';
-import 'package:flosu/models/repositories/settings.dart';
-import 'package:flosu/repositories/settings.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import 'package:flosu/shared/router.dart';
+class Settings {
+  Settings._({
+    required this.beatmapsPath,
+    required this.audioCompensation,
+    required this.globalVolume,
+    required this.musicVolume,
+    required this.backgroundDim,
+    required this.backgroundBlur,
+    required this.osuKeys,
+    required this.snakingSlidersEnabled,
+    required this.parallaxEnabled,
+    required this.cursorTrailEnabled,
+    required this.logsEnabled,
+    required this.fpsMonitorEnabled,
+  });
 
-/// The SettingsNotifier manages the application's persistent settings.
-/// It also handles the navigation to the splash screen when the beatmaps path is set.
-class SettingsNotifier extends Notifier<Settings> {
-  late final SettingsRepository _repository = ref.read(
-    settingsRepositoryProvider,
+  Settings()
+    : beatmapsPath = null,
+      audioCompensation = 0,
+      globalVolume = 1,
+      musicVolume = 0.8,
+      backgroundDim = 0.8,
+      backgroundBlur = 0.2,
+      osuKeys = const [0x0000000007a, 0x00000000078] /* Z, X */,
+      snakingSlidersEnabled = true,
+      parallaxEnabled = true,
+      cursorTrailEnabled = true,
+      logsEnabled = false,
+      fpsMonitorEnabled = false;
+
+  Settings copyWith({
+    String? beatmapsPath,
+    int? audioCompensation,
+    double? globalVolume,
+    double? musicVolume,
+    double? backgroundDim,
+    double? backgroundBlur,
+    List<int>? osuKeys,
+    bool? snakingSlidersEnabled,
+    bool? parallaxEnabled,
+    bool? cursorTrailEnabled,
+    bool? logsEnabled,
+    bool? fpsMonitorEnabled,
+    bool keepLastBeatmapsPath = true,
+  }) => Settings._(
+    audioCompensation: audioCompensation ?? this.audioCompensation,
+    globalVolume: globalVolume ?? this.globalVolume,
+    musicVolume: musicVolume ?? this.musicVolume,
+    osuKeys: osuKeys ?? this.osuKeys,
+    snakingSlidersEnabled: snakingSlidersEnabled ?? this.snakingSlidersEnabled,
+    parallaxEnabled: parallaxEnabled ?? this.parallaxEnabled,
+    backgroundDim: backgroundDim ?? this.backgroundDim,
+    backgroundBlur: backgroundBlur ?? this.backgroundBlur,
+    cursorTrailEnabled: cursorTrailEnabled ?? this.cursorTrailEnabled,
+    logsEnabled: logsEnabled ?? this.logsEnabled,
+    fpsMonitorEnabled: fpsMonitorEnabled ?? this.fpsMonitorEnabled,
+    beatmapsPath:
+        beatmapsPath ?? (keepLastBeatmapsPath ? this.beatmapsPath : null),
   );
 
-  @override
-  Settings build() {
-    final subs = _repository.stream.listen((settings) => state = settings);
-
-    ref.onDispose(subs.cancel);
-
-    return _repository.cache ?? Settings();
-  }
-
-  /// Opens a system folder picker and sets the beatmaps directory path.
-  ///
-  ///
-  /// After the path is confirmed, the app navigates to the splash screen to
-  /// trigger a full library reload.
-  void setBeatmapsPath() async {
-    final result = await FilePicker.getDirectoryPath(
-      dialogTitle: "Select osu! songs folder",
-      lockParentWindow: true,
-    );
-
-    if (result == null) return;
-
-    _repository.set(.beatmapsPath, result);
-
-    // Force a library reload by navigating through the splash screen.
-    final context = rootNavigatorKey.currentContext!;
-    if (context.mounted) context.go("/splash");
-  }
-
-  /// Clears the beatmaps directory path and reloads the library (empty).
-  void clearBeatmapsPath() {
-    _repository.set(.beatmapsPath, null);
-
-    final context = rootNavigatorKey.currentContext!;
-    if (context.mounted) context.go("/splash");
-  }
-
-  /// Sets the global audio timing compensation offset, clamped to ±200 ms.
-  void setAudioCompensation(int compensation) {
-    final compClamped = compensation.clamp(-200, 200);
-    _repository.set(.audioCompensation, compClamped);
-  }
-
-  /// Sets the master volume for all audio, clamped to [0.0, 1.0].
-  void setGlobalVolume(double volume) {
-    final volClamped = volume.clamp(0.0, 1.0);
-    _repository.set(.globalVolume, volClamped);
-  }
-
-  /// Sets the music track volume, clamped to [0.0, 1.0].
-  void setMusicVolume(double volume) {
-    final volClamped = volume.clamp(0.0, 1.0);
-    _repository.set(.musicVolume, volClamped);
-  }
-
-  /// Sets the logical key code for the first gameplay key (K1).
-  void setOsuK1(int keyId) {
-    _repository.set(.osuKeys, ["$keyId", state.osuKeys[1]]);
-  }
-
-  /// Sets the logical key code for the second gameplay key (K2).
-  void setOsuK2(int keyId) {
-    _repository.set(.osuKeys, [state.osuKeys[0], "$keyId"]);
-  }
-
-  /// Enables or disables the snaking-slider animation.
-  void setSnakingSliders(bool value) {
-    _repository.set(.snakingSlidersEnabled, value);
-  }
-
-  /// Enables or disables the background parallax effect.
-  void setParallax(bool value) => _repository.set(.parallaxEnabled, value);
-
-  /// Enables or disables the cursor trail effect.
-  void setCursorTrail(bool value) =>
-      _repository.set(.cursorTrailEnabled, value);
-
-  /// Sets the background dim level, clamped to [0.0, 1.0].
-  void setBackgroundDim(double value) {
-    final dimClamped = value.clamp(0.0, 1.0);
-    _repository.set(.backgroundDim, dimClamped);
-  }
-
-  /// Sets the background blur strength, clamped to [0.0, 1.0].
-  void setBackgroundBlur(double value) {
-    final blurClamped = value.clamp(0.0, 1.0);
-    _repository.set(.backgroundBlur, blurClamped);
-  }
-
-  /// Enables or disables the logs.
-  void setShowLogs(bool value) {
-    _repository.set(.logsEnabled, value);
-  }
-
-  /// Enables or disables the FPS monitor.
-  void setShowFpsMonitor(bool value) {
-    _repository.set(.fpsMonitorEnabled, value);
-  }
+  final String? beatmapsPath;
+  final int audioCompensation;
+  final double globalVolume;
+  final double musicVolume;
+  final double backgroundDim;
+  final double backgroundBlur;
+  final List<int> osuKeys;
+  final bool snakingSlidersEnabled;
+  final bool parallaxEnabled;
+  final bool cursorTrailEnabled;
+  final bool logsEnabled;
+  final bool fpsMonitorEnabled;
 }
-
-/// Global provider for [SettingsNotifier].
-final settingsProvider = NotifierProvider(() => SettingsNotifier());
