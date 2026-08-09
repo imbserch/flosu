@@ -18,8 +18,20 @@ class ModGroups {
     AppColors.green,
   );
 
-  static ModGroup get difficultyIncrease =>
-      ModGroup([HardRock(), SuddenDeath(), Perfect(), DoubleTime(),Nightcore(), Hidden(), Flashlight()], "Difficulty Increase", AppColors.red);
+  static ModGroup get difficultyIncrease => ModGroup(
+    [
+      HardRock(),
+      SuddenDeath(),
+      Perfect(),
+      DoubleTime(),
+      Nightcore(),
+      Hidden(),
+      Traceable(),
+      Flashlight(),
+    ],
+    "Difficulty Increase",
+    AppColors.red,
+  );
 
   static ModGroup get automation =>
       ModGroup([], "Automation", AppColors.lightBlue);

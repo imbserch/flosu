@@ -1,4 +1,4 @@
-import 'dart:ui' show Offset, Color;
+import 'dart:ui' show Offset;
 
 import 'package:flosu/core/constants.dart';
 import 'package:flosu/core/enums.dart';
@@ -24,14 +24,7 @@ sealed class HitObject {
   /// Time of object hit.
   int time = 0;
 
-  Color? _color;
-  int? _comboNumber;
-
-  /// Color of object. Used by gameplay for drawing.
-  Color color(Beatmap beatmap) => _color ??= beatmap.colors[0];
-
-  /// Number of hit object.
-  int comboNumber(Beatmap beatmap) => _comboNumber ??= 0;
+  int comboSkip = 0;
 }
 
 /// Base class for hit objects with an end time.

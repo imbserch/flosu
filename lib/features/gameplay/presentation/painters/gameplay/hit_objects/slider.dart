@@ -69,12 +69,8 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
   final _cachedPath = Path();
   int _cachedVersion = 0;
 
-  late final Color borderColor = hitObject.color(beatmap);
-  late final Color backgroundColor = Color.lerp(
-    borderColor,
-    Colors.black,
-    2 / 3,
-  )!;
+  late final Color borderColor = color;
+  late final Color backgroundColor = Color.lerp(color, Colors.black, 2 / 3)!;
 
   /// Normalised position of the slider ball along the full path, [0.0, 1.0].
   ///
@@ -155,7 +151,15 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
 
     // Paint using hit circle
     if (position < hitObject.time) {
-      HitCircleDrawable.paintHitCircle(c, position, beatmap, hitObject, mods);
+      HitCircleDrawable.paintHitCircle(
+        c,
+        position,
+        color,
+        comboNumber,
+        beatmap,
+        hitObject,
+        mods,
+      );
     }
   }
 
@@ -165,38 +169,48 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
 
     late double opacity;
 
+    final preempt = beatmap.difficulty.preempt;
+
+    final preemptTime = hitObject.time - preempt;
+
+    // Preempt * 0.3
+    final fadeOutTime = (preempt * HIDDEN_FADE_OUT_MULT);
+
     switch (position) {
-      // Slider is fading in
-      case _ when position <= hitObject.time:
-        final hidden = hitObject.time - beatmap.difficulty.preempt;
-        final visible = hitObject.time - beatmap.difficulty.preempt * (2 / 3);
+      // Hidden fade out (Doesn't count snaking)
+      case _ when isHidden && position >= hitObject.time:
+        final t = Interpolation.inverseLerp(
+          hitObject.endTime,
+          hitObject.time,
+          position,
+        );
 
-        final t = Interpolation.inverseLerp(hidden, visible, position);
+        opacity = Curves.easeOut.transform(t.clamp(0.0, 1.0));
+
+      // Normal fade out: enable snake is not active (prevent slider "pop")
+      case _
+          when (!isHidden && !isTraceable) &&
+              (!enableSnake && position >= hitObject.endTime):
+        final t = Interpolation.inverseLerp(
+          hitObject.endTime + fadeOutTime,
+          hitObject.endTime,
+          position,
+        );
+
         opacity = t.clamp(0.0, 1.0);
-      // Slider is fading out (Hidden active)
-      case _ when isHidden && position <= hitObject.endTime:
-        final visible = hitObject.time;
-        final hidden = hitObject.time + hitObject.duration;
 
-        final t = Interpolation.inverseLerp(visible, hidden, position);
-        opacity = 1.0 - t.clamp(0.0, 1.0);
-      // Slider has finished
-      case _ when position > hitObject.endTime:
-        // When Hidden active, slider is no visible
-        if (isHidden) {
-          opacity = 0.0;
-          break;
-        }
+      // Normal fade in
+      case _ when position >= preemptTime:
+        final t = Interpolation.inverseLerp(
+          preemptTime,
+          preemptTime + fadeOutTime,
+          position,
+        );
+        opacity = t.clamp(0.0, 1.0);
 
-        // Slider fade out
-        final visible = hitObject.endTime;
-        final hidden = hitObject.endTime + beatmap.difficulty.preempt / 6;
-
-        final t = Interpolation.inverseLerp(visible, hidden, position);
-        opacity = 1.0 - t.clamp(0.0, 1.0);
-      // Fully visible (hit time <= position <= end time)
+      // Other cases: hidden
       case _:
-        opacity = 1.0;
+        opacity = 0.0;
     }
 
     if (opacity == 0) return;
@@ -353,6 +367,7 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
   /// Draws the animated slider ball at the position corresponding to
   /// the current audio [position].
   // TODO (imbserch): Fix buggy implementation
+  // ignore: unused_element
   void _paintBall(Canvas c, double position) {
     // If slider has ended, set slider release
     if (position > hitObject.endTime && _sliderHandled) {

@@ -17,9 +17,10 @@ enum Rank {
   d("D", AppColors.red),
   f("F", Colors.red);
 
+  const Rank(this.name, this.color);
+
   final String name;
   final Color color;
-  const Rank(this.name, this.color);
 }
 
 // Use non-final fields for building
@@ -56,8 +57,6 @@ class Replay {
   }
 
   Rank get rank {
-    print(mods.map((m) => m.info.acronym));
-
     final hasHiddenMods =
         mods.containsMod(.hidden) || mods.containsMod(.flashlight);
     final hasNoMisses = stats.misses == 0;

@@ -139,7 +139,7 @@ class _MainSelectPageState extends AnimatablePageState<MainSelectPage>
   }
 
   @override
-  Widget buildPage(BuildContext context, double animProgress) {
+  Widget buildPage(BuildContext context) {
     if (_requestedExit) {
       return Center(
         child: TweenAnimationBuilder(
@@ -164,7 +164,7 @@ class _MainSelectPageState extends AnimatablePageState<MainSelectPage>
             color: Colors.grey.shade800,
           ),
           Transform.translate(
-            offset: Offset(-context.screenScaled.width * (1 - animProgress), 0),
+            offset: Offset(-context.screenScaled.width * (1 - t), 0),
             child: Row(
               mainAxisSize: .min,
               children: [
@@ -235,13 +235,11 @@ class _MainSelectPageState extends AnimatablePageState<MainSelectPage>
             children: [
               const SizedBox(width: 72),
               Transform.translate(
-                offset: Offset(
-                  -context.screenScaled.width * (1 - animProgress),
-                  0,
-                ),
+                offset: Offset(-context.screenScaled.width * (1 - t), 0),
                 child: OsuLogo(
+                  useHero: false,
                   key: _osuKey,
-                  scale: (1 / 3) * animProgress,
+                  scale: (1 / 3) * t,
                   onTap: _requestedExit ? null : () => context.go("/songs"),
                 ),
               ),

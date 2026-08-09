@@ -13,6 +13,8 @@ class ReplaySelector extends Notifier<Replay?> with Logging {
     return null;
   }
 
+  void clearReplay() => state = null;
+
   /// Selects a replay and loads the beatmap.
   ///
   /// Returns true if the replay was selected, false otherwise.

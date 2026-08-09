@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flosu/shared/domain/mod/mod.dart';
 import 'package:flosu/shared/domain/beatmap/beatmap.dart';
 import 'package:flosu/shared/domain/beatmap/hit_object/hit_object.dart';

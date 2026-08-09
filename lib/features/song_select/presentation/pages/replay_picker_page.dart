@@ -4,7 +4,6 @@ import 'package:flosu/features/song_select/data/repositories/replay_repository.d
 import 'package:flosu/shared/domain/replay/replay_selector.dart';
 import 'package:flosu/shared/input.dart';
 import 'package:flosu/shared/layout/animatable_page.dart';
-import 'package:flosu/shared/router.dart';
 import 'package:flosu/shared/widgets/actions_bar.dart';
 import 'package:flosu/shared/widgets/osu_button.dart';
 import 'package:flosu/shared/widgets/skewed_box.dart';
@@ -41,7 +40,7 @@ class _ReplayPickerPageState extends AnimatablePageState<ReplayPickerPage>
   }
 
   @override
-  Widget buildPage(BuildContext context, double t) {
+  Widget buildPage(BuildContext context) {
     final path = ["C:", "Users", "default", "AppData", "Local"];
 
     return Material(

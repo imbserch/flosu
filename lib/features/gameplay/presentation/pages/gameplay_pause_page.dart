@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flosu/core/theme/app_colors.dart';
+import 'package:flosu/shared/domain/mod/mod_selector.dart';
+import 'package:flosu/shared/domain/replay/replay_selector.dart';
 import 'package:flosu/shared/layout/main_layout_provider.dart';
 import 'package:flosu/shared/input.dart';
 import 'package:flosu/shared/router.dart';
@@ -37,31 +39,25 @@ class _PausePageState extends AnimatablePageState<PausePage>
   @override
   void dispose() {
     final layout = globalRef.read(mainLayoutProvider.notifier);
+    final replay = globalRef.read(replaySelector.notifier);
+    final mods = globalRef.read(modSelector.notifier);
 
     // final metadata = globalRef.read(gameplayDataProvider).metadata;
 
-    switch (_exitAction) {
-      case PauseExitAction.resume:
-        Future.microtask(() {
+    Future.microtask(() {
+      switch (_exitAction) {
+        case PauseExitAction.resume:
           // Lock drawers
           layout.setDrawersLocked(true);
-        });
-        break;
-      case PauseExitAction.quit:
-        /* Future.microtask(() {
-          // Track already loaded
-          tracks.playLoopTrack(
-            metadata!.general.audioPath!,
-            loopPoint: metadata.general.previewTime,
-            force: true,
-          );
-          gameplay.clearReplay();
-        }); */
-        break;
-      case PauseExitAction.reset:
-        // No-op (Replay can be replayed)
-        break;
-    }
+        case PauseExitAction.quit:
+          // Set previous state
+          replay.clearReplay();
+          mods.revert();
+        case PauseExitAction.reset:
+          // No-op (Replay can be replayed)
+          break;
+      }
+    });
     super.dispose();
   }
 
@@ -98,7 +94,7 @@ class _PausePageState extends AnimatablePageState<PausePage>
   }
 
   @override
-  Widget buildPage(BuildContext context, double t) {
+  Widget buildPage(BuildContext context) {
     return Container(
       color: Colors.black.withAlpha(128),
       alignment: .center,

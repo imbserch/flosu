@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:flosu/core/constants.dart';
 import 'package:flosu/core/extensions/models.dart';
 import 'package:flosu/core/math/interpolation.dart';
 import 'package:flosu/shared/domain/mod/mod.dart';
@@ -38,19 +39,21 @@ class HitCircleDrawable extends HitObjectDrawable<HitCircle> {
     super.paint(c, position);
 
     // Directly paint from helper function
-    paintHitCircle(c, position, beatmap, hitObject, mods);
+    paintHitCircle(c, position, color, comboNumber, beatmap, hitObject, mods);
   }
 
   static void paintHitCircle(
     Canvas c,
     double position,
+    Color color,
+    int number,
     Beatmap beatmap,
     HitObject hitObject,
     Set<Mod> mods,
   ) {
-    final Color primaryColor = hitObject.color(beatmap);
-    final Color secondaryColor = Color.lerp(primaryColor, Colors.black, 1 / 3)!;
-    final Color tertiaryColor = Color.lerp(primaryColor, Colors.black, 2 / 3)!;
+    final Color primaryColor = color;
+    final Color secondaryColor = Color.lerp(color, Colors.black, 1 / 3)!;
+    final Color tertiaryColor = Color.lerp(color, Colors.black, 2 / 3)!;
 
     final center = hitObject is Slider
         ? hitObject.pathPoints[0]
@@ -58,7 +61,6 @@ class HitCircleDrawable extends HitObjectDrawable<HitCircle> {
 
     final radius = beatmap.difficulty.radius;
 
-    final fullSize = hitObject.time - beatmap.difficulty.preempt * (2 / 3);
     final isHidden = mods.containsMod(.hidden);
     final isTraceable = mods.containsMod(.traceable);
 
@@ -77,27 +79,38 @@ class HitCircleDrawable extends HitObjectDrawable<HitCircle> {
         scale = 1.0;
     }
 
+    final preempt = beatmap.difficulty.preempt;
+
+    final preemptTime = hitObject.time - preempt;
+
+    // HitTime - preempt * 0.6
+    final fadeInTime = hitObject.time - (preempt * (1 - HIDDEN_FADE_IN_MULT));
+
+    // HitTime - preempt * 0.3
+    final fadeOutTime = hitObject.time - (preempt * HIDDEN_FADE_IN_MULT);
+
     // Opacity calculations
     switch (position) {
-      // Circle is appearing
-      case _ when position <= fullSize:
-        final hidden = hitObject.time - beatmap.difficulty.preempt;
-        final visible = hitObject.time - beatmap.difficulty.preempt * (2 / 3);
+      // Hidden fade out
+      case _ when isHidden && position >= fadeInTime:
+        final t = Interpolation.inverseLerp(fadeInTime, fadeOutTime, position);
 
-        // Use fade in
-        final t = Interpolation.inverseLerp(hidden, visible, position);
+        opacity = 1 - t.clamp(0.0, 1.0);
+
+      // Hidden fade in
+      case _ when isHidden && position >= preemptTime:
+        final t = Interpolation.inverseLerp(preemptTime, fadeInTime, position);
+
         opacity = t.clamp(0.0, 1.0);
-      // Circle is disappearing because the mod Hidden is active
-      case _ when isHidden:
-        final visible = hitObject.time - beatmap.difficulty.preempt * (2 / 3);
-        final hidden = hitObject.time;
 
-        // Use fade out
-        final t = Interpolation.inverseLerp(visible, hidden, position);
-        opacity = 1.0 - t.clamp(0.0, 1.0);
-      // Circle is fully visible
+      // Normal fade out
+      case _ when position >= preemptTime:
+        final t = Interpolation.inverseLerp(preemptTime, fadeOutTime, position);
+        opacity = t.clamp(0.0, 1.0);
+
+      // Other cases: hidden
       case _:
-        opacity = 1.0;
+        opacity = 0.0;
     }
 
     // Return early if opacity is 0
@@ -162,7 +175,7 @@ class HitCircleDrawable extends HitObjectDrawable<HitCircle> {
       // Combo number.
       final textPainter = TextPainter(
         text: TextSpan(
-          text: "${hitObject.comboNumber(beatmap)}",
+          text: "$number",
           style: textStyle.copyWith(
             fontSize: radius * (2 / 3),
             color: Colors.white.withValues(alpha: opacity),

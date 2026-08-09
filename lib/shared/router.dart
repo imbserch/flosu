@@ -64,7 +64,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           // Splash (Loading initial resources like beatmaps)
           GoRoute(
             path: '/splash',
-            pageBuilder: (_, s) => buildPage(s, const SplashPage()),
+            pageBuilder: (_, s) =>
+                buildPage(s, SplashPage(key: ValueKey(s.name), uri: s.uri)),
           ),
 
           // All routes (All resources loaded)

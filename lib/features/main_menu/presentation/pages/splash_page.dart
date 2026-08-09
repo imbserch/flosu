@@ -5,6 +5,7 @@ import 'package:flosu/features/settings/data/repositories/settings_repository.da
 import 'package:flosu/features/song_select/data/repositories/beatmap_repository.dart';
 import 'package:flosu/features/song_select/domain/beatmap_library.dart';
 import 'package:flosu/shared/domain/beatmap/beatmap_selector.dart';
+import 'package:flosu/shared/layout/animatable_page.dart';
 import 'package:flosu/shared/layout/main_layout_provider.dart';
 import 'package:flosu/shared/input.dart';
 import 'package:flosu/shared/io.dart';
@@ -14,14 +15,14 @@ import 'package:go_router/go_router.dart';
 import 'package:flosu/shared/widgets/osu_cube_loader.dart';
 import 'package:flosu/features/audio/audio.dart';
 
-class SplashPage extends ConsumerStatefulWidget {
-  const SplashPage({super.key});
+class SplashPage extends AnimatablePage {
+  const SplashPage({super.key, required super.uri});
 
   @override
-  ConsumerState<SplashPage> createState() => _SplashPageState();
+  AnimatablePageState<SplashPage> createState() => _SplashPageState();
 }
 
-class _SplashPageState extends ConsumerState<SplashPage> {
+class _SplashPageState extends AnimatablePageState<SplashPage> {
   bool _ready = false;
   Timer? _timer;
 
@@ -111,8 +112,9 @@ class _SplashPageState extends ConsumerState<SplashPage> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
+  Widget buildPage(BuildContext context) {
+    return Container(
+      color: Colors.black.withValues(alpha: isAppearing ? min(1, t * 8) : 1),
       padding: const .all(24),
       child: Center(
         child: _ready

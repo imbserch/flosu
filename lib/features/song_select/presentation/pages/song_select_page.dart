@@ -82,7 +82,7 @@ class _SongSelectPageState extends AnimatablePageState<SongSelectPage>
   }
 
   @override
-  Widget buildPage(BuildContext context, double animProgress) {
+  Widget buildPage(BuildContext context) {
     final beatmap = ref.watch(beatmapSelector);
     final beatmapDifficulty = beatmap?.difficulty;
 
@@ -202,28 +202,28 @@ class _SongSelectPageState extends AnimatablePageState<SongSelectPage>
           actionsSpacing: 4,
           actions: [
             SkewedButtonLine(
-              offset: Offset(0, 48 * (1 - animProgress)),
+              offset: Offset(0, 48 * (1 - t)),
               color: AppColors.green,
               icon: const Icon(Icons.auto_awesome),
               onTap: () => context.go("/songs/mods"),
               label: const Text("Mods"),
             ),
             SkewedButtonLine(
-              offset: Offset(0, 72 * (1 - animProgress)),
+              offset: Offset(0, 72 * (1 - t)),
               color: AppColors.lightBlue,
               icon: const Icon(Icons.shuffle),
               onTap: _playRandom,
               label: const Text("Random"),
             ),
             SkewedButtonLine(
-              offset: Offset(0, 96 * (1 - animProgress)),
+              offset: Offset(0, 96 * (1 - t)),
               color: AppColors.pink,
               icon: const Icon(Icons.file_open_outlined),
               onTap: _pickReplay,
               label: const Text("Open replay"),
             ),
             SkewedButtonLine(
-              offset: Offset(0, 120 * (1 - animProgress)),
+              offset: Offset(0, 120 * (1 - t)),
               color: AppColors.purple,
               icon: const Icon(Icons.settings_outlined),
               label: const Text("Options"),
@@ -233,7 +233,7 @@ class _SongSelectPageState extends AnimatablePageState<SongSelectPage>
           trailing: Padding(
             padding: const .all(12),
             child: OsuLogo(
-              scale: (1 / 5) * animProgress,
+              scale: (1 / 5) * t,
               onTap: () => context.go("/load"),
             ),
           ),

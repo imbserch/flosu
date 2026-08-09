@@ -24,7 +24,10 @@ mixin KeyboardHandler<T extends ConsumerStatefulWidget> on ConsumerState<T> {
 
   bool input();
 
-  InputKeyEvent get keyboard => ref.read(inputProvider).keyboard;
+  // Simulate events for widgets that are not mounted
+  InputKeyEvent get keyboard => context.mounted
+      ? ref.read(inputProvider).keyboard
+      : InputKeyEvent(.escape, false, false, false, false);
 }
 
 /// A mixin for handling mouse input.
@@ -49,7 +52,10 @@ mixin MouseHandler<T extends ConsumerStatefulWidget> on ConsumerState<T> {
 
   bool input();
 
-  InputMouseEvent get mouse => ref.read(inputProvider).mouse;
+  // Simulate events for widgets that are not mounted
+  InputMouseEvent get mouse => context.mounted
+      ? ref.read(inputProvider).mouse
+      : InputMouseEvent(.zero, .none, false);
 }
 
 /// A mixin for handling both keyboard and mouse input.
@@ -73,6 +79,11 @@ mixin InputHandler<T extends ConsumerStatefulWidget> on ConsumerState<T> {
 
   bool input();
 
-  InputKeyEvent get keyboard => ref.read(inputProvider).keyboard;
-  InputMouseEvent get mouse => ref.read(inputProvider).mouse;
+  // Simulate events for widgets that are not mounted
+  InputKeyEvent get keyboard => context.mounted
+      ? ref.read(inputProvider).keyboard
+      : InputKeyEvent(.escape, false, false, false, false);
+  InputMouseEvent get mouse => context.mounted
+      ? ref.read(inputProvider).mouse
+      : InputMouseEvent(.zero, .none, false);
 }

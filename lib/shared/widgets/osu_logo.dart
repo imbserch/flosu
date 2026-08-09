@@ -6,7 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:flosu/core/theme/app_colors.dart';
 
 class OsuLogo extends ConsumerStatefulWidget {
-  const OsuLogo({super.key, this.scale = 1, this.onTap});
+  const OsuLogo({super.key, this.scale = 1, this.onTap, this.useHero = true});
+
+  final bool useHero;
   final double scale;
   final VoidCallback? onTap;
 
@@ -81,91 +83,92 @@ class _OsuLogoState extends ConsumerState<OsuLogo> {
  */
   @override
   Widget build(BuildContext context) {
-    return Hero(
-      tag: "Osu logo",
-      child: TweenAnimationBuilder(
-        tween: Tween(end: _beats.toDouble()),
-        duration: Duration(
-          milliseconds: _beatLength.round(),
-          microseconds: (_beatLength % 1000).round(),
-        ),
-        curve: Curves.easeOut,
-        child: Stack(
-          clipBehavior: .none,
-          alignment: .center,
-          children: [
-            Material(
-              type: .circle,
-              color: Colors.pink.shade300,
-              child: InkWell(
-                mouseCursor: SystemMouseCursors.none,
-                customBorder: const CircleBorder(),
-                onTap: widget.onTap,
+    final child = TweenAnimationBuilder(
+      tween: Tween(end: _beats.toDouble()),
+      duration: Duration(
+        milliseconds: _beatLength.round(),
+        microseconds: (_beatLength % 1000).round(),
+      ),
+      curve: Curves.easeOut,
+      child: Stack(
+        clipBehavior: .none,
+        alignment: .center,
+        children: [
+          Material(
+            type: .circle,
+            color: Colors.pink.shade300,
+            child: InkWell(
+              mouseCursor: SystemMouseCursors.none,
+              customBorder: const CircleBorder(),
+              onTap: widget.onTap,
+              child: const Center(),
+            ),
+          ),
+          IgnorePointer(
+            child: ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+              child: Container(
+                margin: const .all(8),
+                decoration: BoxDecoration(
+                  shape: .circle,
+                  border: .all(color: Colors.black12, width: 32),
+                ),
                 child: const Center(),
               ),
             ),
-            IgnorePointer(
-              child: ImageFiltered(
-                imageFilter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
-                child: Container(
-                  margin: const .all(8),
-                  decoration: BoxDecoration(
-                    shape: .circle,
-                    border: .all(color: Colors.black12, width: 32),
-                  ),
-                  child: const Center(),
-                ),
-              ),
-            ),
+          ),
 
-            IgnorePointer(
-              child: Container(
-                decoration: BoxDecoration(
-                  shape: .circle,
-                  border: .all(color: Colors.white, width: 32),
-                ),
-                padding: const .fromLTRB(64, 64, 96, 64),
-                alignment: const Alignment(-0.15, 0),
-                child: ColorFiltered(
-                  colorFilter: ColorFilter.mode(Colors.pink.shade50, .srcIn),
-                  child: const DecoratedBox(
-                    decoration: FlutterLogoDecoration(),
-                    child: SizedBox.expand(),
-                  ),
+          IgnorePointer(
+            child: Container(
+              decoration: BoxDecoration(
+                shape: .circle,
+                border: .all(color: Colors.white, width: 32),
+              ),
+              padding: const .fromLTRB(64, 64, 96, 64),
+              alignment: const Alignment(-0.15, 0),
+              child: ColorFiltered(
+                colorFilter: ColorFilter.mode(Colors.pink.shade50, .srcIn),
+                child: const DecoratedBox(
+                  decoration: FlutterLogoDecoration(),
+                  child: SizedBox.expand(),
                 ),
               ),
             ),
-          ],
-        ),
-        builder: (_, t, child) => Transform.scale(
-          filterQuality: .low,
-          scale: 1 - (0.025 * (t % 1)),
-          child: SizedBox.square(
-            key: _key,
-            dimension: LOGO_SIZE * widget.scale,
-            child: FittedBox(
-              fit: .cover,
-              alignment: .bottomRight,
-              child: Container(
-                height: LOGO_SIZE,
-                width: LOGO_SIZE,
-                decoration: BoxDecoration(
-                  shape: .circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.pink.withAlpha(
-                        (64 * (1 - (t % 1))).round(),
-                      ),
-                      spreadRadius: (t % 1) * 64,
+          ),
+        ],
+      ),
+      builder: (_, t, child) => Transform.scale(
+        filterQuality: .low,
+        scale: 1 - (0.025 * (t % 1)),
+        child: SizedBox.square(
+          key: _key,
+          dimension: LOGO_SIZE * widget.scale,
+          child: FittedBox(
+            fit: .cover,
+            alignment: .bottomRight,
+            child: Container(
+              height: LOGO_SIZE,
+              width: LOGO_SIZE,
+              decoration: BoxDecoration(
+                shape: .circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.pink.withAlpha(
+                      (64 * (1 - (t % 1))).round(),
                     ),
-                  ],
-                ),
-                child: child,
+                    spreadRadius: (t % 1) * 64,
+                  ),
+                ],
               ),
+              child: child,
             ),
           ),
         ),
       ),
     );
+
+    if (!widget.useHero) return child;
+
+    return Hero(tag: "Osu logo", child: child);
   }
 }

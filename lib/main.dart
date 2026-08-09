@@ -68,6 +68,7 @@ class _MainAppState extends ConsumerState<MainApp> {
         ),
       ),
       theme: ThemeData(
+        scaffoldBackgroundColor: Colors.black,
         visualDensity: .compact,
         fontFamily: "Torus",
         brightness: Brightness.dark,

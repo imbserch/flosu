@@ -77,7 +77,7 @@ class _GameplayPageState extends AnimatablePageState<GameplayPage>
   }
 
   @override
-  Widget buildPage(BuildContext context, double animProgress) {
+  Widget buildPage(BuildContext context) {
     final difficulty = ref.read(difficultyProvider);
     final replay = ref.read(replaySelector);
     final mods = ref.read(modSelector);

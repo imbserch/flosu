@@ -70,7 +70,7 @@ class _ResultsPageState extends AnimatablePageState<ResultsPage>
   }
 
   @override
-  Widget buildPage(BuildContext context, double animProgress) {
+  Widget buildPage(BuildContext context) {
     final beatmap = ref.read(beatmapSelector);
     final replay = ref.read(replaySelector);
 
@@ -87,7 +87,7 @@ class _ResultsPageState extends AnimatablePageState<ResultsPage>
         // Stats
         if (beatmap != null)
           TweenAnimationBuilder(
-            tween: Tween(begin: 0.0, end: animProgress >= 0.5 ? 1.0 : 0.0),
+            tween: Tween(begin: 0.0, end: t >= 0.5 ? 1.0 : 0.0),
             duration: Durations.long1,
             curve: Curves.fastOutSlowIn,
             child: Padding(

@@ -1,6 +1,7 @@
 import 'package:flosu/core/extensions/models.dart';
 import 'package:flosu/shared/domain/mod/mod.dart';
 import 'package:flosu/shared/logging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class ModSelector extends Notifier<Set<Mod>> with Logging {
@@ -14,7 +15,11 @@ class ModSelector extends Notifier<Set<Mod>> with Logging {
 
   Set<Mod> _lastModConfig = {};
 
+  /// Sets mods to the current state. If the configuration is already active,
+  /// it does nothing.
   void setMods(Set<Mod> mods) {
+    if (setEquals(Set.of(mods), state)) return;
+
     _setLastConfig();
     state = mods;
   }

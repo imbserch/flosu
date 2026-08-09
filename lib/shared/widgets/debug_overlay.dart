@@ -6,7 +6,6 @@ import 'package:flosu/core/math/interpolation.dart';
 import 'package:flosu/core/theme/app_colors.dart';
 import 'package:flosu/features/audio/audio.dart';
 import 'package:flosu/shared/logging.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -20,6 +19,7 @@ class DebugOverlay extends ConsumerStatefulWidget {
 class _DebugOverlayState extends ConsumerState<DebugOverlay>
     with GameLoopListener {
   late Timer _clockDelayTimer;
+
   double _audioDelay = 0.0;
   double _frameTime = 1, _framesPerSecond = 1000;
   int _tracks = 0, _loadingTracks = 0;
@@ -32,6 +32,8 @@ class _DebugOverlayState extends ConsumerState<DebugOverlay>
       _audioDelay = clockStats.clockDelay;
     });
   }
+
+  double get refreshRate => View.maybeOf(context)?.display.refreshRate ?? 60;
 
   @override
   void dispose() {
@@ -132,7 +134,8 @@ class _DebugOverlayState extends ConsumerState<DebugOverlay>
                         label: 'fps',
                         value: _framesPerSecond,
                         format: (v) => "${v.round()}",
-                        color: (_) => _colorForThresholds(_frameTime, 5, 66),
+                        color: (_) =>
+                            _colorForThresholds(_frameTime, 5, refreshRate),
                         reverseOrder: true,
                       ),
                     ],

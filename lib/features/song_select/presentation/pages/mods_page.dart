@@ -43,7 +43,7 @@ class _ModsPageState extends AnimatablePageState<ModsPage>
   }
 
   @override
-  Widget buildPage(BuildContext context, double animProgress) {
+  Widget buildPage(BuildContext context) {
     final modsManager = ref.read(modSelector.notifier);
 
     final mods = ref.watch(modSelector);
@@ -90,7 +90,7 @@ class _ModsPageState extends AnimatablePageState<ModsPage>
                               offset: Offset(
                                 0,
                                 (context.screenScaled.height - 192) *
-                                    (1 - animProgress) *
+                                    (1 - t) *
                                     direction,
                               ),
                               child: Container(

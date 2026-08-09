@@ -32,6 +32,9 @@ enum HitObjectType {
   /// Returns `true` if this type's flag is set in the given [bit] mask.
   bool existsIn(int bit) => (v & bit) != 0;
 
+  static bool startsNewCombo(int value) =>
+      HitObjectType.newCombo.existsIn(value);
+
   /// Calculates how many combo color slots to skip when a new combo starts.
   ///
   /// Bits 4–6 encode the skip count (0–7) in the hit-object type field.

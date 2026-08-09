@@ -210,6 +210,8 @@ class BeatmapParser extends IoParser<Beatmap> {
           if (beatmap.canPlay) break;
 
           for (final row in objectRows) {
+            final last = beatmap.hitObjects.lastOrNull;
+
             final x = parseDouble(row[0], SPINNER_CENTRE.dx);
             final y = parseDouble(row[1], SPINNER_CENTRE.dy);
 
@@ -220,18 +222,37 @@ class BeatmapParser extends IoParser<Beatmap> {
 
             final type = HitObjectType.getBaseType(bitmask);
 
+            final newCombo = HitObjectType.startsNewCombo(bitmask);
+            final comboSkip = HitObjectType.comboSkip(bitmask);
+
+            final skip = comboSkip != 0
+                ? comboSkip
+                : newCombo
+                ? 1
+                : 0;
+
+            print(
+              "[${"$bitmask".padLeft(3, " ")}] New combo: $newCombo, skip $comboSkip colors",
+            );
+
             final hitObject = switch (type) {
               HitObjectType.circle =>
                 HitCircle()
                   ..time = time
-                  ..position = position,
+                  ..position = position
+                  ..comboSkip = skip,
               // TODO (imbserch): Calculate end times
-              HitObjectType.slider => _parseSlider(time, position, row),
+              HitObjectType.slider => _parseSlider(
+                time,
+                position,
+                row,
+              )..comboSkip = skip,
               HitObjectType.spinner =>
                 Spinner()
                   ..time = time
                   ..endTime = parseInt(row[5], time)
-                  ..position = position,
+                  ..position = position
+                  ..comboSkip = skip,
               _ => null,
             };
 

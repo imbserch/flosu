@@ -36,6 +36,10 @@ const int AUDIO_SAMPLE_RATE = 96000;
 const int AUDIO_BUFFER_SIZE = 2048;
 const double AUDIO_BASE_COMPENSATION = -200.0;
 
+// From Hidden Mod
+const double HIDDEN_FADE_IN_MULT = 0.4;
+const double HIDDEN_FADE_OUT_MULT = 0.3;
+
 // From Scroll config
 // Isn't a constant, but it's used in multiple places
 final ScrollBehavior defaultScrollBehavior = const MaterialScrollBehavior()
