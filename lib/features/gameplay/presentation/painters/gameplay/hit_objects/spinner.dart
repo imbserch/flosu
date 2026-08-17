@@ -10,9 +10,10 @@ import 'package:flutter/painting.dart';
 class SpinnerDrawable extends HitObjectDrawable<Spinner> {
   SpinnerDrawable({
     required super.hitObject,
-    required super.beatmap,
     required super.difficulty,
     required super.mods,
+    required super.comboColor,
+    required super.comboNumber,
   });
 
   static final Paint _borderPaint = Paint()

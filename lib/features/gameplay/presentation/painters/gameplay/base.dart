@@ -1,4 +1,7 @@
 import 'package:collection/collection.dart';
+import 'package:flosu/features/gameplay/presentation/painters/gameplay/hit_objects/hit_circle.dart';
+import 'package:flosu/features/gameplay/presentation/painters/gameplay/hit_objects/slider.dart';
+import 'package:flosu/features/gameplay/presentation/painters/gameplay/hit_objects/spinner.dart';
 import 'package:flosu/shared/domain/mod/mod.dart';
 import 'package:flosu/shared/domain/beatmap/beatmap.dart';
 import 'package:flosu/shared/domain/beatmap/hit_object/hit_object.dart';

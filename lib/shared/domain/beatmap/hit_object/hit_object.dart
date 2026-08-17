@@ -9,6 +9,7 @@ import '../beatmap.dart';
 part "hit_circle.dart";
 part "slider.dart";
 part "spinner.dart";
+part "nested_hit_object.dart";
 
 /// Base class for hit objects of the beatmap.
 // Hierarchy of classes
@@ -34,4 +35,21 @@ sealed class HitObjectWithEndTime extends HitObject {
 
   /// Duration of object.
   int get duration => endTime - time;
+}
+
+/// A nested object of a [HitObject]
+///
+/// This class is used to represent the subobjects
+/// for sliders (the body) and spinners (the body).
+class NestedHitObject extends HitObject {
+  NestedHitObject({required this.parent, required this.spanIndex});
+
+  final HitObject parent;
+  final int spanIndex;
+
+  /// The angle this nested object needs to rotate.
+  double angle = 0.0;
+
+  bool isJudged = false;
+  bool isHit = false;
 }

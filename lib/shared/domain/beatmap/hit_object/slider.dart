@@ -16,6 +16,17 @@ class Slider extends HitObjectWithEndTime {
   /// Points of slider path.
   final List<Offset> _points = [];
 
+  final List<NestedHitObject> _nestedHitObjects = [];
+
+  void clearNestedHitObjects() => _nestedHitObjects.clear();
+
+  void addNestedHitObject(NestedHitObject nestedHitObject) {
+    _nestedHitObjects.insert(0, nestedHitObject);
+  }
+
+  List<NestedHitObject> get nestedHitObjects =>
+      .unmodifiable(_nestedHitObjects);
+
   /// Cached path points.
   List<Offset>? _cachedPathPoints;
 
@@ -37,13 +48,11 @@ class Slider extends HitObjectWithEndTime {
   List<double> get pathLengths => _cachedPathLengths ??=
       SliderPath.getPathLengths(pathPoints, _cachedPathLengths);
 
-  // TODO: Calculate the length of the slider path.
   /// Length of slider path.
-  double get length => 0.0;
+  double get length => pathLengths.lastOrNull ?? 0.0;
 
-  // TODO: Calculate the slide duration.
   /// Duration of one slide.
-  double slideDuration(Beatmap beatmap) => 100.0;
+  double get slideDuration => (endTime - time) / slides;
 
   Offset get endPosition {
     if (pathPoints.isEmpty) return position;

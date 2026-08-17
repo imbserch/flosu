@@ -2,9 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:flosu/core/engine/game_loop.dart';
 import 'package:flosu/features/audio/audio.dart';
 import 'package:flosu/features/gameplay/presentation/painters/gameplay/base.dart';
-import 'package:flosu/features/gameplay/presentation/painters/gameplay/hit_objects/hit_circle.dart';
 import 'package:flosu/features/gameplay/presentation/painters/gameplay/hit_objects/slider.dart';
-import 'package:flosu/features/gameplay/presentation/painters/gameplay/hit_objects/spinner.dart';
 import 'package:flosu/features/gameplay/presentation/painters/gameplay/playfield.dart';
 import 'package:flosu/features/settings/domain/settings_provider.dart';
 import 'package:flosu/shared/domain/beatmap/beatmap_selector.dart';
@@ -47,7 +45,6 @@ class _PlayfieldState extends ConsumerState<Playfield> with GameLoopListener {
 
   @override
   void process(double delta) {
-    // TODO (imbserch): Use beatmap for now
     final beatmap = ref.read(beatmapSelector)!;
 
     final mods = ref.read(modSelector);
@@ -76,27 +73,14 @@ class _PlayfieldState extends ConsumerState<Playfield> with GameLoopListener {
 
         if (!alreadyExists) {
           // All objects use same difficulty with mods applied
-          final drawable = switch (object) {
-            HitCircle() => HitCircleDrawable(
-              hitObject: object,
-              beatmap: beatmap,
-              difficulty: difficulty,
-              mods: mods,
-            ),
-            // Set last stored snake state
-            Slider() => SliderDrawable(
-              hitObject: object,
-              beatmap: beatmap,
-              difficulty: difficulty,
-              mods: mods,
-            )..enableSnake = _canSnake,
-            Spinner() => SpinnerDrawable(
-              hitObject: object,
-              beatmap: beatmap,
-              difficulty: difficulty,
-              mods: mods,
-            ),
-          };
+          final drawable = HitObjectDrawable.create(
+            object,
+            beatmap,
+            difficulty,
+            mods,
+            _canSnake,
+          );
+
           newDrawables.add(drawable);
         }
         continue;
@@ -122,9 +106,15 @@ class _PlayfieldState extends ConsumerState<Playfield> with GameLoopListener {
 
   @override
   Widget build(BuildContext context) {
+    final mods = ref.read(modSelector);
+
     return RepaintBoundary(
       child: CustomPaint(
-        painter: PlayfieldPainter(position: _position, drawables: _objects),
+        painter: PlayfieldPainter(
+          position: _position,
+          drawables: _objects,
+          mods: mods,
+        ),
       ),
     );
   }

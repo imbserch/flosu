@@ -16,8 +16,6 @@ class BeatmapSelector extends Notifier<Beatmap?> with Logging {
 
   // Used by another provider
   final difficulty = ValueNotifier(Difficulty());
-  final scoreMultiplier = ValueNotifier(1.0);
-  final ranked = ValueNotifier(true);
 
   @override
   Beatmap? build() {
@@ -43,19 +41,7 @@ class BeatmapSelector extends Notifier<Beatmap?> with Logging {
   }
 
   void _listenMods(Set<Mod> mods) {
-    Difficulty modsDiff = state?.difficulty ?? Difficulty();
-    double modsMult = 1;
-    bool isRanked = true;
-
-    for (final mod in mods) {
-      modsDiff = mod.applyTo(modsDiff);
-      modsMult *= mod.scoreMultiplier;
-      if (isRanked) isRanked = mod.ranked;
-    }
-
-    difficulty.value = modsDiff;
-    scoreMultiplier.value = modsMult;
-    ranked.value = isRanked;
+    difficulty.value = state?.difficulty ?? Difficulty();
 
     final audioMod = mods.whereType<AudioModificableMod>().lastOrNull;
 
@@ -89,6 +75,7 @@ class BeatmapSelector extends Notifier<Beatmap?> with Logging {
     bool onlySet = false,
   }) {
     state = beatmap;
+    _listenMods(ref.read(modSelector));
 
     if (onlySet) return;
 
@@ -137,34 +124,26 @@ class BeatmapSelector extends Notifier<Beatmap?> with Logging {
 final beatmapSelector = NotifierProvider(() => BeatmapSelector());
 
 final difficultyProvider = Provider<Difficulty>((ref) {
-  final notifier = ref.read(beatmapSelector.notifier).difficulty;
+  final beatmap = ref.watch(beatmapSelector);
+  final mods = ref.watch(modSelector);
 
-  void listener() => Future.microtask(ref.invalidateSelf);
-  notifier.addListener(listener);
+  if (beatmap == null) return Difficulty();
 
-  ref.onDispose(() => notifier.removeListener(listener));
+  Difficulty modsDiff = beatmap.difficulty;
 
-  return notifier.value;
+  for (final mod in mods) {
+    modsDiff = mod.applyTo(modsDiff);
+  }
+
+  return modsDiff;
 });
 
 final scoreMultiplierProvider = Provider<double>((ref) {
-  final notifier = ref.read(beatmapSelector.notifier).scoreMultiplier;
-
-  void listener() => Future.microtask(ref.invalidateSelf);
-  notifier.addListener(listener);
-
-  ref.onDispose(() => notifier.removeListener(listener));
-
-  return notifier.value;
+  final mods = ref.watch(modSelector);
+  return mods.fold(1, (sm, mod) => sm * mod.scoreMultiplier);
 });
 
 final modsRankedProvider = Provider<bool>((ref) {
-  final notifier = ref.read(beatmapSelector.notifier).ranked;
-
-  void listener() => Future.microtask(ref.invalidateSelf);
-  notifier.addListener(listener);
-
-  ref.onDispose(() => notifier.removeListener(listener));
-
-  return notifier.value;
+  final mods = ref.watch(modSelector);
+  return mods.every((mod) => mod.ranked);
 });

@@ -2,10 +2,13 @@ import 'dart:async';
 
 import 'package:flosu/shared/domain/beatmap/beatmap.dart';
 import 'package:flosu/shared/domain/beatmap/beatmap_selector.dart';
+import 'package:flosu/shared/domain/beatmap/hit_object/hit_object.dart';
+import 'package:flosu/shared/domain/beatmap/hit_object/slider_nested_builder.dart';
 import 'package:flosu/shared/domain/mod/mod_selector.dart';
 import 'package:flosu/shared/domain/replay/replay_selector.dart';
 import 'package:flosu/shared/io.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart' hide Slider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flosu/shared/widgets/osu_cube_loader.dart';
@@ -58,7 +61,8 @@ class _GameplayLoaderPageState extends ConsumerState<GameplayLoaderPage> {
 
     if (replay != null) ref.read(modSelector.notifier).setMods(replay.mods);
 
-    if (!beatmap.canPlay) {
+    // Always reescan beatmaps in debug mode
+    if (!beatmap.canPlay || kDebugMode) {
       // Beatmap is updated in-place so it can be re-used
       final result = await ref
           .read(ioProvider)
@@ -66,6 +70,13 @@ class _GameplayLoaderPageState extends ConsumerState<GameplayLoaderPage> {
 
       assert(result.data is Beatmap);
       beatmap = result.data as Beatmap;
+
+      // Ensure slider nested objects are generated before gameplay starts
+      for (final slider in beatmap.hitObjects.whereType<Slider>()) {
+        slider.generateNestedObjects(beatmap);
+        // Allow UI updates and prevent blocking main thread
+        await null;
+      }
     }
 
     await Future.delayed(const Duration(seconds: 2));

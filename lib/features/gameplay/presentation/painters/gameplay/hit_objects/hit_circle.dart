@@ -13,9 +13,10 @@ import 'package:flutter/painting.dart';
 class HitCircleDrawable extends HitObjectDrawable<HitCircle> {
   HitCircleDrawable({
     required super.hitObject,
-    required super.beatmap,
     required super.difficulty,
     required super.mods,
+    required super.comboColor,
+    required super.comboNumber,
   });
 
   static final Paint _bodyPaint = Paint()..strokeCap = .round;
@@ -39,7 +40,15 @@ class HitCircleDrawable extends HitObjectDrawable<HitCircle> {
     super.paint(c, position);
 
     // Directly paint from helper function
-    paintHitCircle(c, position, color, comboNumber, beatmap, hitObject, mods);
+    paintHitCircle(
+      c,
+      position,
+      comboColor,
+      comboNumber,
+      difficulty,
+      hitObject,
+      mods,
+    );
   }
 
   static void paintHitCircle(
@@ -47,7 +56,7 @@ class HitCircleDrawable extends HitObjectDrawable<HitCircle> {
     double position,
     Color color,
     int number,
-    Beatmap beatmap,
+    Difficulty difficulty,
     HitObject hitObject,
     Set<Mod> mods,
   ) {
@@ -55,14 +64,14 @@ class HitCircleDrawable extends HitObjectDrawable<HitCircle> {
     final Color secondaryColor = Color.lerp(color, Colors.black, 1 / 3)!;
     final Color tertiaryColor = Color.lerp(color, Colors.black, 2 / 3)!;
 
+    final radius = difficulty.radius;
     final center = hitObject is Slider
         ? hitObject.pathPoints[0]
         : hitObject.position;
 
-    final radius = beatmap.difficulty.radius;
-
     final isHidden = mods.containsMod(.hidden);
     final isTraceable = mods.containsMod(.traceable);
+    final isHardRock = mods.containsMod(.hardRock);
 
     // Default values
     late double opacity, scale;
@@ -70,7 +79,7 @@ class HitCircleDrawable extends HitObjectDrawable<HitCircle> {
     // Approach circle scaling calculations
     switch (position) {
       case _ when position < hitObject.time:
-        final expanded = hitObject.time - beatmap.difficulty.preempt;
+        final expanded = hitObject.time - difficulty.preempt;
         final shrink = hitObject.time;
 
         final t = Interpolation.inverseLerp(expanded, shrink, position);
@@ -79,15 +88,15 @@ class HitCircleDrawable extends HitObjectDrawable<HitCircle> {
         scale = 1.0;
     }
 
-    final preempt = beatmap.difficulty.preempt;
-
-    final preemptTime = hitObject.time - preempt;
+    final preemptTime = hitObject.time - difficulty.preempt;
 
     // HitTime - preempt * 0.6
-    final fadeInTime = hitObject.time - (preempt * (1 - HIDDEN_FADE_IN_MULT));
+    final fadeInTime =
+        hitObject.time - (difficulty.preempt * (1 - HIDDEN_FADE_IN_MULT));
 
     // HitTime - preempt * 0.3
-    final fadeOutTime = hitObject.time - (preempt * HIDDEN_FADE_IN_MULT);
+    final fadeOutTime =
+        hitObject.time - (difficulty.preempt * HIDDEN_FADE_IN_MULT);
 
     // Opacity calculations
     switch (position) {
@@ -172,6 +181,14 @@ class HitCircleDrawable extends HitObjectDrawable<HitCircle> {
     }
 
     if (!isTraceable) {
+      if (isHardRock) {
+        c
+          ..save()
+          ..translate(center.dx, center.dy)
+          ..scale(1, -1)
+          ..translate(-center.dx, -center.dy);
+      }
+
       // Combo number.
       final textPainter = TextPainter(
         text: TextSpan(
@@ -187,6 +204,8 @@ class HitCircleDrawable extends HitObjectDrawable<HitCircle> {
       final textOffset = Offset(textPainter.width / 2, textPainter.height / 2);
 
       textPainter.paint(c, center - textOffset);
+
+      if (isHardRock) c.restore();
     }
   }
 }

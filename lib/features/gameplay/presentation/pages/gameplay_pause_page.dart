@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flosu/core/theme/app_colors.dart';
+import 'package:flosu/features/audio/audio.dart';
 import 'package:flosu/shared/domain/mod/mod_selector.dart';
 import 'package:flosu/shared/domain/replay/replay_selector.dart';
 import 'package:flosu/shared/layout/main_layout_provider.dart';
@@ -38,6 +39,7 @@ class _PausePageState extends AnimatablePageState<PausePage>
   // Clean up
   @override
   void dispose() {
+    final track = globalRef.read(trackProvider.notifier);
     final layout = globalRef.read(mainLayoutProvider.notifier);
     final replay = globalRef.read(replaySelector.notifier);
     final mods = globalRef.read(modSelector.notifier);
@@ -49,10 +51,12 @@ class _PausePageState extends AnimatablePageState<PausePage>
         case PauseExitAction.resume:
           // Lock drawers
           layout.setDrawersLocked(true);
+          track.resume();
         case PauseExitAction.quit:
           // Set previous state
           replay.clearReplay();
-          mods.revert();
+          track.resume();
+          mods.clearMods();
         case PauseExitAction.reset:
           // No-op (Replay can be replayed)
           break;

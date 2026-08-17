@@ -37,10 +37,10 @@ class Easy extends ModificableMod {
   @override
   Difficulty applyTo(Difficulty difficulty) {
     final newDifficulty = Difficulty()
-      ..circleSize = difficulty.circleSize / 2
-      ..approachRate = difficulty.approachRate / 2
-      ..overallDifficulty = difficulty.overallDifficulty / 2
-      ..hpDrain = difficulty.hpDrain / 2
+      ..circleSize = (difficulty.circleSize * 0.5).clamp(0, 10)
+      ..approachRate = (difficulty.approachRate * 0.5).clamp(0, 10)
+      ..overallDifficulty = (difficulty.overallDifficulty * 0.5).clamp(0, 10)
+      ..hpDrain = (difficulty.hpDrain * 0.5).clamp(0, 10)
       ..sliderMultiplier = difficulty.sliderMultiplier
       ..sliderTickRate = difficulty.sliderTickRate;
 

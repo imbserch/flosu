@@ -16,10 +16,13 @@ import 'package:flutter/painting.dart';
 class SliderDrawable extends HitObjectDrawable<Slider> {
   SliderDrawable({
     required super.hitObject,
-    required super.beatmap,
     required super.difficulty,
     required super.mods,
+    required super.comboColor,
+    required super.comboNumber,
   }) {
+    //
+
     // Simulate slider being hold at hitTime
     sliderHandled(hitObject.time.toDouble());
   }
@@ -27,7 +30,7 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
   @override
   bool isExpired(double position) {
     // Ensure animations are rendered for some milliseconds after the end of the slider
-    return position > hitObject.endTime + beatmap.difficulty.preempt;
+    return position > hitObject.endTime + difficulty.preempt;
   }
 
   static final Paint _bodyPaint = Paint()
@@ -44,7 +47,16 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
     ..strokeJoin = .round;
 
   // If this slider can snake
-  bool enableSnake = false;
+  bool _enableSnake = false;
+  bool get enableSnake => _enableSnake;
+
+  set enableSnake(bool value) {
+    if (_enableSnake != value) {
+      _enableSnake = value;
+      _cachedVersion = 0;
+      _cachedPath.reset();
+    }
+  }
 
   // If the slider is hold by user,
   // the ball will appear at the current
@@ -69,8 +81,12 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
   final _cachedPath = Path();
   int _cachedVersion = 0;
 
-  late final Color borderColor = color;
-  late final Color backgroundColor = Color.lerp(color, Colors.black, 2 / 3)!;
+  late final Color borderColor = comboColor;
+  late final Color backgroundColor = Color.lerp(
+    comboColor,
+    Colors.black,
+    2 / 3,
+  )!;
 
   /// Normalised position of the slider ball along the full path, [0.0, 1.0].
   ///
@@ -86,11 +102,11 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
       return hitObject.slides.isEven ? 0.0 : 1.0;
     }
 
-    final slideElapsed = elapsed % hitObject.slideDuration(beatmap);
-    final slideProgress = slideElapsed / hitObject.slideDuration(beatmap);
+    final slideElapsed = elapsed % hitObject.slideDuration;
+    final slideProgress = slideElapsed / hitObject.slideDuration;
 
     // Even slides go forward, odd slides reverse.
-    final slideIdx = elapsed ~/ hitObject.slideDuration(beatmap);
+    final slideIdx = elapsed ~/ hitObject.slideDuration;
     return slideIdx.isEven ? slideProgress : 1.0 - slideProgress;
   }
 
@@ -105,7 +121,7 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
       return hitObject.slides.isEven ? -1 : 1;
     }
     // Even slides go forward, odd slides reverse.
-    final slideIdx = elapsed ~/ hitObject.slideDuration(beatmap);
+    final slideIdx = elapsed ~/ hitObject.slideDuration;
     return slideIdx.isEven ? 1 : -1;
   }
 
@@ -115,13 +131,12 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
 
     // If the slider is growing because it will appear
     // 16 ms is the threshold for slider full render
-    if (position <= hitObject.time - beatmap.difficulty.preempt / 6) {
+    if (position <= hitObject.time - difficulty.preempt / 6) {
       return _cachedVersion + 1;
     }
 
     final lastSlideStartTime =
-        hitObject.time +
-        (hitObject.slides - 1) * hitObject.slideDuration(beatmap);
+        hitObject.time + (hitObject.slides - 1) * hitObject.slideDuration;
 
     if (position > lastSlideStartTime) {
       return _cachedVersion + 1;
@@ -137,6 +152,53 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
     // if slider cache is removed, this will keep working
     if (!enableSnake) return hitObject.pathPoints;
 
+    if (position > hitObject.endTime) return [];
+
+    // If the slider is growing because it will appear
+    // at any moment
+    if (position < hitObject.time) {
+      final shrink = hitObject.time - difficulty.preempt;
+      final expanded =
+          hitObject.time - (difficulty.preempt * (1 - HIDDEN_FADE_IN_MULT));
+
+      final progress = Interpolation.inverseLerp(shrink, expanded, position);
+      final index = hitObject.indexAt(progress);
+      final offset = hitObject.positionAt(progress);
+
+      final points = hitObject.pathPoints.sublist(0, max(0, index));
+      return [...points, offset];
+    }
+
+    final lastSlideStartTime =
+        hitObject.time + (hitObject.slides - 1) * hitObject.slideDuration;
+
+    // If the slider is shrinking
+    // from full length because it's the last slide
+    if (position > lastSlideStartTime) {
+      final isForward = (hitObject.slides - 1).isEven;
+      final expanded = lastSlideStartTime;
+
+      // If is forward, progress goes from 0 to 1
+      // If is backward, progress goes from 1 to 0
+      final progress = isForward
+          ? (position - expanded) / hitObject.slideDuration
+          : 1.0 - (position - expanded) / hitObject.slideDuration;
+
+      final index = hitObject.indexAt(progress);
+      final offset = hitObject.positionAt(progress);
+
+      // If is forward: slider is drawing from index to end (0 to n)
+      // If is backward: slider is drawing from 0 to index
+      final points = isForward
+          ? hitObject.pathPoints.sublist(index)
+          : hitObject.pathPoints.sublist(0, index);
+
+      // If is forward, add interpolated offset at the beggining
+      // If is backward, add interpolated offset at the end
+      final output = [if (isForward) offset, ...points, if (!isForward) offset];
+      return output;
+    }
+
     return hitObject.pathPoints;
   }
 
@@ -145,22 +207,113 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
     super.paint(c, position);
 
     _paintBody(c, position);
-    _paintEnds(c, position);
 
-    // if (position >= hitObject.time) _paintBall(c, position);
+    for (final nestedObject in hitObject.nestedHitObjects) {
+      switch (nestedObject) {
+        case SliderTick tick:
+          _paintTick(c, position, tick);
+          break;
+        case SliderRepeat repeat:
+          _paintRepeat(c, position, repeat);
+          break;
+        case SliderEnd _:
+          // Osu!lazer Argon skin don't draw ends
+          break;
 
-    // Paint using hit circle
-    if (position < hitObject.time) {
-      HitCircleDrawable.paintHitCircle(
-        c,
-        position,
-        color,
-        comboNumber,
-        beatmap,
-        hitObject,
-        mods,
-      );
+        case SliderHead _:
+          if (position < hitObject.time) {
+            HitCircleDrawable.paintHitCircle(
+              c,
+              position,
+              comboColor,
+              comboNumber,
+              difficulty,
+              hitObject,
+              mods,
+            );
+          }
+          break;
+      }
     }
+
+    if (position >= hitObject.time) _paintBall(c, position);
+  }
+
+  void _paintTick(Canvas c, double position, SliderTick tick) {
+    if (position >= tick.time) return;
+
+    final slideTime =
+        hitObject.time + (tick.spanIndex * hitObject.slideDuration);
+
+    final tickDelta = (tick.time - slideTime) / 2;
+
+    final opacity = Interpolation.inverseLerp(
+      tick.time - tickDelta - 80,
+      tick.time - tickDelta,
+      position,
+    ).clamp(0.0, 1.0);
+
+    if (opacity == 0.0) return;
+
+    c.drawArc(
+      .fromCircle(center: tick.position, radius: radius / 16),
+      0,
+      2 * pi,
+      false,
+      Paint()
+        ..style = .stroke
+        ..color = borderColor.withValues(alpha: opacity)
+        ..strokeWidth = radius / 16
+        ..strokeCap = .round,
+    );
+  }
+
+  void _paintRepeat(Canvas c, double position, SliderRepeat repeat) {
+    if (position > repeat.time) return;
+
+    final opacity = Interpolation.inverseLerp(
+      repeat.time - (hitObject.slideDuration * 1 - HIDDEN_FADE_IN_MULT),
+      repeat.time - (hitObject.slideDuration * HIDDEN_FADE_OUT_MULT),
+      position,
+    ).clamp(0.0, 1.0);
+
+    if (opacity == 0.0) return;
+
+    c
+      ..save()
+      ..translate(repeat.position.dx, repeat.position.dy)
+      ..rotate(repeat.angle)
+      ..drawPoints(
+        .lines,
+        [const Offset(-10, 0), const Offset(10, 0)],
+        _arrowPaint
+          ..strokeWidth = radius / 2
+          ..color = Colors.white.withValues(alpha: opacity),
+      )
+      ..rotate(repeat.spanIndex.isOdd ? 0 : pi)
+      ..drawPoints(
+        .polygon,
+        // Arrow shape: ^
+        [
+          Offset(-radius / 32, radius / 8),
+          Offset(radius / 32, 0),
+          Offset(-radius / 32, -radius / 8),
+        ],
+        _arrowPaint
+          ..strokeWidth = radius / 16
+          ..color = backgroundColor,
+      )
+      ..drawArc(
+        .fromCircle(center: .zero, radius: radius),
+        pi / 2,
+        pi,
+        false,
+        _arrowPaint
+          ..strokeWidth = radius / 6
+          ..color = Colors.white.withValues(alpha: opacity),
+      )
+      ..restore();
+    ;
   }
 
   void _paintBody(Canvas c, double position) {
@@ -169,7 +322,7 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
 
     late double opacity;
 
-    final preempt = beatmap.difficulty.preempt;
+    final preempt = difficulty.preempt;
 
     final preemptTime = hitObject.time - preempt;
 
@@ -178,7 +331,7 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
 
     switch (position) {
       // Hidden fade out (Doesn't count snaking)
-      case _ when isHidden && position >= hitObject.time:
+      case _ when (isHidden || isTraceable) && position >= hitObject.time:
         final t = Interpolation.inverseLerp(
           hitObject.endTime,
           hitObject.time,
@@ -221,17 +374,18 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
 
         // Check if path need to be recomputed
         if (version > _cachedVersion) {
-          final sliderPoints = _sliderPoints(position);
-
-          if (_cachedVersion != 0) _cachedPath.reset();
-          _cachedPath.addPolygon(sliderPoints, false);
-
+          _cachedPath
+            ..reset()
+            ..addPolygon(_sliderPoints(position), false);
           _cachedVersion = version;
         }
       case false:
         // Only add points if not added yet
         if (_cachedVersion == 0) {
-          _cachedPath.addPolygon(hitObject.pathPoints, false);
+          _cachedPath
+            ..reset()
+            ..addPolygon(hitObject.pathPoints, false);
+          _cachedVersion = 1;
         }
     }
 
@@ -277,97 +431,8 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
     c.restore();
   }
 
-  void _paintEnds(Canvas c, double position) {
-    // Don't paint first paint because
-    // hitCircle is considered an end.
-    final ends = hitObject.slides - 1;
-
-    if (ends <= 0) return;
-
-    for (int i = 0; i < ends; i++) {
-      double opacity = 1.0, scale = 1.0;
-      late Offset pointA, pointB;
-
-      final isForward = (i + 1).isEven;
-      final endTime =
-          hitObject.time + (i + 1) * hitObject.slideDuration(beatmap);
-
-      if (position < endTime) {
-        final hidden = endTime - (beatmap.difficulty.preempt / 6);
-        final visible = endTime;
-
-        final t = ((position - hidden) / (visible - hidden));
-        opacity = t.clamp(0.0, 1.0);
-      } else {
-        final start = endTime;
-        final end = endTime + (beatmap.difficulty.preempt / 12);
-
-        final t = ((position - start) / (end - start));
-
-        opacity = 1 - t.clamp(0.0, 1.0);
-        scale = (3 / 2) - (opacity / 2);
-      }
-
-      if (opacity == 0) continue;
-
-      if (isForward) {
-        // Forward
-        pointA = hitObject.positionAt(0);
-        pointB = hitObject.positionAt(EPSILON);
-      } else {
-        pointA = hitObject.positionAt(1);
-        pointB = hitObject.positionAt(1 - EPSILON);
-      }
-
-      final angle = (pointB - pointA).direction + (pi / 2);
-
-      final offsetDirection = Offset.fromDirection(angle - pi / 2, radius / 4);
-
-      final reverseAPoint = pointA - offsetDirection;
-      final reverseBPoint = pointA + offsetDirection;
-
-      c.drawPoints(
-        .lines,
-        [reverseAPoint, reverseBPoint],
-        _arrowPaint
-          ..strokeWidth = scale * (radius / 2)
-          ..color = Colors.white.withValues(alpha: opacity),
-      );
-
-      c
-        ..save()
-        ..translate(pointA.dx, pointA.dy)
-        ..rotate(angle - (pi / 2))
-        ..drawPoints(
-          .polygon,
-          // Arrow shape: ^
-          [
-            Offset(-radius / 32, radius / 8),
-            Offset(radius / 32, 0),
-            Offset(-radius / 32, -radius / 8),
-          ],
-          _arrowPaint
-            ..strokeWidth = radius / 16
-            ..color = backgroundColor,
-        )
-        ..restore();
-
-      c.drawArc(
-        .fromCircle(center: pointA, radius: scale * radius),
-        angle,
-        pi,
-        false,
-        _arrowPaint
-          ..strokeWidth = radius / 6
-          ..color = Colors.white.withValues(alpha: opacity),
-      );
-    }
-  }
-
   /// Draws the animated slider ball at the position corresponding to
   /// the current audio [position].
-  // TODO (imbserch): Fix buggy implementation
-  // ignore: unused_element
   void _paintBall(Canvas c, double position) {
     // If slider has ended, set slider release
     if (position > hitObject.endTime && _sliderHandled) {
@@ -389,7 +454,7 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
 
     if (_sliderHandled) {
       final shrink = _sliderHandlePosition;
-      final full = shrink + beatmap.difficulty.preempt / 6;
+      final full = shrink + difficulty.preempt / 6;
 
       final relativeT = ((position - shrink) / (full - shrink));
       t = Curves.easeOut.transform(relativeT.clamp(0.0, 1.0));
@@ -397,7 +462,7 @@ class SliderDrawable extends HitObjectDrawable<Slider> {
       scale = 1 + t;
     } else {
       final full = _sliderHandlePosition;
-      final overflow = full + beatmap.difficulty.preempt / 6;
+      final overflow = full + difficulty.preempt / 6;
 
       final relativeT = ((position - full) / (overflow - full));
       t = 1 - Curves.easeOut.transform(relativeT.clamp(0.0, 1.0));

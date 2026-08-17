@@ -2,7 +2,6 @@ import 'package:flosu/features/audio/audio.dart';
 import 'package:flosu/features/song_select/domain/beatmap_library.dart';
 import 'package:flosu/shared/domain/beatmap/beatmap_selector.dart';
 import 'package:flosu/features/song_select/presentation/widgets/beatmap_info.dart';
-import 'package:flosu/shared/domain/beatmap/beatmap.dart';
 import 'package:flosu/shared/input.dart';
 import 'package:flosu/features/song_select/presentation/widgets/beatmap_list.dart';
 import 'package:flosu/shared/widgets/actions_bar.dart';
@@ -84,9 +83,7 @@ class _SongSelectPageState extends AnimatablePageState<SongSelectPage>
   @override
   Widget buildPage(BuildContext context) {
     final beatmap = ref.watch(beatmapSelector);
-    final beatmapDifficulty = beatmap?.difficulty;
-
-    final difficulty = beatmapDifficulty ?? Difficulty();
+    final difficulty = ref.watch(difficultyProvider);
 
     return Stack(
       alignment: .bottomCenter,

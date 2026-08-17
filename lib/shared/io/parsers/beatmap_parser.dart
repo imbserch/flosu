@@ -210,8 +210,6 @@ class BeatmapParser extends IoParser<Beatmap> {
           if (beatmap.canPlay) break;
 
           for (final row in objectRows) {
-            final last = beatmap.hitObjects.lastOrNull;
-
             final x = parseDouble(row[0], SPINNER_CENTRE.dx);
             final y = parseDouble(row[1], SPINNER_CENTRE.dy);
 
@@ -231,21 +229,17 @@ class BeatmapParser extends IoParser<Beatmap> {
                 ? 1
                 : 0;
 
-            print(
-              "[${"$bitmask".padLeft(3, " ")}] New combo: $newCombo, skip $comboSkip colors",
-            );
-
             final hitObject = switch (type) {
               HitObjectType.circle =>
                 HitCircle()
                   ..time = time
                   ..position = position
                   ..comboSkip = skip,
-              // TODO (imbserch): Calculate end times
               HitObjectType.slider => _parseSlider(
                 time,
                 position,
                 row,
+                beatmap,
               )..comboSkip = skip,
               HitObjectType.spinner =>
                 Spinner()
@@ -347,16 +341,45 @@ class BeatmapParser extends IoParser<Beatmap> {
     return beatmap;
   }
 
-  Slider _parseSlider(int time, Offset position, List<String> raw) {
+  Slider _parseSlider(
+    int time,
+    Offset position,
+    List<String> raw,
+    Beatmap partial,
+  ) {
     final rawData = raw[5].split("|");
     final slides = parseInt(raw[6], 1);
+    final length = parseDouble(raw[7], 0);
 
     final type = rawData.removeAt(0);
 
+    final normalTiming = partial.timings.whereType<NormalTiming>().lastWhere(
+      (timing) => timing.time <= time,
+      orElse: () =>
+          partial.timings.whereType<NormalTiming>().firstOrNull ??
+          const NormalTiming(-100000, 1000, 4, 100, false),
+    );
+
+    final inheritedTiming = partial.timings
+        .whereType<InheritedTiming>()
+        .lastWhere(
+          (t) => t.time <= time && t.time >= normalTiming.time,
+          orElse: () => const InheritedTiming(0, -100, 4, 100, false),
+        );
+
+    final double velocityMultiplier = (inheritedTiming.beatLength < 0)
+        ? (-100.0 / inheritedTiming.beatLength)
+        : 1.0;
+
+    double pixelsPerBeat =
+        100.0 * partial.difficulty.sliderMultiplier * velocityMultiplier;
+    if (pixelsPerBeat <= 0) pixelsPerBeat = 100.0;
+
+    final slideDuration = (length * normalTiming.beatLength) / pixelsPerBeat;
+
     final slider = Slider()
       ..time = time
-      // TODO: Calculate end time
-      ..endTime = time + 1000
+      ..endTime = (time + (slideDuration * slides)).round()
       ..slides = slides
       ..position = position
       ..curveType = .parse(type);

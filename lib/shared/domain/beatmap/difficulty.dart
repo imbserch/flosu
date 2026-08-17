@@ -37,4 +37,8 @@ class Difficulty {
   /// The stack threshold time.
   @ignore
   double get stackThreshold => preempt * stackLeniency;
+
+  @ignore
+  double get tickDistance =>
+      sliderTickRate > 0 ? (100 * sliderMultiplier) / sliderTickRate : 0.0;
 }

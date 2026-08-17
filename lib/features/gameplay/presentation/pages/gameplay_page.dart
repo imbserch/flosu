@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flosu/features/audio/audio.dart';
 import 'package:flosu/shared/domain/beatmap/beatmap_selector.dart';
 import 'package:flosu/shared/domain/mod/mod_selector.dart';
 import 'package:flosu/shared/domain/replay/replay_selector.dart';
@@ -67,7 +68,11 @@ class _GameplayPageState extends AnimatablePageState<GameplayPage>
   } */
 
   bool _pause() {
+    final track = globalRef.read(trackProvider.notifier);
+    track.pause();
+
     if (mounted) context.go("/gameplay/pause");
+
     return true;
   }
 

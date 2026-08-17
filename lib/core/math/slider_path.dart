@@ -128,10 +128,19 @@ class SliderPath {
     List<double> pathLengths,
     double t,
   ) {
+    if (pathPoints.isEmpty) return Offset.zero;
+    if (pathPoints.length == 1) return pathPoints.first;
+
     final clamped = t.clamp(0.0, 1.0);
+
+    final totalLength = pathLengths.last;
+    if (totalLength == 0) return pathPoints.first;
+
+    final desiredLength = clamped * totalLength;
     final index = indexAt(pathPoints, pathLengths, t);
 
-    if (index == 0) return pathPoints.first;
+    if (index <= 0) return pathPoints.first;
+    if (index >= pathPoints.length) return pathPoints.last;
 
     final double prevLength = pathLengths[index - 1];
     final double nextLength = pathLengths[index];
@@ -139,8 +148,12 @@ class SliderPath {
 
     final double tSegment = segmentLength == 0
         ? 0.0
-        : (clamped - prevLength) / segmentLength;
+        : (desiredLength - prevLength) / segmentLength;
 
-    return Offset.lerp(pathPoints[index - 1], pathPoints[index], tSegment)!;
+    return Offset.lerp(
+      pathPoints[index - 1],
+      pathPoints[index],
+      tSegment.clamp(0.0, 1.0),
+    )!;
   }
 }
